@@ -12,8 +12,8 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-const VALID_REGIONS = ["All", "NE", "SE", "N Cent", "S Cent", "NW", "SW", "HI", "AK"];
-const VALID_SURROUNDINGS = ["All", "Rural/Xurban", "Suburban/Town", "Urban/City", "Highway"];
+const VALID_REGIONS = ["All", "NE", "SE", "N Cent", "S Cent", "NW + AK", "SW + HI"];
+const VALID_SURROUNDINGS = ["All", "Rural / Xurban", "Suburban / Town", "Urban / City", "Highway", "Coast"];
 const VALID_DAY_NIGHT = ["Day", "Night"];
 const VALID_AGES = ["Young", "Kid", "Tween"];
 const VALID_FINDABILITIES = ["High", "Medium", "Low"];
@@ -125,7 +125,7 @@ Return only the JSON array, no explanation.`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: systemPrompt },
@@ -253,7 +253,7 @@ Return only the JSON array, no other text.`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       max_completion_tokens: 4096,
       messages: [
         { role: "system", content: systemPrompt },
