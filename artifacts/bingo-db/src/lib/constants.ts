@@ -1,5 +1,5 @@
-export const REGIONS = ["All", "NE", "SE", "N Cent", "S Cent", "NW", "SW", "HI", "AK"] as const;
-export const SURROUNDINGS = ["All", "Rural/Xurban", "Suburban/Town", "Urban/City", "Highway"] as const;
+export const REGIONS = ["All", "NE", "SE", "N Cent", "S Cent", "NW + AK", "SW + HI"] as const;
+export const SURROUNDINGS = ["All", "Rural / Xurban", "Suburban / Town", "Urban / City", "Highway", "Coast"] as const;
 export const DAY_NIGHT = ["Day", "Night"] as const;
 export const AGES = ["Young", "Kid", "Tween"] as const;
 export const FINDABILITY = ["High", "Medium", "Low"] as const;
