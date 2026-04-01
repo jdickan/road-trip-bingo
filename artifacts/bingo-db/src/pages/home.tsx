@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
 import WordToolbar from "@/components/WordToolbar";
@@ -18,49 +18,30 @@ export default function Home() {
   const [filters, setFilters] = useState<ListWordsParams>({ limit: 500, offset: 0 });
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [compact, setCompact] = useState<CompactLevel>("none");
-  const mainRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
-  const ticking = useRef(false);
 
-  // Three-level scroll-aware header:
+  // Three-level scroll-aware header driven by WordTable's inner scroll div:
   //   "none"    → all rows visible (at top)
   //   "partial" → brand row hidden, tabs+search still visible
   //   "full"    → brand + tabs + search hidden; only filter row sticks
-  const handleScroll = useCallback(() => {
-    if (ticking.current) return;
-    ticking.current = true;
-    requestAnimationFrame(() => {
-      const el = mainRef.current;
-      if (el) {
-        const y = el.scrollTop;
-        const delta = y - lastScrollY.current;
-        lastScrollY.current = y;
+  const handleTableScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const delta = y - lastScrollY.current;
+    lastScrollY.current = y;
 
-        if (y <= 40) {
-          // Back at top — restore everything
-          setCompact("none");
-        } else if (delta > 6) {
-          // Scrolling DOWN
-          setCompact((prev) => {
-            if (prev === "none") return "partial";
-            if (prev === "partial" && y > 160) return "full";
-            return prev;
-          });
-        } else if (delta < -6) {
-          // Scrolling UP — restore tabs+search immediately
-          setCompact((prev) => (prev === "full" ? "partial" : prev));
-        }
-      }
-      ticking.current = false;
-    });
+    if (y <= 40) {
+      setCompact("none");
+    } else if (delta > 6) {
+      setCompact((prev) => {
+        if (prev === "none") return "partial";
+        if (prev === "partial" && y > 160) return "full";
+        return prev;
+      });
+    } else if (delta < -6) {
+      setCompact((prev) => (prev === "full" ? "partial" : prev));
+    }
   }, []);
-
-  useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
 
   function handleSelectBoard(boardName: string | null) {
     setSelectedBoard(boardName);
@@ -72,7 +53,8 @@ export default function Home() {
     setTab("words");
     setFilters({ limit: 500, offset: 0 });
     setSelectedBoard(null);
-    if (mainRef.current) mainRef.current.scrollTop = 0;
+    if (tableScrollRef.current) tableScrollRef.current.scrollTop = 0;
+    lastScrollY.current = 0;
     setCompact("none");
   }
 
@@ -192,9 +174,13 @@ export default function Home() {
       </header>
 
       {/* Main scrollable content */}
-      <main ref={mainRef} className="flex-1 overflow-auto p-4 flex flex-col">
+      <main className="flex-1 overflow-auto p-4 flex flex-col">
         {tab === "words" ? (
-          <WordTable filters={filters} />
+          <WordTable
+            filters={filters}
+            scrollRef={tableScrollRef}
+            onScroll={handleTableScroll}
+          />
         ) : tab === "boards" ? (
           <BoardsPanel onSelectBoard={handleSelectBoard} selectedBoard={selectedBoard} />
         ) : tab === "definitions" ? (

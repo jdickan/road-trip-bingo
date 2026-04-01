@@ -23,7 +23,13 @@ import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
 
-export default function WordTable({ filters }: { filters: ListWordsParams }) {
+interface WordTableProps {
+  filters: ListWordsParams;
+  scrollRef?: React.Ref<HTMLDivElement>;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+}
+
+export default function WordTable({ filters, scrollRef, onScroll }: WordTableProps) {
   const [page, setPage] = useState(0);
   const limit = filters.limit || 100;
   const offset = page * limit;
@@ -72,7 +78,7 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-card border rounded-md shadow-sm">
-      <div className="flex-1 overflow-auto">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-auto">
         <Table>
           <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
             <TableRow>
