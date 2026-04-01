@@ -55,6 +55,11 @@ export const ListWordsResponse = zod.object({
         .array(zod.string())
         .describe("e.g. General, Flora & Fauna, Chaos, etc."),
       notes: zod.string().nullable(),
+      spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+      emoji: zod
+        .string()
+        .nullable()
+        .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -73,6 +78,8 @@ export const createWordBodyFindabilityDefault = null;
 export const createWordBodySeasonsDefault = [`All`];
 export const createWordBodyBoardsDefault = [];
 export const createWordBodyNotesDefault = null;
+export const createWordBodySpanishDefault = null;
+export const createWordBodyEmojiDefault = null;
 
 export const CreateWordBody = zod.object({
   word: zod.string(),
@@ -86,6 +93,8 @@ export const CreateWordBody = zod.object({
   seasons: zod.array(zod.string()).default(createWordBodySeasonsDefault),
   boards: zod.array(zod.string()).default(createWordBodyBoardsDefault),
   notes: zod.string().nullish().default(createWordBodyNotesDefault),
+  spanish: zod.string().nullish().default(createWordBodySpanishDefault),
+  emoji: zod.string().nullish().default(createWordBodyEmojiDefault),
 });
 
 /**
@@ -114,6 +123,8 @@ export const GetWordResponse = zod.object({
     .array(zod.string())
     .describe("e.g. General, Flora & Fauna, Chaos, etc."),
   notes: zod.string().nullable(),
+  spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+  emoji: zod.string().nullable().describe("System emoji representing the word"),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -135,6 +146,8 @@ export const UpdateWordBody = zod.object({
   seasons: zod.array(zod.string()).optional(),
   boards: zod.array(zod.string()).optional(),
   notes: zod.string().nullish(),
+  spanish: zod.string().nullish(),
+  emoji: zod.string().nullish(),
 });
 
 export const UpdateWordResponse = zod.object({
@@ -156,6 +169,8 @@ export const UpdateWordResponse = zod.object({
     .array(zod.string())
     .describe("e.g. General, Flora & Fauna, Chaos, etc."),
   notes: zod.string().nullable(),
+  spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+  emoji: zod.string().nullable().describe("System emoji representing the word"),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -201,6 +216,11 @@ export const ExportWordsResponse = zod.object({
         .array(zod.string())
         .describe("e.g. General, Flora & Fauna, Chaos, etc."),
       notes: zod.string().nullable(),
+      spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+      emoji: zod
+        .string()
+        .nullable()
+        .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -262,6 +282,11 @@ export const AutofillWordsResponse = zod.object({
         .array(zod.string())
         .describe("e.g. General, Flora & Fauna, Chaos, etc."),
       notes: zod.string().nullable(),
+      spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+      emoji: zod
+        .string()
+        .nullable()
+        .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),

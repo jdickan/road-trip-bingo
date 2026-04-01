@@ -76,22 +76,24 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
         <Table>
           <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
             <TableRow>
-              <TableHead className="w-[200px] font-semibold text-xs tracking-wider uppercase">Word</TableHead>
-              <TableHead className="w-[150px] font-semibold text-xs tracking-wider uppercase">Region</TableHead>
-              <TableHead className="w-[150px] font-semibold text-xs tracking-wider uppercase">Surroundings</TableHead>
-              <TableHead className="w-[120px] font-semibold text-xs tracking-wider uppercase">Day/Night</TableHead>
-              <TableHead className="w-[110px] font-semibold text-xs tracking-wider uppercase">Age</TableHead>
-              <TableHead className="w-[120px] font-semibold text-xs tracking-wider uppercase">Findability</TableHead>
-              <TableHead className="w-[150px] font-semibold text-xs tracking-wider uppercase">Season</TableHead>
-              <TableHead className="w-[200px] font-semibold text-xs tracking-wider uppercase">Boards</TableHead>
-              <TableHead className="min-w-[150px] font-semibold text-xs tracking-wider uppercase">Notes</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[180px] font-semibold text-xs tracking-wider uppercase">Word</TableHead>
+              <TableHead className="w-[60px] font-semibold text-xs tracking-wider uppercase">Emoji</TableHead>
+              <TableHead className="w-[150px] font-semibold text-xs tracking-wider uppercase">Spanish</TableHead>
+              <TableHead className="w-[130px] font-semibold text-xs tracking-wider uppercase">Region</TableHead>
+              <TableHead className="w-[140px] font-semibold text-xs tracking-wider uppercase">Surroundings</TableHead>
+              <TableHead className="w-[100px] font-semibold text-xs tracking-wider uppercase">Day/Night</TableHead>
+              <TableHead className="w-[90px] font-semibold text-xs tracking-wider uppercase">Age</TableHead>
+              <TableHead className="w-[100px] font-semibold text-xs tracking-wider uppercase">Findability</TableHead>
+              <TableHead className="w-[130px] font-semibold text-xs tracking-wider uppercase">Season</TableHead>
+              <TableHead className="w-[180px] font-semibold text-xs tracking-wider uppercase">Boards</TableHead>
+              <TableHead className="min-w-[140px] font-semibold text-xs tracking-wider uppercase">Notes</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="text-sm">
             {isLoading && !data ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center">
+                <TableCell colSpan={12} className="h-24 text-center">
                   <div className="flex items-center justify-center text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading words...
                   </div>
@@ -99,7 +101,7 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
               </TableRow>
             ) : data?.words.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
                   No words found. Try adjusting your filters or adding a new word.
                 </TableCell>
               </TableRow>
@@ -108,6 +110,12 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
                 <TableRow key={word.id} className="group hover:bg-muted/30 transition-colors">
                   <TableCell className="p-1 align-top font-medium">
                     <CellEditor word={word} field="word" type="text" />
+                  </TableCell>
+                  <TableCell className="p-1 align-top text-center">
+                    <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-lg font-normal" />
+                  </TableCell>
+                  <TableCell className="p-1 align-top">
+                    <CellEditor word={word} field="spanish" type="text" placeholder="Traducción..." />
                   </TableCell>
                   <TableCell className="p-1 align-top">
                     <CellEditor word={word} field="regions" type="multi-select" badgeType="region" options={REGIONS} />
@@ -149,7 +157,7 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
             )}
             {/* Add row */}
             <TableRow className="bg-muted/10 hover:bg-muted/20">
-              <TableCell colSpan={10} className="p-2">
+              <TableCell colSpan={12} className="p-2">
                 <form onSubmit={handleAddWord} className="flex items-center gap-2">
                   <Plus className="h-4 w-4 text-muted-foreground ml-2" />
                   <Input

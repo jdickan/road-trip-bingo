@@ -19,4 +19,8 @@ export interface UpdateWordBody {
   boards?: string[];
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  spanish?: string | null;
+  /** @nullable */
+  emoji?: string | null;
 }

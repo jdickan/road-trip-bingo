@@ -31,6 +31,16 @@ export interface Word {
   boards: string[];
   /** @nullable */
   notes: string | null;
+  /**
+   * Mexican Spanish translation
+   * @nullable
+   */
+  spanish: string | null;
+  /**
+   * System emoji representing the word
+   * @nullable
+   */
+  emoji: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

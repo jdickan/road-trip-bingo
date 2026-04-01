@@ -94,6 +94,8 @@ function mapWordRow(row: typeof wordsTable.$inferSelect) {
     seasons: row.seasons ?? [],
     boards: row.boards ?? [],
     notes: row.notes ?? null,
+    spanish: row.spanish ?? null,
+    emoji: row.emoji ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -226,6 +228,8 @@ router.post("/words", async (req, res): Promise<void> => {
       seasons: parsed.data.seasons ?? ["All"],
       boards: parsed.data.boards ?? [],
       notes: parsed.data.notes ?? null,
+      spanish: parsed.data.spanish ?? null,
+      emoji: parsed.data.emoji ?? null,
     })
     .returning();
 
@@ -277,6 +281,8 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
   if (parsed.data.seasons !== undefined) updateData.seasons = parsed.data.seasons;
   if (parsed.data.boards !== undefined) updateData.boards = parsed.data.boards;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+  if (parsed.data.spanish !== undefined) updateData.spanish = parsed.data.spanish;
+  if (parsed.data.emoji !== undefined) updateData.emoji = parsed.data.emoji;
 
   const [word] = await db
     .update(wordsTable)

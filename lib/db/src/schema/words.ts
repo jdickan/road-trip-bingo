@@ -13,6 +13,8 @@ export const wordsTable = pgTable("bingo_words", {
   seasons: text("seasons").array().notNull().default(["All"]),
   boards: text("boards").array().notNull().default([]),
   notes: text("notes"),
+  spanish: text("spanish"),
+  emoji: text("emoji"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

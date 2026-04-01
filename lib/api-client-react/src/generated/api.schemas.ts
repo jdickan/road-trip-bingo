@@ -38,6 +38,16 @@ export interface Word {
   boards: string[];
   /** @nullable */
   notes: string | null;
+  /**
+   * Mexican Spanish translation
+   * @nullable
+   */
+  spanish: string | null;
+  /**
+   * System emoji representing the word
+   * @nullable
+   */
+  emoji: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +70,10 @@ export interface CreateWordBody {
   boards?: string[];
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  spanish?: string | null;
+  /** @nullable */
+  emoji?: string | null;
 }
 
 export interface UpdateWordBody {
@@ -75,6 +89,10 @@ export interface UpdateWordBody {
   boards?: string[];
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  spanish?: string | null;
+  /** @nullable */
+  emoji?: string | null;
 }
 
 export type WordStatsByFindability = { [key: string]: number };

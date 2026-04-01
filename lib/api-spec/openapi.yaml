@@ -334,6 +334,12 @@ components:
           description: "e.g. General, Flora & Fauna, Chaos, etc."
         notes:
           type: ["string", "null"]
+        spanish:
+          type: ["string", "null"]
+          description: "Mexican Spanish translation"
+        emoji:
+          type: ["string", "null"]
+          description: "System emoji representing the word"
         createdAt:
           type: string
           format: date-time
@@ -351,6 +357,8 @@ components:
         - seasons
         - boards
         - notes
+        - spanish
+        - emoji
         - createdAt
         - updatedAt
 
@@ -406,6 +414,12 @@ components:
         notes:
           type: ["string", "null"]
           default: null
+        spanish:
+          type: ["string", "null"]
+          default: null
+        emoji:
+          type: ["string", "null"]
+          default: null
       required:
         - word
 
@@ -439,6 +453,10 @@ components:
           items:
             type: string
         notes:
+          type: ["string", "null"]
+        spanish:
+          type: ["string", "null"]
+        emoji:
           type: ["string", "null"]
 
     WordStats:

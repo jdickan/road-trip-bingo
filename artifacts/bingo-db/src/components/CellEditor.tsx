@@ -16,9 +16,11 @@ interface CellEditorProps {
   options?: readonly string[];
   type?: "text" | "single-select" | "multi-select";
   badgeType?: "findability" | "age" | "season" | "region" | "surroundings" | "board" | "dayNight";
+  placeholder?: string;
+  className?: string;
 }
 
-export function CellEditor({ word, field, options, type = "text", badgeType }: CellEditorProps) {
+export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className }: CellEditorProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<any>(word[field as keyof Word]);
   const updateMutation = useUpdateWord();
@@ -83,8 +85,8 @@ export function CellEditor({ word, field, options, type = "text", badgeType }: C
         value={value || ""}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleTextBlur}
-        className="h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
-        placeholder={`Add ${field}...`}
+        className={`h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0${className ? ` ${className}` : ""}`}
+        placeholder={placeholder ?? `Add ${field}...`}
       />
     );
   }

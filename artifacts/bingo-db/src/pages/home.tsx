@@ -4,10 +4,12 @@ import WordTable from "@/components/WordTable";
 import WordToolbar from "@/components/WordToolbar";
 import StatsSidebar from "@/components/StatsSidebar";
 import BoardsPanel from "@/components/BoardsPanel";
+import ThemePanel from "@/components/ThemePanel";
 import { cn } from "@/lib/utils";
-import { TableIcon, LayoutGrid } from "lucide-react";
+import { TableIcon, LayoutGrid, Palette } from "lucide-react";
+import appIcon from "@assets/icon-512_1775010520611.png";
 
-type Tab = "words" | "boards";
+type Tab = "words" | "boards" | "theme";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
@@ -33,8 +35,8 @@ export default function Home() {
       <header className="border-b bg-card sticky top-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
-              B
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0">
+              <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-bold text-lg leading-tight tracking-tight">Road Trip Bingo</h1>
@@ -77,6 +79,19 @@ export default function Home() {
             <LayoutGrid className="h-3.5 w-3.5" />
             Boards
           </button>
+          <button
+            onClick={() => setTab("theme")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+              tab === "theme"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+            data-testid="tab-theme"
+          >
+            <Palette className="h-3.5 w-3.5" />
+            Theme
+          </button>
         </div>
 
         {/* Word toolbar only shows on words tab */}
@@ -95,11 +110,13 @@ export default function Home() {
       <main className="flex-1 overflow-auto p-4 flex flex-col">
         {tab === "words" ? (
           <WordTable filters={filters} />
-        ) : (
+        ) : tab === "boards" ? (
           <BoardsPanel
             onSelectBoard={handleSelectBoard}
             selectedBoard={selectedBoard}
           />
+        ) : (
+          <ThemePanel />
         )}
       </main>
     </div>
