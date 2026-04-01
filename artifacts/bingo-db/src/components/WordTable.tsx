@@ -34,12 +34,14 @@ const TAG_GRID = "90px 150px 96px 78px 100px 128px 155px 1fr 32px";
 
 type Layout = "two-line" | "classic";
 
+const LAYOUT_KEY = "bingo-table-layout-v2";
+
 function loadLayout(): Layout {
   try {
-    const v = localStorage.getItem("bingo-table-layout");
+    const v = localStorage.getItem(LAYOUT_KEY);
     if (v === "classic" || v === "two-line") return v;
   } catch {}
-  return "two-line";
+  return "classic";
 }
 
 export default function WordTable({ filters, scrollRef, onScroll }: WordTableProps) {
@@ -62,7 +64,7 @@ export default function WordTable({ filters, scrollRef, onScroll }: WordTablePro
   function toggleLayout() {
     setLayout((l) => {
       const next: Layout = l === "two-line" ? "classic" : "two-line";
-      try { localStorage.setItem("bingo-table-layout", next); } catch {}
+      try { localStorage.setItem(LAYOUT_KEY, next); } catch {}
       return next;
     });
   }
@@ -305,7 +307,7 @@ function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => 
   return (
     <div
       className="group hover:bg-muted/20 transition-colors"
-      style={{ borderTop: "1px solid var(--row-divider)" }}
+      style={{ borderTop: "2px solid var(--row-divider)" }}
     >
       {/* ── Line 1: Identity — emoji · word · spanish ── */}
       <div className="flex items-center gap-2 px-3 pt-6 pb-3">

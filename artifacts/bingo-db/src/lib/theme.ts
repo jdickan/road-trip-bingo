@@ -19,7 +19,7 @@ export const DEFAULTS: ThemeValue = {
   bgSat: 33,
   radius: 0.5,
   darkMode: false,
-  rowDividerOpacity: 0.18,
+  rowDividerOpacity: 0.38,
 };
 
 export function getSystemDark(): boolean {
