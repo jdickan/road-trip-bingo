@@ -76,8 +76,8 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
         <Table>
           <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
             <TableRow>
-              <TableHead className="w-[180px] font-semibold text-xs tracking-wider uppercase">Word</TableHead>
               <TableHead className="w-[60px] font-semibold text-xs tracking-wider uppercase">Emoji</TableHead>
+              <TableHead className="w-[180px] font-semibold text-xs tracking-wider uppercase">Word</TableHead>
               <TableHead className="w-[150px] font-semibold text-xs tracking-wider uppercase">Spanish</TableHead>
               <TableHead className="w-[130px] font-semibold text-xs tracking-wider uppercase">Region</TableHead>
               <TableHead className="w-[140px] font-semibold text-xs tracking-wider uppercase">Surroundings</TableHead>
@@ -108,11 +108,11 @@ export default function WordTable({ filters }: { filters: ListWordsParams }) {
             ) : (
               data?.words.map((word: Word) => (
                 <TableRow key={word.id} className="group hover:bg-muted/30 transition-colors">
-                  <TableCell className="p-1 align-top font-medium">
-                    <CellEditor word={word} field="word" type="text" />
-                  </TableCell>
                   <TableCell className="p-1 align-top text-center">
                     <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-lg font-normal" />
+                  </TableCell>
+                  <TableCell className="p-1 align-top font-medium">
+                    <CellEditor word={word} field="word" type="text" />
                   </TableCell>
                   <TableCell className="p-1 align-top">
                     <CellEditor word={word} field="spanish" type="text" placeholder="Traducción..." />

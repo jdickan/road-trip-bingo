@@ -34,15 +34,23 @@ export default function Home() {
       {/* Header */}
       <header className="border-b bg-card sticky top-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            title="Reset to home"
+            onClick={() => {
+              setTab("words");
+              setFilters({ limit: 500, offset: 0 });
+              setSelectedBoard(null);
+            }}
+          >
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0">
               <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
             </div>
-            <div>
+            <div className="text-left">
               <h1 className="font-bold text-lg leading-tight tracking-tight">Road Trip Bingo</h1>
               <p className="text-xs text-muted-foreground font-medium">Data Cockpit</p>
             </div>
-          </div>
+          </button>
           <StatsSidebar />
         </div>
 

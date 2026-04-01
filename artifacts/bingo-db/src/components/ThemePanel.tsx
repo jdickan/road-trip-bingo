@@ -27,12 +27,25 @@ const DEFAULTS: ThemeValue = {
 
 const STORAGE_KEY = "bingo-theme-v1";
 
+function getSystemDark(): boolean {
+  return typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 function loadTheme(): ThemeValue {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // If darkMode was never explicitly saved, use system preference
+      if (parsed.darkMode === undefined) {
+        parsed.darkMode = getSystemDark();
+      }
+      return { ...DEFAULTS, ...parsed };
+    }
   } catch {}
-  return { ...DEFAULTS };
+  // No saved theme — default to system preference
+  return { ...DEFAULTS, darkMode: getSystemDark() };
 }
 
 function applyTheme(t: ThemeValue) {
@@ -99,12 +112,27 @@ export default function ThemePanel() {
     applyTheme(loadTheme());
   }, []);
 
+  // Listen for system color scheme changes (only affects if user hasn't saved a preference)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      // Only follow system if no explicit pref saved (i.e. no STORAGE_KEY)
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        setTheme((prev) => ({ ...prev, darkMode: e.matches }));
+      }
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const update = useCallback((partial: Partial<ThemeValue>) => {
     setTheme((prev) => ({ ...prev, ...partial }));
   }, []);
 
   const reset = () => {
-    setTheme({ ...DEFAULTS });
+    localStorage.removeItem(STORAGE_KEY);
+    const systemDark = getSystemDark();
+    setTheme({ ...DEFAULTS, darkMode: systemDark });
   };
 
   return (
