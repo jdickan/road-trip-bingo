@@ -310,15 +310,15 @@ function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => 
       style={{ borderTop: "2px solid var(--row-divider)" }}
     >
       {/* ── Line 1: Identity — emoji · word · spanish ── */}
-      <div className="flex items-center gap-2 px-3 pt-6 pb-3">
-        <div className="shrink-0 w-8 text-center">
-          <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-base font-normal" />
+      <div className="flex items-center gap-3 px-3 pt-10 pb-5">
+        <div className="shrink-0 w-10 text-center">
+          <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-2xl font-normal" />
         </div>
-        <div className="font-semibold text-sm min-w-0">
+        <div className="font-semibold text-xl min-w-0">
           <CellEditor word={word} field="word" type="text" />
         </div>
-        <span className="text-muted-foreground/40 text-sm shrink-0">·</span>
-        <div className="text-sm text-muted-foreground min-w-0 flex-1">
+        <span className="text-muted-foreground/40 text-xl shrink-0">·</span>
+        <div className="text-xl text-muted-foreground min-w-0 flex-1">
           <CellEditor word={word} field="spanish" type="text" placeholder="Traducción..." />
         </div>
         <button
@@ -327,13 +327,13 @@ function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => 
           data-testid={`btn-delete-word-${word.id}`}
           title="Delete word"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-5 w-5" />
         </button>
       </div>
 
       {/* ── Line 2: Tag columns ── */}
       <div
-        className="px-3 pt-1 pb-6"
+        className="px-3 pt-2 pb-10"
         style={{ display: "grid", gridTemplateColumns: TAG_GRID, columnGap: "4px" }}
       >
         <div className="min-w-0"><CellEditor word={word} field="regions" type="multi-select" badgeType="region" options={REGIONS} /></div>
