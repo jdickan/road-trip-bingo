@@ -14,9 +14,10 @@ import ExportModal from "./ExportModal";
 interface WordToolbarProps {
   filters: ListWordsParams;
   setFilters: React.Dispatch<React.SetStateAction<ListWordsParams>>;
+  onClearBoard?: () => void;
 }
 
-export default function WordToolbar({ filters, setFilters }: WordToolbarProps) {
+export default function WordToolbar({ filters, setFilters, onClearBoard }: WordToolbarProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -29,11 +30,15 @@ export default function WordToolbar({ filters, setFilters }: WordToolbarProps) {
       const newFilters = { ...prev, [key]: value === "all" ? undefined : value, offset: 0 };
       return newFilters;
     });
+    if (key === "board" && (value === "all" || !value)) {
+      onClearBoard?.();
+    }
   };
 
   const clearFilters = () => {
     setSearchQuery("");
     setFilters({ limit: 500, offset: 0 });
+    onClearBoard?.();
   };
 
   const hasActiveFilters = Object.keys(filters).some(

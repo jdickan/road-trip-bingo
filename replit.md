@@ -16,17 +16,38 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Project: Road Trip Bingo Word Database
+
+A full-stack spreadsheet-style web editor for managing bingo word entries.
+
+### Features
+- **Words tab**: 421 seeded words with multi-value tags (regions, surroundings, day/night, age, findability, seasons, boards), inline editing, color-coded badges, filtering/search, AI autofill, AI word suggestions, JSON export
+- **Boards tab**: 28 boards (15 active/formal + 1 draft + 12 concept) shown as cards with status badges, word counts, difficulty, age levels, season info. Clicking a board filters the word table.
+- Database: `bingo_words` and `bingo_boards` PostgreSQL tables
+- Seed: `lib/db/seed-excel.mjs` parses the Excel source file (`attached_assets/Bingo_word_database-4_...xlsx`)
+
+### API Routes
+- `GET/POST /api/words` — list and create words
+- `PATCH/DELETE /api/words/:id` — update/delete a word
+- `GET /api/words/stats` — stats by field
+- `GET/POST /api/boards` — list and create boards
+- `GET/PATCH/DELETE /api/boards/:id` — single board operations
+- `POST /api/ai/suggest` — AI word suggestions
+- `POST /api/ai/autofill` — AI autofill for incomplete words
+
 ## Structure
 
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── bingo-db/           # React + Vite frontend (Road Trip Bingo Data Cockpit)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
+│       └── seed-excel.mjs  # Excel seed script for words + boards
 ├── scripts/                # Utility scripts (single workspace package)
 │   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
 ├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
