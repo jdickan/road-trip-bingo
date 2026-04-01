@@ -11,17 +11,21 @@ import { TableIcon, LayoutGrid, Palette, BookOpen } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
 type Tab = "words" | "boards" | "definitions" | "theme";
+type CompactLevel = "none" | "partial" | "full";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
   const [filters, setFilters] = useState<ListWordsParams>({ limit: 500, offset: 0 });
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
-  const [headerCompact, setHeaderCompact] = useState(false);
+  const [compact, setCompact] = useState<CompactLevel>("none");
   const mainRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
-  // Scroll-aware header: logo/stats row hides on scroll-down, reveals on scroll-up
+  // Three-level scroll-aware header:
+  //   "none"    → all rows visible (at top)
+  //   "partial" → brand row hidden, tabs+search still visible
+  //   "full"    → brand + tabs + search hidden; only filter row sticks
   const handleScroll = useCallback(() => {
     if (ticking.current) return;
     ticking.current = true;
@@ -30,14 +34,22 @@ export default function Home() {
       if (el) {
         const y = el.scrollTop;
         const delta = y - lastScrollY.current;
-        if (y <= 48) {
-          setHeaderCompact(false);
-        } else if (delta > 6) {
-          setHeaderCompact(true);   // scrolling down → hide brand row
-        } else if (delta < -6) {
-          setHeaderCompact(false);  // scrolling up → reveal brand row
-        }
         lastScrollY.current = y;
+
+        if (y <= 40) {
+          // Back at top — restore everything
+          setCompact("none");
+        } else if (delta > 6) {
+          // Scrolling DOWN
+          setCompact((prev) => {
+            if (prev === "none") return "partial";
+            if (prev === "partial" && y > 160) return "full";
+            return prev;
+          });
+        } else if (delta < -6) {
+          // Scrolling UP — restore tabs+search immediately
+          setCompact((prev) => (prev === "full" ? "partial" : prev));
+        }
       }
       ticking.current = false;
     });
@@ -60,21 +72,23 @@ export default function Home() {
     setTab("words");
     setFilters({ limit: 500, offset: 0 });
     setSelectedBoard(null);
-    // Scroll back to top
     if (mainRef.current) mainRef.current.scrollTop = 0;
+    setCompact("none");
   }
+
+  const brandHidden = compact !== "none";
+  const tabsHidden = compact === "full";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      {/* Sticky header */}
-      <header className="border-b bg-card sticky top-0 z-20 shadow-sm">
+      <header className="border-b bg-card sticky top-0 z-20 shadow-sm overflow-hidden">
 
-        {/* Brand row — slides away when scrolling down */}
+        {/* ── Brand row: slides away when scrolled ── */}
         <div
-          className="overflow-hidden transition-all duration-300 ease-in-out"
+          className="transition-all duration-300 ease-in-out overflow-hidden"
           style={{
-            maxHeight: headerCompact ? "0px" : "64px",
-            opacity: headerCompact ? 0 : 1,
+            maxHeight: brandHidden ? "0px" : "64px",
+            opacity: brandHidden ? 0 : 1,
           }}
         >
           <div className="px-4 py-3 flex items-center justify-between">
@@ -95,58 +109,83 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Tab row — always sticky */}
-        <div className={cn("flex items-center gap-0 px-4", !headerCompact && "border-t")}>
-          {/* Compact logo shown when brand is hidden */}
-          {headerCompact && (
-            <button
-              onClick={resetHome}
-              className="mr-3 shrink-0 hover:opacity-70 transition-opacity"
-              title="Reset to home"
-            >
-              <div className="w-7 h-7 rounded-lg overflow-hidden shadow-sm">
-                <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
-              </div>
-            </button>
-          )}
+        {/* ── Tab row + search row: also slides away on deep scroll ── */}
+        <div
+          className="transition-all duration-300 ease-in-out overflow-hidden"
+          style={{
+            maxHeight: tabsHidden ? "0px" : "160px",
+            opacity: tabsHidden ? 0 : 1,
+          }}
+        >
+          {/* Divider only visible when brand row is showing */}
+          <div className={cn(!brandHidden && "border-t")} />
 
-          {(
-            [
-              { id: "words", icon: <TableIcon className="h-3.5 w-3.5" />, label: "Words" },
-              { id: "boards", icon: <LayoutGrid className="h-3.5 w-3.5" />, label: "Boards" },
-              { id: "definitions", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Definitions" },
-              { id: "theme", icon: <Palette className="h-3.5 w-3.5" />, label: "Theme" },
-            ] as const
-          ).map(({ id, icon, label }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-                tab === id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-              )}
-              data-testid={`tab-${id}`}
-            >
-              {icon}
-              {label}
-              {id === "words" && selectedBoard && (
-                <span className="ml-1 px-1.5 py-0 text-[10px] rounded-full bg-primary/15 text-primary font-semibold">
-                  {selectedBoard}
-                </span>
-              )}
-            </button>
-          ))}
+          {/* Tab row */}
+          <div className="flex items-center gap-0 px-4">
+            {/* Mini logo when brand is hidden */}
+            {brandHidden && (
+              <button
+                onClick={resetHome}
+                className="mr-3 shrink-0 hover:opacity-70 transition-opacity"
+                title="Reset to home"
+              >
+                <div className="w-7 h-7 rounded-lg overflow-hidden shadow-sm">
+                  <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
+                </div>
+              </button>
+            )}
+
+            {(
+              [
+                { id: "words", icon: <TableIcon className="h-3.5 w-3.5" />, label: "Words" },
+                { id: "boards", icon: <LayoutGrid className="h-3.5 w-3.5" />, label: "Boards" },
+                { id: "definitions", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Definitions" },
+                { id: "theme", icon: <Palette className="h-3.5 w-3.5" />, label: "Theme" },
+              ] as const
+            ).map(({ id, icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  tab === id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                )}
+                data-testid={`tab-${id}`}
+              >
+                {icon}
+                {label}
+                {id === "words" && selectedBoard && (
+                  <span className="ml-1 px-1.5 py-0 text-[10px] rounded-full bg-primary/15 text-primary font-semibold">
+                    {selectedBoard}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Search + action buttons row — words tab only */}
+          {tab === "words" && (
+            <div className="border-t bg-muted/30 px-4 py-2">
+              <WordToolbar
+                filters={filters}
+                setFilters={setFilters}
+                onClearBoard={() => setSelectedBoard(null)}
+                section="search"
+              />
+            </div>
+          )}
         </div>
 
-        {/* Word toolbar — only on words tab, always sticky */}
+        {/* ── Filter row: always sticky (words tab only) ── */}
         {tab === "words" && (
-          <div className="border-t bg-muted/30 px-4 py-2">
+          <div className={cn("border-t bg-muted/20 px-4 py-2")}>
             <WordToolbar
               filters={filters}
               setFilters={setFilters}
               onClearBoard={() => setSelectedBoard(null)}
+              section="filters"
             />
           </div>
         )}

@@ -26,9 +26,11 @@ interface WordToolbarProps {
   filters: ListWordsParams;
   setFilters: React.Dispatch<React.SetStateAction<ListWordsParams>>;
   onClearBoard?: () => void;
+  /** "search" = top row only; "filters" = dropdowns only; default = both */
+  section?: "search" | "filters";
 }
 
-export default function WordToolbar({ filters, setFilters, onClearBoard }: WordToolbarProps) {
+export default function WordToolbar({ filters, setFilters, onClearBoard, section }: WordToolbarProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddValue, setQuickAddValue] = useState("");
@@ -93,169 +95,178 @@ export default function WordToolbar({ filters, setFilters, onClearBoard }: WordT
     (k) => !["limit", "offset", "search"].includes(k) && filters[k as keyof ListWordsParams] !== undefined
   ) || !!filters.search;
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Search + quick-add */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <form onSubmit={handleSearch} className="relative flex items-center w-full max-w-xs">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search words..."
-              className="pl-9 bg-background w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="input-search"
-            />
-          </form>
+  const showSearch = !section || section === "search";
+  const showFilters = !section || section === "filters";
 
-          {/* Quick add toggle */}
-          {quickAddOpen ? (
-            <form onSubmit={handleQuickAdd} className="flex items-center gap-1.5">
+  return (
+    <div className="flex flex-col gap-2">
+      {/* ── Search row ── */}
+      {showSearch && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <form onSubmit={handleSearch} className="relative flex items-center w-full max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                ref={quickAddRef}
-                placeholder="New word name…"
-                className="h-9 text-sm bg-background w-44"
-                value={quickAddValue}
-                onChange={(e) => setQuickAddValue(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") { setQuickAddOpen(false); setQuickAddValue(""); } }}
-                data-testid="input-quick-add-toolbar"
+                type="search"
+                placeholder="Search words..."
+                className="pl-9 bg-background w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                data-testid="input-search"
               />
-              <Button
-                type="submit"
-                size="sm"
-                className="h-9 text-xs px-3"
-                disabled={!quickAddValue.trim() || createMutation.isPending}
-                data-testid="btn-quick-add-toolbar"
-              >
-                {createMutation.isPending ? "Adding…" : "Add"}
-              </Button>
-              <button
-                type="button"
-                onClick={() => { setQuickAddOpen(false); setQuickAddValue(""); }}
-                className="p-1 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </form>
-          ) : (
+
+            {quickAddOpen ? (
+              <form onSubmit={handleQuickAdd} className="flex items-center gap-1.5">
+                <Input
+                  ref={quickAddRef}
+                  placeholder="New word name…"
+                  className="h-9 text-sm bg-background w-44"
+                  value={quickAddValue}
+                  onChange={(e) => setQuickAddValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") { setQuickAddOpen(false); setQuickAddValue(""); }
+                  }}
+                  data-testid="input-quick-add-toolbar"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 text-xs px-3"
+                  disabled={!quickAddValue.trim() || createMutation.isPending}
+                  data-testid="btn-quick-add-toolbar"
+                >
+                  {createMutation.isPending ? "Adding…" : "Add"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setQuickAddOpen(false); setQuickAddValue(""); }}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </form>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs shrink-0"
+                onClick={handleQuickAddToggle}
+                data-testid="btn-open-quick-add"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Word
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <SuggestWordsModal />
+            <AutofillPanel />
+            <ExportModal filters={filters} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Filter row ── */}
+      {showFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={filters.region || "all"} onValueChange={(v) => handleFilterChange("region", v)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs bg-background" data-testid="select-region">
+              <SelectValue placeholder="Region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Regions</SelectItem>
+              {REGIONS.filter(r => r !== "All").map(r => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.surroundings || "all"} onValueChange={(v) => handleFilterChange("surroundings", v)}>
+            <SelectTrigger className="w-[130px] h-8 text-xs bg-background" data-testid="select-surroundings">
+              <SelectValue placeholder="Surroundings" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Surr.</SelectItem>
+              {SURROUNDINGS.filter(s => s !== "All").map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.age || "all"} onValueChange={(v) => handleFilterChange("age", v)}>
+            <SelectTrigger className="w-[110px] h-8 text-xs bg-background" data-testid="select-age">
+              <SelectValue placeholder="Age" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Ages</SelectItem>
+              {AGES.map(a => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.findability || "all"} onValueChange={(v) => handleFilterChange("findability", v)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs bg-background" data-testid="select-findability">
+              <SelectValue placeholder="Findability" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Findability</SelectItem>
+              {FINDABILITY.map(f => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.season || "all"} onValueChange={(v) => handleFilterChange("season", v)}>
+            <SelectTrigger className="w-[110px] h-8 text-xs bg-background" data-testid="select-season">
+              <SelectValue placeholder="Season" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Seasons</SelectItem>
+              {SEASONS.filter(s => s !== "All").map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.board || "all"} onValueChange={(v) => handleFilterChange("board", v)}>
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-background" data-testid="select-board">
+              <SelectValue placeholder="Board" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Boards</SelectItem>
+              {boardNames.map(b => (
+                <SelectItem key={b} value={b}>{b}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center space-x-2 bg-background border px-3 py-1.5 rounded-md h-8">
+            <Switch
+              id="incomplete-only"
+              checked={!!filters.incomplete}
+              onCheckedChange={(c) => handleFilterChange("incomplete", c ? true : undefined)}
+              data-testid="switch-incomplete"
+            />
+            <Label htmlFor="incomplete-only" className="text-xs cursor-pointer">Incomplete Only</Label>
+          </div>
+
+          {hasActiveFilters && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-9 gap-1.5 text-xs shrink-0"
-              onClick={handleQuickAddToggle}
-              data-testid="btn-open-quick-add"
+              onClick={clearFilters}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              data-testid="btn-clear-filters"
             >
-              <Plus className="h-3.5 w-3.5" />
-              Add Word
+              <X className="h-3 w-3 mr-1" />
+              Clear
             </Button>
           )}
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <SuggestWordsModal />
-          <AutofillPanel />
-          <ExportModal filters={filters} />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={filters.region || "all"} onValueChange={(v) => handleFilterChange("region", v)}>
-          <SelectTrigger className="w-[120px] h-8 text-xs bg-background" data-testid="select-region">
-            <SelectValue placeholder="Region" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Regions</SelectItem>
-            {REGIONS.filter(r => r !== "All").map(r => (
-              <SelectItem key={r} value={r}>{r}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.surroundings || "all"} onValueChange={(v) => handleFilterChange("surroundings", v)}>
-          <SelectTrigger className="w-[130px] h-8 text-xs bg-background" data-testid="select-surroundings">
-            <SelectValue placeholder="Surroundings" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Surr.</SelectItem>
-            {SURROUNDINGS.filter(s => s !== "All").map(s => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.age || "all"} onValueChange={(v) => handleFilterChange("age", v)}>
-          <SelectTrigger className="w-[110px] h-8 text-xs bg-background" data-testid="select-age">
-            <SelectValue placeholder="Age" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Ages</SelectItem>
-            {AGES.map(a => (
-              <SelectItem key={a} value={a}>{a}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.findability || "all"} onValueChange={(v) => handleFilterChange("findability", v)}>
-          <SelectTrigger className="w-[120px] h-8 text-xs bg-background" data-testid="select-findability">
-            <SelectValue placeholder="Findability" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Findability</SelectItem>
-            {FINDABILITY.map(f => (
-              <SelectItem key={f} value={f}>{f}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.season || "all"} onValueChange={(v) => handleFilterChange("season", v)}>
-          <SelectTrigger className="w-[110px] h-8 text-xs bg-background" data-testid="select-season">
-            <SelectValue placeholder="Season" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Seasons</SelectItem>
-            {SEASONS.filter(s => s !== "All").map(s => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.board || "all"} onValueChange={(v) => handleFilterChange("board", v)}>
-          <SelectTrigger className="w-[140px] h-8 text-xs bg-background" data-testid="select-board">
-            <SelectValue placeholder="Board" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Boards</SelectItem>
-            {boardNames.map(b => (
-              <SelectItem key={b} value={b}>{b}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center space-x-2 bg-background border px-3 py-1.5 rounded-md h-8">
-          <Switch 
-            id="incomplete-only" 
-            checked={!!filters.incomplete}
-            onCheckedChange={(c) => handleFilterChange("incomplete", c ? true : undefined)}
-            data-testid="switch-incomplete"
-          />
-          <Label htmlFor="incomplete-only" className="text-xs cursor-pointer">Incomplete Only</Label>
-        </div>
-
-        {hasActiveFilters && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={clearFilters} 
-            className="h-8 text-xs text-muted-foreground hover:text-foreground"
-            data-testid="btn-clear-filters"
-          >
-            <X className="h-3 w-3 mr-1" />
-            Clear
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
