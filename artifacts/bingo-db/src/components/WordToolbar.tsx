@@ -1,15 +1,25 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ListWordsParams } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS } from "@/lib/constants";
+import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS } from "@/lib/constants";
 import { Search, X } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
 import AutofillPanel from "./AutofillPanel";
 import ExportModal from "./ExportModal";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
+
+interface BoardSummary { id: number; name: string; status: string; }
+interface BoardsResponse { boards: BoardSummary[]; }
+
+function fetchBoards(): Promise<BoardsResponse> {
+  return fetch(`${API_BASE}/boards`).then((r) => r.json());
+}
 
 interface WordToolbarProps {
   filters: ListWordsParams;
@@ -19,6 +29,13 @@ interface WordToolbarProps {
 
 export default function WordToolbar({ filters, setFilters, onClearBoard }: WordToolbarProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
+
+  const { data: boardsData } = useQuery<BoardsResponse>({
+    queryKey: ["boards"],
+    queryFn: fetchBoards,
+    staleTime: 60_000,
+  });
+  const boardNames = boardsData?.boards.map((b) => b.name).sort() ?? [];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +151,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard }: WordT
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Boards</SelectItem>
-            {BOARDS.map(b => (
+            {boardNames.map(b => (
               <SelectItem key={b} value={b}>{b}</SelectItem>
             ))}
           </SelectContent>

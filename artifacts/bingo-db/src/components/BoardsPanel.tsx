@@ -385,7 +385,8 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                     ? "border-primary ring-1 ring-primary shadow-sm cursor-default"
                     : isSelected
                       ? "border-primary ring-1 ring-primary shadow-sm cursor-pointer"
-                      : "border-border hover:border-primary/40 hover:shadow-sm cursor-pointer"
+                      : "border-border hover:border-primary/40 hover:shadow-sm cursor-pointer",
+                  board.status === "concept" && !isEditing && !isSelected && "opacity-50 grayscale-[60%]"
                 )}
                 data-testid={`board-card-${board.id}`}
               >
@@ -454,10 +455,13 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                   )}
                 </div>
 
-                {/* Footer row */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                {/* Footer row: word count + inline action buttons */}
+                <div
+                  className="flex items-center justify-between gap-2 pt-2 border-t border-border/60"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    {board.timeOfYear && <span className="truncate max-w-[130px]">{board.timeOfYear}</span>}
+                    {board.timeOfYear && <span className="truncate max-w-[100px]">{board.timeOfYear}</span>}
                     {board.availability && (
                       <>
                         {board.timeOfYear && <span>·</span>}
@@ -465,9 +469,68 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                       </>
                     )}
                   </div>
-                  <span className="text-[11px] font-medium text-primary shrink-0">
-                    {board.wordCount} {board.wordCount === 1 ? "word" : "words"}
-                  </span>
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {/* Word count — always visible */}
+                    <span className="text-[11px] font-medium text-primary shrink-0 mr-1">
+                      {board.wordCount} {board.wordCount === 1 ? "word" : "words"}
+                    </span>
+
+                    {/* Action buttons — show on hover, or always when in edit/delete mode */}
+                    {isEditing ? (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-6 text-[11px] px-2 gap-1"
+                          onClick={(e) => { e.stopPropagation(); saveEdit(board); }}
+                          disabled={patchMutation.isPending}
+                        >
+                          <Save className="h-3 w-3" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[11px] px-2"
+                          onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : !isConfirmingDelete ? (
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          title="Edit board"
+                          onClick={(e) => { e.stopPropagation(); startEdit(board); }}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          title={board.status === "concept" ? "Enable board (set to active)" : "Disable board (set to concept)"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            patchMutation.mutate({ id: board.id, patch: { status: board.status === "concept" ? "active" : "concept" } });
+                          }}
+                          className={cn(
+                            "p-1 rounded hover:bg-muted transition-colors",
+                            board.status === "concept"
+                              ? "text-emerald-600 hover:text-emerald-700"
+                              : "text-muted-foreground hover:text-amber-600"
+                          )}
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          title="Delete board"
+                          onClick={(e) => confirmDelete(board.id, e)}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 {/* Confirm delete bar */}
@@ -493,61 +556,6 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                     </Button>
                   </div>
                 )}
-
-                {/* Action buttons — visible on hover or when editing */}
-                <div
-                  className={cn(
-                    "absolute bottom-3 right-3 flex items-center gap-1 transition-opacity",
-                    isEditing || isConfirmingDelete ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  )}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {isEditing ? (
-                    <>
-                      <Button
-                        size="sm"
-                        className="h-6 text-[11px] px-2 gap-1"
-                        onClick={(e) => { e.stopPropagation(); saveEdit(board); }}
-                        disabled={patchMutation.isPending}
-                      >
-                        <Save className="h-3 w-3" />
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[11px] px-2"
-                        onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        title="Edit board"
-                        onClick={(e) => { e.stopPropagation(); startEdit(board); }}
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="Disable board (set to concept)"
-                        onClick={(e) => { e.stopPropagation(); patchMutation.mutate({ id: board.id, patch: { status: "concept" } }); }}
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-amber-600 transition-colors"
-                      >
-                        <Ban className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="Delete board"
-                        onClick={(e) => confirmDelete(board.id, e)}
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
 
                 {isSelected && !isEditing && (
                   <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-primary" />
