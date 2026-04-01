@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Road Trip Bingo Word Database API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: words
+    description: Bingo word database operations
+  - name: ai
+    description: AI-powered operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,255 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /words:
+    get:
+      operationId: listWords
+      tags: [words]
+      summary: List all bingo words
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: surroundings
+          in: query
+          schema:
+            type: string
+        - name: age
+          in: query
+          schema:
+            type: string
+        - name: findability
+          in: query
+          schema:
+            type: string
+        - name: season
+          in: query
+          schema:
+            type: string
+        - name: board
+          in: query
+          schema:
+            type: string
+        - name: dayNight
+          in: query
+          schema:
+            type: string
+        - name: incomplete
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of words
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WordList"
+
+    post:
+      operationId: createWord
+      tags: [words]
+      summary: Create a new bingo word
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWordBody"
+      responses:
+        "201":
+          description: Created word
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Word"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /words/{id}:
+    get:
+      operationId: getWord
+      tags: [words]
+      summary: Get a single bingo word
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Word details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Word"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateWord
+      tags: [words]
+      summary: Update a bingo word
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWordBody"
+      responses:
+        "200":
+          description: Updated word
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Word"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteWord
+      tags: [words]
+      summary: Delete a bingo word
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /words/export:
+    get:
+      operationId: exportWords
+      tags: [words]
+      summary: Export all words as JSON for the bingo app
+      parameters:
+        - name: board
+          in: query
+          schema:
+            type: string
+        - name: season
+          in: query
+          schema:
+            type: string
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: age
+          in: query
+          schema:
+            type: string
+        - name: findability
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exported word data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WordList"
+
+  /words/stats:
+    get:
+      operationId: getWordStats
+      tags: [words]
+      summary: Get database statistics
+      responses:
+        "200":
+          description: Database stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WordStats"
+
+  /ai/autofill:
+    post:
+      operationId: autofillWords
+      tags: [ai]
+      summary: Use AI to autofill missing tags for words
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutofillRequest"
+      responses:
+        "200":
+          description: Autofill results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutofillResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/suggest:
+    post:
+      operationId: suggestWords
+      tags: [ai]
+      summary: Use AI to suggest new words to add to the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestWordsRequest"
+      responses:
+        "200":
+          description: Suggested words
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestWordsResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +286,250 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Word:
+      type: object
+      properties:
+        id:
+          type: integer
+        word:
+          type: string
+        regions:
+          type: array
+          items:
+            type: string
+          description: "e.g. All, NE, SE, N Cent, S Cent, NW, SW, HI, AK"
+        surroundings:
+          type: array
+          items:
+            type: string
+          description: "e.g. All, Rural/Xurban, Suburban/Town, Urban/City, Highway"
+        dayNight:
+          type: array
+          items:
+            type: string
+          description: "e.g. Day, Night"
+        age:
+          type: ["string", "null"]
+          description: "e.g. Young, Kid, Tween"
+        findability:
+          type: ["string", "null"]
+          description: "e.g. High, Medium, Low"
+        seasons:
+          type: array
+          items:
+            type: string
+          description: "e.g. All, Spring, Summer, Fall, Winter"
+        boards:
+          type: array
+          items:
+            type: string
+          description: "e.g. General, Flora & Fauna, Chaos, etc."
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - word
+        - regions
+        - surroundings
+        - dayNight
+        - age
+        - findability
+        - seasons
+        - boards
+        - notes
+        - createdAt
+        - updatedAt
+
+    WordList:
+      type: object
+      properties:
+        words:
+          type: array
+          items:
+            $ref: "#/components/schemas/Word"
+        total:
+          type: integer
+      required:
+        - words
+        - total
+
+    CreateWordBody:
+      type: object
+      properties:
+        word:
+          type: string
+        regions:
+          type: array
+          items:
+            type: string
+          default: ["All"]
+        surroundings:
+          type: array
+          items:
+            type: string
+          default: []
+        dayNight:
+          type: array
+          items:
+            type: string
+          default: ["Day"]
+        age:
+          type: ["string", "null"]
+          default: null
+        findability:
+          type: ["string", "null"]
+          default: null
+        seasons:
+          type: array
+          items:
+            type: string
+          default: ["All"]
+        boards:
+          type: array
+          items:
+            type: string
+          default: []
+        notes:
+          type: ["string", "null"]
+          default: null
+      required:
+        - word
+
+    UpdateWordBody:
+      type: object
+      properties:
+        word:
+          type: string
+        regions:
+          type: array
+          items:
+            type: string
+        surroundings:
+          type: array
+          items:
+            type: string
+        dayNight:
+          type: array
+          items:
+            type: string
+        age:
+          type: ["string", "null"]
+        findability:
+          type: ["string", "null"]
+        seasons:
+          type: array
+          items:
+            type: string
+        boards:
+          type: array
+          items:
+            type: string
+        notes:
+          type: ["string", "null"]
+
+    WordStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        incomplete:
+          type: integer
+        byFindability:
+          type: object
+          additionalProperties:
+            type: integer
+        byAge:
+          type: object
+          additionalProperties:
+            type: integer
+        bySeason:
+          type: object
+          additionalProperties:
+            type: integer
+        byBoard:
+          type: object
+          additionalProperties:
+            type: integer
+        byRegion:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+        - total
+        - incomplete
+        - byFindability
+        - byAge
+        - bySeason
+        - byBoard
+        - byRegion
+
+    AutofillRequest:
+      type: object
+      properties:
+        wordIds:
+          type: array
+          items:
+            type: integer
+          description: IDs of words to autofill. If empty, autofills all incomplete words.
+        fields:
+          type: array
+          items:
+            type: string
+          description: "Which fields to autofill: regions, surroundings, dayNight, age, findability, seasons, boards"
+      required:
+        - fields
+
+    AutofillResponse:
+      type: object
+      properties:
+        updated:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Word"
+      required:
+        - updated
+        - results
+
+    SuggestWordsRequest:
+      type: object
+      properties:
+        theme:
+          type: ["string", "null"]
+        count:
+          type: integer
+          default: 10
+      required: []
+
+    SuggestWordsResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              word:
+                type: string
+              rationale:
+                type: string
+            required:
+              - word
+              - rationale
+      required:
+        - suggestions
