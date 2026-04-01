@@ -80,7 +80,7 @@ export default function Home() {
   const tabsHidden = compact === "full";
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+    <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
       <header className="border-b bg-card sticky top-0 z-20 shadow-sm overflow-hidden">
 
         {/* ── Brand row: slides away when scrolled ── */}
