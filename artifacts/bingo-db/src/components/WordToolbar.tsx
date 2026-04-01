@@ -1,16 +1,17 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ListWordsParams } from "@workspace/api-client-react";
+import { useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ListWordsParams, useCreateWord } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS } from "@/lib/constants";
-import { Search, X } from "lucide-react";
+import { Search, X, Plus } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
 import AutofillPanel from "./AutofillPanel";
 import ExportModal from "./ExportModal";
+import { useToast } from "@/hooks/use-toast";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 
@@ -29,6 +30,12 @@ interface WordToolbarProps {
 
 export default function WordToolbar({ filters, setFilters, onClearBoard }: WordToolbarProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddValue, setQuickAddValue] = useState("");
+  const quickAddRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const createMutation = useCreateWord();
+  const qc = useQueryClient();
 
   const { data: boardsData } = useQuery<BoardsResponse>({
     queryKey: ["boards"],
@@ -36,6 +43,30 @@ export default function WordToolbar({ filters, setFilters, onClearBoard }: WordT
     staleTime: 60_000,
   });
   const boardNames = boardsData?.boards.map((b) => b.name).sort() ?? [];
+
+  function handleQuickAddToggle() {
+    setQuickAddOpen((o) => {
+      if (!o) setTimeout(() => quickAddRef.current?.focus(), 50);
+      return !o;
+    });
+  }
+
+  function handleQuickAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const word = quickAddValue.trim();
+    if (!word) return;
+    createMutation.mutate(
+      { data: { word } },
+      {
+        onSuccess: () => {
+          setQuickAddValue("");
+          qc.invalidateQueries({ queryKey: ["/api/words"] });
+          qc.invalidateQueries({ queryKey: ["/api/words/stats"] });
+          toast({ title: `"${word}" added` });
+        },
+      }
+    );
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,19 +96,64 @@ export default function WordToolbar({ filters, setFilters, onClearBoard }: WordT
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <form onSubmit={handleSearch} className="relative w-full max-w-sm flex items-center">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search words..."
-            className="pl-9 bg-background w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            data-testid="input-search"
-          />
-        </form>
+        {/* Search + quick-add */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <form onSubmit={handleSearch} className="relative flex items-center w-full max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search words..."
+              className="pl-9 bg-background w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="input-search"
+            />
+          </form>
 
-        <div className="flex items-center gap-2">
+          {/* Quick add toggle */}
+          {quickAddOpen ? (
+            <form onSubmit={handleQuickAdd} className="flex items-center gap-1.5">
+              <Input
+                ref={quickAddRef}
+                placeholder="New word name…"
+                className="h-9 text-sm bg-background w-44"
+                value={quickAddValue}
+                onChange={(e) => setQuickAddValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") { setQuickAddOpen(false); setQuickAddValue(""); } }}
+                data-testid="input-quick-add-toolbar"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                className="h-9 text-xs px-3"
+                disabled={!quickAddValue.trim() || createMutation.isPending}
+                data-testid="btn-quick-add-toolbar"
+              >
+                {createMutation.isPending ? "Adding…" : "Add"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => { setQuickAddOpen(false); setQuickAddValue(""); }}
+                className="p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </form>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs shrink-0"
+              onClick={handleQuickAddToggle}
+              data-testid="btn-open-quick-add"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Word
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
           <SuggestWordsModal />
           <AutofillPanel />
           <ExportModal filters={filters} />
