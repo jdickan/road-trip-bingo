@@ -240,6 +240,47 @@ export default function ThemePanel() {
         </div>
       </div>
 
+      {/* Row divider */}
+      <div className="space-y-3 p-4 rounded-lg border bg-card">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-medium">Row Divider Line</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Strength of the separator line between rows in expanded view
+            </p>
+          </div>
+          <div
+            className="w-16 h-6 rounded shrink-0 border border-border overflow-hidden"
+            style={{ background: theme.darkMode ? "#1a1a1a" : "#f5f5f5" }}
+          >
+            <div
+              className="w-full"
+              style={{
+                height: "1px",
+                marginTop: "11px",
+                background: theme.darkMode
+                  ? `rgba(255,255,255,${theme.rowDividerOpacity})`
+                  : `rgba(0,0,0,${theme.rowDividerOpacity})`,
+              }}
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground w-12">Subtle</span>
+          <Slider
+            min={0} max={0.6} step={0.01}
+            value={[theme.rowDividerOpacity]}
+            onValueChange={([v]) => update({ rowDividerOpacity: v })}
+            className="flex-1"
+          />
+          <span className="text-xs text-muted-foreground w-12 text-right">Strong</span>
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          {Math.round(theme.rowDividerOpacity * 100)}% opacity ·{" "}
+          {theme.darkMode ? "near-white on dark" : "near-black on light"}
+        </p>
+      </div>
+
       {/* Corner radius */}
       <div className="space-y-3 p-4 rounded-lg border bg-card">
         <div className="flex items-center justify-between">

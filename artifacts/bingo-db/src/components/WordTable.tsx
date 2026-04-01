@@ -303,7 +303,10 @@ export default function WordTable({ filters, scrollRef, onScroll }: WordTablePro
 
 function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => void }) {
   return (
-    <div className="group border-b last:border-b-0 hover:bg-muted/20 transition-colors">
+    <div
+      className="group hover:bg-muted/20 transition-colors"
+      style={{ borderTop: "1px solid var(--row-divider)" }}
+    >
       {/* ── Line 1: Identity — emoji · word · spanish ── */}
       <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
         <div className="shrink-0 w-8 text-center">

@@ -8,6 +8,7 @@ export interface ThemeValue {
   bgSat: number;
   radius: number;
   darkMode: boolean;
+  rowDividerOpacity: number;
 }
 
 export const DEFAULTS: ThemeValue = {
@@ -18,6 +19,7 @@ export const DEFAULTS: ThemeValue = {
   bgSat: 33,
   radius: 0.5,
   darkMode: false,
+  rowDividerOpacity: 0.18,
 };
 
 export function getSystemDark(): boolean {
@@ -58,4 +60,11 @@ export function applyTheme(t: ThemeValue) {
   }
 
   root.style.setProperty("--radius", `${t.radius}rem`);
+
+  // Row divider: near-black in light mode, near-white in dark mode
+  const op = t.rowDividerOpacity;
+  const dividerColor = t.darkMode
+    ? `rgba(255, 255, 255, ${op})`
+    : `rgba(0, 0, 0, ${op})`;
+  root.style.setProperty("--row-divider", dividerColor);
 }
