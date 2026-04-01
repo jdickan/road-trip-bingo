@@ -308,7 +308,7 @@ function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => 
       style={{ borderTop: "1px solid var(--row-divider)" }}
     >
       {/* ── Line 1: Identity — emoji · word · spanish ── */}
-      <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+      <div className="flex items-center gap-2 px-3 pt-6 pb-3">
         <div className="shrink-0 w-8 text-center">
           <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-base font-normal" />
         </div>
@@ -331,7 +331,7 @@ function TwoLineRow({ word, onDelete }: { word: Word; onDelete: (id: number) => 
 
       {/* ── Line 2: Tag columns ── */}
       <div
-        className="px-3 pt-0.5 pb-3"
+        className="px-3 pt-1 pb-6"
         style={{ display: "grid", gridTemplateColumns: TAG_GRID, columnGap: "4px" }}
       >
         <div className="min-w-0"><CellEditor word={word} field="regions" type="multi-select" badgeType="region" options={REGIONS} /></div>
