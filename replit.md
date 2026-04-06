@@ -115,3 +115,13 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+## GitHub Backup
+
+The project is backed up to GitHub at:
+  https://github.com/jdickan/road-trip-bingo
+
+Remote name: `github-backup` (not `origin` — reserved for Replit platform remotes)
+
+To push future updates, re-authenticate via the GitHub integration and run:
+  `git push github-backup main`
