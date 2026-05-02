@@ -6,11 +6,12 @@ import StatsSidebar from "@/components/StatsSidebar";
 import BoardsPanel from "@/components/BoardsPanel";
 import ThemePanel from "@/components/ThemePanel";
 import DefinitionsPanel from "@/components/DefinitionsPanel";
+import SnapshotsPanel from "@/components/SnapshotsPanel";
 import { cn } from "@/lib/utils";
-import { TableIcon, LayoutGrid, Palette, BookOpen } from "lucide-react";
+import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
-type Tab = "words" | "boards" | "definitions" | "theme";
+type Tab = "words" | "boards" | "definitions" | "theme" | "snapshots";
 
 // Height of the fixed filter overlay bar (py-2 × 2 + h-8 content + 1px border)
 const FILTER_BAR_HEIGHT = 49;
@@ -107,6 +108,7 @@ export default function Home() {
                 { id: "boards",      icon: <LayoutGrid className="h-3.5 w-3.5" />, label: "Boards" },
                 { id: "definitions", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Definitions" },
                 { id: "theme",       icon: <Palette className="h-3.5 w-3.5" />, label: "Theme" },
+                { id: "snapshots",   icon: <DatabaseZap className="h-3.5 w-3.5" />, label: "Snapshots" },
               ] as const
             ).map(({ id, icon, label }) => (
               <button
@@ -167,6 +169,8 @@ export default function Home() {
             <BoardsPanel onSelectBoard={handleSelectBoard} selectedBoard={selectedBoard} />
           ) : tab === "definitions" ? (
             <DefinitionsPanel />
+          ) : tab === "snapshots" ? (
+            <SnapshotsPanel />
           ) : (
             <ThemePanel />
           )}

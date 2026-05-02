@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import wordsRouter from "./words";
 import aiRouter from "./ai";
 import boardsRouter from "./boards";
+import snapshotsRouter from "./snapshots";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.use(healthRouter);
 router.use(wordsRouter);
 router.use(aiRouter);
 router.use(boardsRouter);
+router.use(snapshotsRouter);
 
 export default router;
