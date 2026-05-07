@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5DtKk5gJgeh67hkfiZhETLmDLvO8ksk9PSsjDy3D2paX8aE6Yb05o2RK6QSDjCT
+\restrict fbhxiwDQV0FzhJCYWbQxNb2d22sGrxYwJvxEXqmCiSeE4ZSq0hxxeX1tgbqSLxU
 
 -- Dumped from database version 16.10
 -- Dumped by pg_dump version 16.10
@@ -458,5 +458,5 @@ SELECT pg_catalog.setval('public.bingo_words_id_seq', 604, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5DtKk5gJgeh67hkfiZhETLmDLvO8ksk9PSsjDy3D2paX8aE6Yb05o2RK6QSDjCT
+\unrestrict fbhxiwDQV0FzhJCYWbQxNb2d22sGrxYwJvxEXqmCiSeE4ZSq0hxxeX1tgbqSLxU
 
