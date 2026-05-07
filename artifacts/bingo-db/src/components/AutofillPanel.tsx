@@ -44,9 +44,14 @@ export default function AutofillPanel() {
         onSuccess: (data) => {
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+          const hitCap = data.updated >= 50;
           toast({
-            title: "Autofill Complete",
-            description: `Successfully updated ${data.updated} words.`,
+            title: data.updated === 0 ? "Nothing to fill" : "Autofill complete",
+            description: data.updated === 0
+              ? "All selected fields already have values."
+              : hitCap
+                ? `Updated ${data.updated} words (batch limit reached — run again for more).`
+                : `Updated ${data.updated} words.`,
           });
           setOpen(false);
         },
@@ -73,7 +78,7 @@ export default function AutofillPanel() {
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold text-sm leading-none mb-1">Batch Autofill Missing Data</h4>
-            <p className="text-xs text-muted-foreground">AI will analyze all incomplete words and assign appropriate tags.</p>
+            <p className="text-xs text-muted-foreground">AI will fill in empty tags for up to 50 words at a time. If there are more incomplete words, just run it again.</p>
           </div>
           
           <div className="grid grid-cols-2 gap-2">

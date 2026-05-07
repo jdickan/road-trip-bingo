@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, isNull, or } from "drizzle-orm";
+import { eq, isNull, or, sql } from "drizzle-orm";
 import { db, wordsTable } from "@workspace/db";
 import {
   AutofillWordsBody,
@@ -65,13 +65,15 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
     // Fill all words that are missing values for the requested fields
     const nullConditions = [];
     for (const field of fields) {
-      if (field === "regions")      nullConditions.push(isNull(wordsTable.regions));
-      else if (field === "surroundings") nullConditions.push(isNull(wordsTable.surroundings));
-      else if (field === "dayNight")     nullConditions.push(isNull(wordsTable.dayNight));
+      // Array columns are NOT NULL with defaults — check cardinality=0 (empty) as well as IS NULL
+      // Scalar columns (age, findability) are nullable — IS NULL is correct
+      if (field === "regions")           nullConditions.push(or(isNull(wordsTable.regions),      sql`cardinality(${wordsTable.regions}) = 0`));
+      else if (field === "surroundings") nullConditions.push(or(isNull(wordsTable.surroundings), sql`cardinality(${wordsTable.surroundings}) = 0`));
+      else if (field === "dayNight")     nullConditions.push(or(isNull(wordsTable.dayNight),     sql`cardinality(${wordsTable.dayNight}) = 0`));
+      else if (field === "seasons")      nullConditions.push(or(isNull(wordsTable.seasons),      sql`cardinality(${wordsTable.seasons}) = 0`));
+      else if (field === "boards")       nullConditions.push(or(isNull(wordsTable.boards),       sql`cardinality(${wordsTable.boards}) = 0`));
       else if (field === "age")          nullConditions.push(isNull(wordsTable.age));
       else if (field === "findability")  nullConditions.push(isNull(wordsTable.findability));
-      else if (field === "seasons")      nullConditions.push(isNull(wordsTable.seasons));
-      else if (field === "boards")       nullConditions.push(isNull(wordsTable.boards));
     }
     wordsToFill = await db
       .select()
