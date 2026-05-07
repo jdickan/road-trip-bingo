@@ -39,6 +39,7 @@ export default function Home() {
   function handleTabChange(next: Tab) {
     setTab(next);
     setFilterBarFixed(false);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
   }
 
   function handleSelectBoard(boardName: string | null) {

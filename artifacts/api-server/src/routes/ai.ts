@@ -62,12 +62,22 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
           : or(...wordIds.map((id) => eq(wordsTable.id, id)))
       );
   } else {
-    // Fill all incomplete words (missing age or findability)
+    // Fill all words that are missing values for the requested fields
+    const nullConditions = [];
+    for (const field of fields) {
+      if (field === "regions")      nullConditions.push(isNull(wordsTable.regions));
+      else if (field === "surroundings") nullConditions.push(isNull(wordsTable.surroundings));
+      else if (field === "dayNight")     nullConditions.push(isNull(wordsTable.dayNight));
+      else if (field === "age")          nullConditions.push(isNull(wordsTable.age));
+      else if (field === "findability")  nullConditions.push(isNull(wordsTable.findability));
+      else if (field === "seasons")      nullConditions.push(isNull(wordsTable.seasons));
+      else if (field === "boards")       nullConditions.push(isNull(wordsTable.boards));
+    }
     wordsToFill = await db
       .select()
       .from(wordsTable)
-      .where(or(isNull(wordsTable.age), isNull(wordsTable.findability)));
-    // Limit to 50 at a time
+      .where(nullConditions.length > 0 ? or(...nullConditions) : undefined);
+    // Limit to 50 per batch — run autofill again to continue filling remaining words
     wordsToFill = wordsToFill.slice(0, 50);
   }
 
