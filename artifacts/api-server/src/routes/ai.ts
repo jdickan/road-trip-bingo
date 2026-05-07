@@ -133,7 +133,7 @@ ${JSON.stringify(wordsList, null, 2)}
 
 Return only the JSON array, no explanation.`;
 
-  let aiResults: Array<{ id: number } & Record<string, unknown>>;
+  let aiResults: Array<Record<string, unknown>>;
 
   try {
     const response = await openai.chat.completions.create({
@@ -147,52 +147,128 @@ Return only the JSON array, no explanation.`;
 
     const content = response.choices[0]?.message?.content ?? "[]";
     const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-    aiResults = JSON.parse(cleaned);
+    const parsed: unknown = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) {
+      logger.error({ parsed }, "AI autofill returned non-array response");
+      res.status(500).json({ error: "AI processing failed" });
+      return;
+    }
+    aiResults = parsed as Array<Record<string, unknown>>;
   } catch (err) {
     logger.error({ err }, "AI autofill failed");
     res.status(500).json({ error: "AI processing failed" });
     return;
   }
 
+  // Build a set of valid word IDs so AI can't hallucinate updates to other words
+  const validWordIds = new Set(wordsToFill.map((w) => w.id));
+
+  // Helper: filter an array field to valid string values, logging any dropped members
+  function filterArrayField(
+    id: number,
+    field: string,
+    raw: unknown[],
+    validSet: string[]
+  ): string[] {
+    const valid: string[] = [];
+    const dropped: unknown[] = [];
+    for (const v of raw) {
+      if (typeof v === "string" && validSet.includes(v)) {
+        valid.push(v);
+      } else {
+        dropped.push(v);
+      }
+    }
+    if (dropped.length > 0) {
+      logger.warn({ id, field, dropped }, "AI autofill dropped invalid array elements");
+    }
+    return valid;
+  }
+
   // Apply updates
   const updatedWords = [];
   for (const result of aiResults) {
-    const { id, ...updates } = result;
-    if (!id) continue;
+    // Guard against null or non-object elements (e.g. a malformed AI response like [null, 1, "foo"])
+    if (result === null || typeof result !== "object" || Array.isArray(result)) {
+      logger.warn({ result }, "AI autofill skipping non-object element in response array");
+      continue;
+    }
+
+    const { id: rawId, ...updates } = result;
+
+    if (typeof rawId !== "number" || !Number.isInteger(rawId)) {
+      logger.warn({ rawId }, "AI autofill skipping result with invalid id type");
+      continue;
+    }
+    const id = rawId;
+    if (!validWordIds.has(id)) {
+      logger.warn({ id }, "AI autofill skipping result with id not in requested set");
+      continue;
+    }
 
     const updateData: Partial<typeof wordsTable.$inferInsert> = {};
 
-    if (fields.includes("regions") && updates.regions) {
-      const val = updates.regions as string[];
-      updateData.regions = val.filter((v) => VALID_REGIONS.includes(v));
-    }
-    if (fields.includes("surroundings") && updates.surroundings) {
-      const val = updates.surroundings as string[];
-      updateData.surroundings = val.filter((v) => VALID_SURROUNDINGS.includes(v));
-    }
-    if (fields.includes("dayNight") && updates.dayNight) {
-      const val = updates.dayNight as string[];
-      updateData.dayNight = val.filter((v) => VALID_DAY_NIGHT.includes(v));
-    }
-    if (fields.includes("age")) {
-      const val = updates.age as string | null;
-      if (val === null || VALID_AGES.includes(val)) {
-        updateData.age = val;
+    if (fields.includes("regions") && updates.regions !== undefined) {
+      if (!Array.isArray(updates.regions)) {
+        logger.warn({ id, value: updates.regions }, "AI autofill skipping regions: expected array");
+      } else {
+        const filtered = filterArrayField(id, "regions", updates.regions as unknown[], VALID_REGIONS);
+        if (filtered.length > 0) updateData.regions = filtered;
       }
     }
-    if (fields.includes("findability")) {
-      const val = updates.findability as string | null;
-      if (val === null || VALID_FINDABILITIES.includes(val)) {
-        updateData.findability = val;
+    if (fields.includes("surroundings") && updates.surroundings !== undefined) {
+      if (!Array.isArray(updates.surroundings)) {
+        logger.warn({ id, value: updates.surroundings }, "AI autofill skipping surroundings: expected array");
+      } else {
+        const filtered = filterArrayField(id, "surroundings", updates.surroundings as unknown[], VALID_SURROUNDINGS);
+        if (filtered.length > 0) updateData.surroundings = filtered;
       }
     }
-    if (fields.includes("seasons") && updates.seasons) {
-      const val = updates.seasons as string[];
-      updateData.seasons = val.filter((v) => VALID_SEASONS.includes(v));
+    if (fields.includes("dayNight") && updates.dayNight !== undefined) {
+      if (!Array.isArray(updates.dayNight)) {
+        logger.warn({ id, value: updates.dayNight }, "AI autofill skipping dayNight: expected array");
+      } else {
+        const filtered = filterArrayField(id, "dayNight", updates.dayNight as unknown[], VALID_DAY_NIGHT);
+        if (filtered.length > 0) updateData.dayNight = filtered;
+      }
     }
-    if (fields.includes("boards") && updates.boards) {
-      const val = updates.boards as string[];
-      updateData.boards = val.filter((v) => VALID_BOARDS.includes(v));
+    if (fields.includes("age") && updates.age !== undefined) {
+      if (updates.age === null) {
+        updateData.age = null;
+      } else if (typeof updates.age !== "string") {
+        logger.warn({ id, value: updates.age }, "AI autofill skipping age: expected string or null");
+      } else if (!VALID_AGES.includes(updates.age)) {
+        logger.warn({ id, value: updates.age }, "AI autofill skipping age: invalid value");
+      } else {
+        updateData.age = updates.age;
+      }
+    }
+    if (fields.includes("findability") && updates.findability !== undefined) {
+      if (updates.findability === null) {
+        updateData.findability = null;
+      } else if (typeof updates.findability !== "string") {
+        logger.warn({ id, value: updates.findability }, "AI autofill skipping findability: expected string or null");
+      } else if (!VALID_FINDABILITIES.includes(updates.findability)) {
+        logger.warn({ id, value: updates.findability }, "AI autofill skipping findability: invalid value");
+      } else {
+        updateData.findability = updates.findability;
+      }
+    }
+    if (fields.includes("seasons") && updates.seasons !== undefined) {
+      if (!Array.isArray(updates.seasons)) {
+        logger.warn({ id, value: updates.seasons }, "AI autofill skipping seasons: expected array");
+      } else {
+        const filtered = filterArrayField(id, "seasons", updates.seasons as unknown[], VALID_SEASONS);
+        if (filtered.length > 0) updateData.seasons = filtered;
+      }
+    }
+    if (fields.includes("boards") && updates.boards !== undefined) {
+      if (!Array.isArray(updates.boards)) {
+        logger.warn({ id, value: updates.boards }, "AI autofill skipping boards: expected array");
+      } else {
+        const filtered = filterArrayField(id, "boards", updates.boards as unknown[], VALID_BOARDS);
+        if (filtered.length > 0) updateData.boards = filtered;
+      }
     }
 
     if (Object.keys(updateData).length === 0) continue;
@@ -200,7 +276,7 @@ Return only the JSON array, no explanation.`;
     const [updated] = await db
       .update(wordsTable)
       .set(updateData)
-      .where(eq(wordsTable.id, id as number))
+      .where(eq(wordsTable.id, id))
       .returning();
 
     if (updated) {
