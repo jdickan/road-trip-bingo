@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Word, UpdateWordBody, useUpdateWord, getListWordsQueryKey } from "@workspace/api-client-react";
+import { Word, UpdateWordBody, useUpdateWord } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { TagBadge } from "./TagBadge";
 
 interface CellEditorProps {
@@ -37,17 +36,10 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     updateMutation.mutate(
       { id: word.id, data: { [field]: newValue } },
       {
-        onSuccess: (updatedWord) => {
-          // Update cache immediately without full refetch
-          queryClient.setQueryData<any>(getListWordsQueryKey(), (oldData: any) => {
-            if (!oldData?.words) return oldData;
-            return {
-              ...oldData,
-              words: oldData.words.map((w: Word) => w.id === updatedWord.id ? updatedWord : w)
-            };
-          });
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
-        }
+        },
       }
     );
   };

@@ -353,7 +353,13 @@ Return only the JSON array, no other text.`;
 
     const content = response.choices[0]?.message?.content ?? "[]";
     const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-    suggestions = JSON.parse(cleaned);
+    const parsed: unknown = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) {
+      logger.error({ parsed }, "AI suggest returned non-array response");
+      res.status(500).json({ error: "AI processing failed" });
+      return;
+    }
+    suggestions = parsed as Array<{ word: string; rationale: string }>;
   } catch (err) {
     logger.error({ err }, "AI suggest failed");
     res.status(500).json({ error: "AI processing failed" });
