@@ -18,9 +18,11 @@ interface CellEditorProps {
   badgeType?: "findability" | "age" | "season" | "region" | "surroundings" | "board" | "dayNight";
   placeholder?: string;
   className?: string;
+  /** When true, shows a green dot indicating this field was recently changed by AI autofill. */
+  aiChanged?: boolean;
 }
 
-export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className }: CellEditorProps) {
+export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className, aiChanged }: CellEditorProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<any>(word[field as keyof Word]);
   const updateMutation = useUpdateWord();
@@ -96,7 +98,8 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="w-full min-h-[1.75rem] flex items-center p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+          <div className="relative w-full min-h-[1.75rem] flex items-center p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+            {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
             <TagBadge type={badgeType as any} value={value} />
           </div>
         </PopoverTrigger>
@@ -129,7 +132,8 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="w-full min-h-[1.75rem] flex items-center flex-wrap gap-1 p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+          <div className="relative w-full min-h-[1.75rem] flex items-center flex-wrap gap-1 p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+            {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
             {(!value || value.length === 0) ? (
               <TagBadge type={badgeType as any} value={null} />
             ) : (

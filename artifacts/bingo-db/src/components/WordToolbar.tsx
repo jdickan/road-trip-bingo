@@ -28,9 +28,10 @@ interface WordToolbarProps {
   onClearBoard?: () => void;
   /** "search" = top row only; "filters" = dropdowns only; default = both */
   section?: "search" | "filters";
+  onAutofillComplete?: (results: Array<{ id: number }>, fields: string[]) => void;
 }
 
-export default function WordToolbar({ filters, setFilters, onClearBoard, section }: WordToolbarProps) {
+export default function WordToolbar({ filters, setFilters, onClearBoard, section, onAutofillComplete }: WordToolbarProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddValue, setQuickAddValue] = useState("");
@@ -162,7 +163,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
 
           <div className="flex items-center gap-2 shrink-0">
             <SuggestWordsModal />
-            <AutofillPanel />
+            <AutofillPanel onComplete={onAutofillComplete} />
             <ExportModal filters={filters} />
           </div>
         </div>

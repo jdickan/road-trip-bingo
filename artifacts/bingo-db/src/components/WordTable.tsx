@@ -27,9 +27,11 @@ interface WordTableProps {
   filters: ListWordsParams;
   /** Pixels from top where the sticky column header should land (to clear any fixed overlay bar). */
   stickyTop?: number;
+  /** Word ID → set of field names recently changed by AI autofill. Drives green dot indicators. */
+  aiChanges?: Record<number, Set<string>>;
 }
 
-export default function WordTable({ filters, stickyTop = 0 }: WordTableProps) {
+export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTableProps) {
   const [page, setPage] = useState(0);
   const limit = filters.limit || 100;
   const offset = page * limit;
@@ -113,7 +115,9 @@ export default function WordTable({ filters, stickyTop = 0 }: WordTableProps) {
               </TableCell>
             </TableRow>
           ) : (
-            data?.words.map((word: Word) => (
+            data?.words.map((word: Word) => {
+              const changed = aiChanges?.[word.id];
+              return (
               <TableRow key={word.id} className="group hover:bg-muted/30 transition-colors">
                 <TableCell className="p-1 align-top text-center">
                   <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-lg font-normal" />
@@ -125,25 +129,25 @@ export default function WordTable({ filters, stickyTop = 0 }: WordTableProps) {
                   <CellEditor word={word} field="spanish" type="text" placeholder="Traducción…" />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="regions" type="multi-select" badgeType="region" options={REGIONS} />
+                  <CellEditor word={word} field="regions" type="multi-select" badgeType="region" options={REGIONS} aiChanged={changed?.has("regions")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="surroundings" type="multi-select" badgeType="surroundings" options={SURROUNDINGS} />
+                  <CellEditor word={word} field="surroundings" type="multi-select" badgeType="surroundings" options={SURROUNDINGS} aiChanged={changed?.has("surroundings")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="dayNight" type="multi-select" badgeType="dayNight" options={DAY_NIGHT} />
+                  <CellEditor word={word} field="dayNight" type="multi-select" badgeType="dayNight" options={DAY_NIGHT} aiChanged={changed?.has("dayNight")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="age" type="single-select" badgeType="age" options={AGES} />
+                  <CellEditor word={word} field="age" type="single-select" badgeType="age" options={AGES} aiChanged={changed?.has("age")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="findability" type="single-select" badgeType="findability" options={FINDABILITY} />
+                  <CellEditor word={word} field="findability" type="single-select" badgeType="findability" options={FINDABILITY} aiChanged={changed?.has("findability")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="seasons" type="multi-select" badgeType="season" options={SEASONS} />
+                  <CellEditor word={word} field="seasons" type="multi-select" badgeType="season" options={SEASONS} aiChanged={changed?.has("seasons")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
-                  <CellEditor word={word} field="boards" type="multi-select" badgeType="board" options={BOARDS} />
+                  <CellEditor word={word} field="boards" type="multi-select" badgeType="board" options={BOARDS} aiChanged={changed?.has("boards")} />
                 </TableCell>
                 <TableCell className="p-1 align-top">
                   <CellEditor word={word} field="notes" type="text" />
@@ -160,7 +164,8 @@ export default function WordTable({ filters, stickyTop = 0 }: WordTableProps) {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))
+            );
+            })
           )}
 
           {/* Quick-add row */}

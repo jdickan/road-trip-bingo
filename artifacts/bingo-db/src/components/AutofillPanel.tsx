@@ -18,7 +18,11 @@ const FIELDS = [
   { id: "boards", label: "Boards" },
 ];
 
-export default function AutofillPanel() {
+interface AutofillPanelProps {
+  onComplete?: (results: Array<{ id: number }>, fields: string[]) => void;
+}
+
+export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
   const [open, setOpen] = useState(false);
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set(["age", "findability", "boards", "surroundings", "regions", "seasons", "dayNight"]));
   
@@ -53,6 +57,9 @@ export default function AutofillPanel() {
                 ? `Updated ${data.updated} words (batch limit reached — run again for more).`
                 : `Updated ${data.updated} words.`,
           });
+          if (data.updated > 0) {
+            onComplete?.(data.results as Array<{ id: number }>, Array.from(selectedFields));
+          }
           setOpen(false);
         },
         onError: () => {

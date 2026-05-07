@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
 import WordToolbar from "@/components/WordToolbar";
@@ -21,9 +21,21 @@ export default function Home() {
   const [filters, setFilters] = useState<ListWordsParams>({ limit: 500, offset: 0 });
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [filterBarFixed, setFilterBarFixed] = useState(false);
+  const [aiChanges, setAiChanges] = useState<Record<number, Set<string>>>({});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const filterRowRef = useRef<HTMLDivElement>(null);
+  const aiClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
+
+  function handleAutofillComplete(results: Array<{ id: number }>, fields: string[]) {
+    if (aiClearTimer.current) clearTimeout(aiClearTimer.current);
+    const changes: Record<number, Set<string>> = {};
+    for (const w of results) changes[w.id] = new Set(fields);
+    setAiChanges(changes);
+    aiClearTimer.current = setTimeout(() => setAiChanges({}), 90_000);
+  }
 
   // Show the fixed overlay exactly when the native filter row's bottom
   // has scrolled to the position of the fixed bar (seamless swap).
@@ -142,6 +154,7 @@ export default function Home() {
                 setFilters={setFilters}
                 onClearBoard={clearBoard}
                 section="search"
+                onAutofillComplete={handleAutofillComplete}
               />
             </div>
           )}
@@ -165,6 +178,7 @@ export default function Home() {
             <WordTable
               filters={filters}
               stickyTop={filterBarFixed ? FILTER_BAR_HEIGHT : 0}
+              aiChanges={aiChanges}
             />
           ) : tab === "boards" ? (
             <BoardsPanel onSelectBoard={handleSelectBoard} selectedBoard={selectedBoard} />
