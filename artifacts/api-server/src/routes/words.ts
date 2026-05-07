@@ -167,6 +167,8 @@ router.get("/words/stats", async (_req, res): Promise<void> => {
   const bySeason: Record<string, number> = {};
   const byBoard: Record<string, number> = {};
   const byRegion: Record<string, number> = {};
+  const bySurroundings: Record<string, number> = {};
+  const byDayNight: Record<string, number> = { "Day only": 0, "Night only": 0, "Day + Night": 0, "Unknown": 0 };
 
   let incomplete = 0;
 
@@ -194,6 +196,17 @@ router.get("/words/stats", async (_req, res): Promise<void> => {
     for (const r of w.regions ?? []) {
       byRegion[r] = (byRegion[r] ?? 0) + 1;
     }
+    for (const sr of w.surroundings ?? []) {
+      bySurroundings[sr] = (bySurroundings[sr] ?? 0) + 1;
+    }
+
+    const dn = w.dayNight ?? [];
+    const hasDay = dn.includes("Day");
+    const hasNight = dn.includes("Night");
+    if (hasDay && hasNight) byDayNight["Day + Night"]++;
+    else if (hasDay)        byDayNight["Day only"]++;
+    else if (hasNight)      byDayNight["Night only"]++;
+    else                    byDayNight["Unknown"]++;
   }
 
   const response = GetWordStatsResponse.parse({
@@ -204,6 +217,8 @@ router.get("/words/stats", async (_req, res): Promise<void> => {
     bySeason,
     byBoard,
     byRegion,
+    bySurroundings,
+    byDayNight,
   });
   res.json(response);
 });

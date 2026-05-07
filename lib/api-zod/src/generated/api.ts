@@ -239,6 +239,8 @@ export const GetWordStatsResponse = zod.object({
   bySeason: zod.record(zod.string(), zod.number()),
   byBoard: zod.record(zod.string(), zod.number()),
   byRegion: zod.record(zod.string(), zod.number()),
+  bySurroundings: zod.record(zod.string(), zod.number()),
+  byDayNight: zod.record(zod.string(), zod.number()),
 });
 
 /**

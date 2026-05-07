@@ -7,9 +7,11 @@
  */
 import type { WordStatsByAge } from "./wordStatsByAge";
 import type { WordStatsByBoard } from "./wordStatsByBoard";
+import type { WordStatsByDayNight } from "./wordStatsByDayNight";
 import type { WordStatsByFindability } from "./wordStatsByFindability";
 import type { WordStatsByRegion } from "./wordStatsByRegion";
 import type { WordStatsBySeason } from "./wordStatsBySeason";
+import type { WordStatsBySurroundings } from "./wordStatsBySurroundings";
 
 export interface WordStats {
   total: number;
@@ -19,4 +21,6 @@ export interface WordStats {
   bySeason: WordStatsBySeason;
   byBoard: WordStatsByBoard;
   byRegion: WordStatsByRegion;
+  bySurroundings: WordStatsBySurroundings;
+  byDayNight: WordStatsByDayNight;
 }

@@ -1,9 +1,12 @@
-import { useState } from "react";
 import { useGetWordStats } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-export default function StatsSidebar() {
+interface StatsSidebarProps {
+  onClick?: () => void;
+}
+
+export default function StatsSidebar({ onClick }: StatsSidebarProps) {
   const { data: stats, isLoading } = useGetWordStats();
 
   if (isLoading) {
@@ -19,7 +22,11 @@ export default function StatsSidebar() {
   if (!stats) return null;
 
   return (
-    <div className="flex items-center gap-4 text-sm hidden md:flex" data-testid="stats-container">
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-4 text-sm hidden md:flex rounded-lg px-2 py-1 -mx-2 -my-1 transition-colors ${onClick ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+      data-testid="stats-container"
+    >
       <div className="flex flex-col items-end">
         <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Total</span>
         <span className="font-mono font-bold">{stats.total}</span>
@@ -54,6 +61,6 @@ export default function StatsSidebar() {
           </Badge>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

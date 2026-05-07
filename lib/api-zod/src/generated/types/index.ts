@@ -22,6 +22,8 @@ export * from "./wordList";
 export * from "./wordStats";
 export * from "./wordStatsByAge";
 export * from "./wordStatsByBoard";
+export * from "./wordStatsByDayNight";
 export * from "./wordStatsByFindability";
 export * from "./wordStatsByRegion";
 export * from "./wordStatsBySeason";
+export * from "./wordStatsBySurroundings";

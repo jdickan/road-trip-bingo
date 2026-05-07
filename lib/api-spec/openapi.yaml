@@ -486,6 +486,14 @@ components:
           type: object
           additionalProperties:
             type: integer
+        bySurroundings:
+          type: object
+          additionalProperties:
+            type: integer
+        byDayNight:
+          type: object
+          additionalProperties:
+            type: integer
       required:
         - total
         - incomplete
@@ -494,6 +502,8 @@ components:
         - bySeason
         - byBoard
         - byRegion
+        - bySurroundings
+        - byDayNight
 
     AutofillRequest:
       type: object

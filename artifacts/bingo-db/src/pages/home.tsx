@@ -7,11 +7,12 @@ import BoardsPanel from "@/components/BoardsPanel";
 import ThemePanel from "@/components/ThemePanel";
 import DefinitionsPanel from "@/components/DefinitionsPanel";
 import SnapshotsPanel from "@/components/SnapshotsPanel";
+import AnalysisPanel from "@/components/AnalysisPanel";
 import { cn } from "@/lib/utils";
-import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap } from "lucide-react";
+import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2 } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
-type Tab = "words" | "boards" | "definitions" | "theme" | "snapshots";
+type Tab = "words" | "boards" | "definitions" | "theme" | "snapshots" | "analysis";
 
 // Height of the fixed filter overlay bar (py-2 × 2 + h-8 content + 1px border)
 const FILTER_BAR_HEIGHT = 49;
@@ -110,7 +111,7 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground font-medium">Data Cockpit</p>
               </div>
             </button>
-            <StatsSidebar />
+            <StatsSidebar onClick={() => handleTabChange("analysis")} />
           </div>
 
           {/* Tab row */}
@@ -119,6 +120,7 @@ export default function Home() {
               [
                 { id: "words",       icon: <TableIcon className="h-3.5 w-3.5" />, label: "Words" },
                 { id: "boards",      icon: <LayoutGrid className="h-3.5 w-3.5" />, label: "Boards" },
+                { id: "analysis",    icon: <BarChart2 className="h-3.5 w-3.5" />, label: "Analysis" },
                 { id: "definitions", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Definitions" },
                 { id: "theme",       icon: <Palette className="h-3.5 w-3.5" />, label: "Theme" },
                 { id: "snapshots",   icon: <DatabaseZap className="h-3.5 w-3.5" />, label: "Snapshots" },
@@ -182,6 +184,8 @@ export default function Home() {
             />
           ) : tab === "boards" ? (
             <BoardsPanel onSelectBoard={handleSelectBoard} selectedBoard={selectedBoard} />
+          ) : tab === "analysis" ? (
+            <AnalysisPanel />
           ) : tab === "definitions" ? (
             <DefinitionsPanel />
           ) : tab === "snapshots" ? (

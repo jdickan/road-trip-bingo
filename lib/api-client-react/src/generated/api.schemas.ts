@@ -105,6 +105,10 @@ export type WordStatsByBoard = { [key: string]: number };
 
 export type WordStatsByRegion = { [key: string]: number };
 
+export type WordStatsBySurroundings = { [key: string]: number };
+
+export type WordStatsByDayNight = { [key: string]: number };
+
 export interface WordStats {
   total: number;
   incomplete: number;
@@ -113,6 +117,8 @@ export interface WordStats {
   bySeason: WordStatsBySeason;
   byBoard: WordStatsByBoard;
   byRegion: WordStatsByRegion;
+  bySurroundings: WordStatsBySurroundings;
+  byDayNight: WordStatsByDayNight;
 }
 
 export interface AutofillRequest {
