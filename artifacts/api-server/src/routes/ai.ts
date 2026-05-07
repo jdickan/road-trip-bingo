@@ -203,6 +203,8 @@ Return only the JSON array, no explanation.`;
         seasons: updated.seasons ?? [],
         boards: updated.boards ?? [],
         notes: updated.notes ?? null,
+        spanish: updated.spanish ?? null,
+        emoji: updated.emoji ?? null,
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
       });
