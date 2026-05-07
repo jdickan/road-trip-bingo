@@ -50,8 +50,8 @@ async function listSnapshots(): Promise<SnapshotMeta[]> {
   return metas.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-// GET /api/snapshots
-router.get("/api/snapshots", async (_req, res): Promise<void> => {
+// GET /snapshots
+router.get("/snapshots", async (_req, res): Promise<void> => {
   try {
     const snapshots = await listSnapshots();
     res.json({ snapshots });
@@ -61,8 +61,8 @@ router.get("/api/snapshots", async (_req, res): Promise<void> => {
   }
 });
 
-// POST /api/snapshots — create a new snapshot
-router.post("/api/snapshots", async (req, res): Promise<void> => {
+// POST /snapshots — create a new snapshot
+router.post("/snapshots", async (req, res): Promise<void> => {
   const label: string = (req.body?.label || "").trim() || new Date().toLocaleString();
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) { res.status(500).json({ error: "DATABASE_URL not set" }); return; }
@@ -111,8 +111,8 @@ router.post("/api/snapshots", async (req, res): Promise<void> => {
   }
 });
 
-// POST /api/snapshots/:id/restore
-router.post("/api/snapshots/:id/restore", async (req, res): Promise<void> => {
+// POST /snapshots/:id/restore
+router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
   const { id } = req.params;
   // Validate id is safe (alphanumeric + underscore only)
   if (!/^snap_\d+$/.test(id)) { res.status(400).json({ error: "Invalid snapshot id" }); return; }
@@ -145,8 +145,8 @@ router.post("/api/snapshots/:id/restore", async (req, res): Promise<void> => {
   }
 });
 
-// DELETE /api/snapshots/:id
-router.delete("/api/snapshots/:id", async (req, res): Promise<void> => {
+// DELETE /snapshots/:id
+router.delete("/snapshots/:id", async (req, res): Promise<void> => {
   const { id } = req.params;
   if (!/^snap_\d+$/.test(id)) { res.status(400).json({ error: "Invalid snapshot id" }); return; }
 
