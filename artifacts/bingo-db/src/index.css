@@ -226,7 +226,7 @@
    Activated by adding `.skin-atelier` to <html>.
    ========================================================= */
 .skin-atelier {
-  --background: 0 0% 99%;
+  --background: 0 0% 100%;
   --foreground: 0 0% 7%;
 
   --card: 0 0% 100%;
