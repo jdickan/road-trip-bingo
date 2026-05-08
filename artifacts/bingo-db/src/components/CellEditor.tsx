@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
 import { TagBadge } from "./TagBadge";
+import { useToast } from "@/hooks/use-toast";
 
 interface CellEditorProps {
   word: Word;
@@ -26,6 +27,7 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
   const [value, setValue] = useState<any>(word[field as keyof Word]);
   const updateMutation = useUpdateWord();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     setValue(word[field as keyof Word]);
@@ -39,6 +41,10 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+        },
+        onError: () => {
+          setValue(word[field as keyof Word]);
+          toast({ title: "Couldn't save change", description: "Your edit was reverted.", variant: "destructive" });
         },
       }
     );

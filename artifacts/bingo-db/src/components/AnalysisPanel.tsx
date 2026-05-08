@@ -125,7 +125,7 @@ function KpiStat({ label, value, color }: { label: string; value: number | strin
         {label}
       </span>
       <span
-        className="font-mono text-3xl font-bold tabular-nums leading-none mt-0.5"
+        className="font-mono text-3xl font-medium tabular-nums leading-none mt-0.5"
         style={{ color: color ?? "hsl(var(--foreground))" }}
       >
         {value}

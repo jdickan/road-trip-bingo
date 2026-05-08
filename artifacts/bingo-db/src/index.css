@@ -228,6 +228,22 @@
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
+
+  /* ── Typography utilities (available app-wide, not just atelier) ──
+     Use `.font-editorial` for serif italic display type.
+     Use `.eyebrow` for the small uppercase mono section labels. */
+  .font-editorial {
+    font-family: var(--app-font-serif);
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+  .eyebrow {
+    font-family: var(--app-font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: hsl(var(--muted-foreground));
+  }
 }
 
 /* =========================================================

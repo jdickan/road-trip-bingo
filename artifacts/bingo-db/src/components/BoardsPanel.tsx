@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Board {
   id: number;
@@ -98,9 +99,12 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     queryFn: fetchBoards,
   });
 
+  const { toast } = useToast();
+
   const patchMutation = useMutation({
     mutationFn: ({ id, patch }: { id: number; patch: Partial<Board> }) => patchBoard(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
+    onError: () => toast({ title: "Couldn't update board", description: "Try again in a moment.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -108,7 +112,9 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["boards"] });
       setConfirmDeleteId(null);
+      toast({ title: "Board deleted" });
     },
+    onError: () => toast({ title: "Couldn't delete board", description: "Try again in a moment.", variant: "destructive" }),
   });
 
   const createMutation = useMutation({
@@ -116,7 +122,9 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["boards"] });
       setNewBoard({ open: false, name: "", description: "", status: "active" });
+      toast({ title: "Board created" });
     },
+    onError: () => toast({ title: "Couldn't create board", description: "Try again in a moment.", variant: "destructive" }),
   });
 
   useEffect(() => {
@@ -268,7 +276,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       {newBoard.open && (
         <div className="flex items-start gap-6 md:gap-10 py-8 border-b border-border">
           <div className="w-10 md:w-16 shrink-0 flex justify-end pt-2">
-            <span className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none text-muted-foreground/30 leading-none">
+            <span className="text-3xl md:text-4xl font-editorial italic select-none text-muted-foreground/30 leading-none">
               +
             </span>
           </div>
@@ -278,7 +286,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               ref={newBoardNameRef}
               type="text"
               placeholder="Board name"
-              className="bg-transparent border-0 border-b border-border text-2xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors py-1 w-full"
+              className="bg-transparent border-0 border-b border-border text-2xl font-editorial italic text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors py-1 w-full"
               value={newBoard.name}
               onChange={(e) => setNewBoard((p) => ({ ...p, name: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") submitNewBoard(); if (e.key === "Escape") setNewBoard((p) => ({ ...p, open: false })); }}
@@ -327,7 +335,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       {/* ── Empty state ── */}
       {!isLoading && !isError && filtered.length === 0 && (
         <div className="py-32 text-center">
-          <p className="text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-muted-foreground mb-3">
+          <p className="text-3xl font-editorial italic text-muted-foreground mb-3">
             No boards found.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
@@ -361,7 +369,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
             <div className="w-10 md:w-16 shrink-0 flex justify-end pt-5">
               <span
                 className={cn(
-                  "text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none transition-colors duration-200",
+                  "text-3xl md:text-4xl font-editorial italic select-none tabular-nums leading-none transition-colors duration-200",
                   isSelected
                     ? "text-foreground/60"
                     : board.status === "concept"
@@ -393,13 +401,13 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                     if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent border-0 border-b border-foreground text-2xl md:text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground outline-none py-1 w-full"
+                  className="bg-transparent border-0 border-b border-foreground text-2xl md:text-3xl font-editorial italic text-foreground outline-none py-1 w-full"
                 />
               ) : (
                 <button
                   onClick={() => onSelectBoard(isSelected ? null : board.name)}
                   className={cn(
-                    "text-left text-2xl md:text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic leading-tight transition-all duration-200 text-foreground block",
+                    "text-left text-2xl md:text-3xl font-editorial italic leading-tight transition-all duration-200 text-foreground block",
                     isSelected
                       ? "underline decoration-1 underline-offset-4"
                       : "group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4"

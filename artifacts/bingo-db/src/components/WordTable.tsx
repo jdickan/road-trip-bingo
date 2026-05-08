@@ -67,7 +67,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
       className="absolute right-0 top-0 h-full w-3 cursor-col-resize group/rh flex items-center justify-center z-10"
       onMouseDown={onMouseDown}
     >
-      <div className="w-px h-4 bg-border/60 group-hover/rh:bg-foreground/40 transition-colors" />
+      <div className="w-px h-4 bg-border group-hover/rh:bg-foreground/50 transition-colors" />
     </div>
   );
 }
@@ -151,6 +151,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
           toast({ title: "Word added" });
         },
+        onError: () => toast({ title: "Couldn't add word", description: "Try again in a moment.", variant: "destructive" }),
       }
     );
   };
@@ -164,6 +165,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
           toast({ title: "Word deleted" });
         },
+        onError: () => toast({ title: "Couldn't delete word", description: "Try again in a moment.", variant: "destructive" }),
       }
     );
   };

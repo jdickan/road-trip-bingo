@@ -181,7 +181,7 @@ export default function DefinitionsPanel() {
         <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
           Reference · Used by AI Autofill
         </p>
-        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
+        <h2 className="text-3xl md:text-4xl font-editorial italic text-foreground leading-tight">
           Tag Definitions
         </h2>
       </div>
@@ -222,7 +222,7 @@ export default function DefinitionsPanel() {
                         <input
                           autoFocus
                           type="text"
-                          className="bg-transparent border-0 border-b border-foreground [font-family:'Instrument_Serif',Georgia,serif] italic text-2xl text-foreground outline-none py-0 w-32"
+                          className="bg-transparent border-0 border-b border-foreground font-editorial italic text-2xl text-foreground outline-none py-0 w-32"
                           value={editing.value}
                           onChange={(e) => setEditing({ ...editing, value: e.target.value })}
                           onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit(); }}
@@ -240,7 +240,7 @@ export default function DefinitionsPanel() {
                         title="Click to edit tag name"
                         className="group/tag flex items-center gap-2 text-left"
                       >
-                        <span className="text-2xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
+                        <span className="text-2xl font-editorial italic text-foreground leading-tight">
                           {def.tag}
                         </span>
                         <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover/tag:opacity-50 transition-opacity shrink-0" />
@@ -297,7 +297,7 @@ export default function DefinitionsPanel() {
             {/* Add row */}
             {adding?.groupIdx === gi ? (
               <div className="flex items-start gap-5 py-5 border-t border-border/50 -mx-4 px-4 bg-muted/20">
-                <span className="text-xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
+                <span className="text-xl font-editorial italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
                   {String(group.definitions.length + 1).padStart(2, "0")}
                 </span>
                 <div className="w-36 md:w-44 shrink-0">
@@ -305,7 +305,7 @@ export default function DefinitionsPanel() {
                     autoFocus
                     type="text"
                     placeholder="Tag name"
-                    className="bg-transparent border-0 border-b border-foreground [font-family:'Instrument_Serif',Georgia,serif] italic text-2xl text-foreground placeholder:text-muted-foreground/30 outline-none py-0 w-full"
+                    className="bg-transparent border-0 border-b border-foreground font-editorial italic text-2xl text-foreground placeholder:text-muted-foreground/30 outline-none py-0 w-full"
                     value={adding.tag}
                     onChange={(e) => setAdding({ ...adding, tag: e.target.value })}
                   />

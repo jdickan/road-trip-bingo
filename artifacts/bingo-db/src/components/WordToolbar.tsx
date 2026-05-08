@@ -101,7 +101,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
             className={cn(
               "flex items-center gap-1.5 mx-3 my-2 px-3 py-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase border transition-all rounded-sm",
               filters.incomplete
-                ? "border-foreground/30 bg-foreground/8 text-foreground"
+                ? "border-foreground/30 bg-muted text-foreground"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
             )}
             data-testid="switch-incomplete"

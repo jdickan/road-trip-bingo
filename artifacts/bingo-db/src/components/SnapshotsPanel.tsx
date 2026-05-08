@@ -106,7 +106,7 @@ export default function SnapshotsPanel() {
         <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
           Snapshots · Point-in-time backups
         </p>
-        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight flex items-center gap-3">
+        <h2 className="text-3xl md:text-4xl font-editorial italic text-foreground leading-tight flex items-center gap-3">
           <DatabaseZap className="h-6 w-6 shrink-0 text-muted-foreground/50" />
           Database Snapshots
         </h2>
