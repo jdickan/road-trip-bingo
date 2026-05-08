@@ -8,6 +8,113 @@
 import * as zod from "zod";
 
 /**
+ * @summary List all to-do items
+ */
+export const ListTodosResponse = zod.object({
+  todos: zod.array(
+    zod.object({
+      id: zod.number(),
+      type: zod.enum(["bug", "word-idea", "feature", "task", "other"]),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      priority: zod.enum(["low", "medium", "high", "critical"]),
+      severity: zod
+        .union([
+          zod.literal("minor"),
+          zod.literal("moderate"),
+          zod.literal("major"),
+          zod.literal("critical"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      status: zod.enum(["open", "in-progress", "done", "wontfix"]),
+      wordSuggestion: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create a to-do item
+ */
+export const CreateTodoBody = zod.object({
+  type: zod.enum(["bug", "word-idea", "feature", "task", "other"]).optional(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  severity: zod
+    .union([
+      zod.literal("minor"),
+      zod.literal("moderate"),
+      zod.literal("major"),
+      zod.literal("critical"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum(["open", "in-progress", "done", "wontfix"]).optional(),
+  wordSuggestion: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a to-do item
+ */
+export const UpdateTodoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTodoBody = zod.object({
+  type: zod.enum(["bug", "word-idea", "feature", "task", "other"]).optional(),
+  title: zod.string().optional(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  severity: zod
+    .union([
+      zod.literal("minor"),
+      zod.literal("moderate"),
+      zod.literal("major"),
+      zod.literal("critical"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum(["open", "in-progress", "done", "wontfix"]).optional(),
+  wordSuggestion: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateTodoResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["bug", "word-idea", "feature", "task", "other"]),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]),
+  severity: zod
+    .union([
+      zod.literal("minor"),
+      zod.literal("moderate"),
+      zod.literal("major"),
+      zod.literal("critical"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum(["open", "in-progress", "done", "wontfix"]),
+  wordSuggestion: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a to-do item
+ */
+export const DeleteTodoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

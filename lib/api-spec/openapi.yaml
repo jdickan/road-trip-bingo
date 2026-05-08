@@ -14,6 +14,82 @@ tags:
   - name: ai
     description: AI-powered operations
 paths:
+  /todos:
+    get:
+      operationId: listTodos
+      tags: [todos]
+      summary: List all to-do items
+      responses:
+        "200":
+          description: List of todos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoList"
+
+    post:
+      operationId: createTodo
+      tags: [todos]
+      summary: Create a to-do item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTodoBody"
+      responses:
+        "201":
+          description: Created todo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Todo"
+
+  /todos/{id}:
+    patch:
+      operationId: updateTodo
+      tags: [todos]
+      summary: Update a to-do item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchTodoBody"
+      responses:
+        "200":
+          description: Updated todo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Todo"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteTodo
+      tags: [todos]
+      summary: Delete a to-do item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   /healthz:
     get:
       operationId: healthCheck
@@ -620,3 +696,106 @@ components:
               - rationale
       required:
         - suggestions
+
+    Todo:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [bug, word-idea, feature, task, other]
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        severity:
+          type: ["string", "null"]
+          enum: [minor, moderate, major, critical, null]
+        status:
+          type: string
+          enum: [open, in-progress, done, wontfix]
+        wordSuggestion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - priority
+        - status
+        - createdAt
+        - updatedAt
+
+    TodoList:
+      type: object
+      properties:
+        todos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Todo"
+        total:
+          type: integer
+      required:
+        - todos
+        - total
+
+    CreateTodoBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bug, word-idea, feature, task, other]
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        severity:
+          type: ["string", "null"]
+          enum: [minor, moderate, major, critical, null]
+        status:
+          type: string
+          enum: [open, in-progress, done, wontfix]
+        wordSuggestion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - title
+
+    PatchTodoBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bug, word-idea, feature, task, other]
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        severity:
+          type: ["string", "null"]
+          enum: [minor, moderate, major, critical, null]
+        status:
+          type: string
+          enum: [open, in-progress, done, wontfix]
+        wordSuggestion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]

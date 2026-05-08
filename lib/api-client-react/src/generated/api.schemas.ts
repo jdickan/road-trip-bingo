@@ -150,6 +150,191 @@ export interface SuggestWordsResponse {
   suggestions: SuggestWordsResponseSuggestionsItem[];
 }
 
+export type TodoType = (typeof TodoType)[keyof typeof TodoType];
+
+export const TodoType = {
+  bug: "bug",
+  "word-idea": "word-idea",
+  feature: "feature",
+  task: "task",
+  other: "other",
+} as const;
+
+export type TodoPriority = (typeof TodoPriority)[keyof typeof TodoPriority];
+
+export const TodoPriority = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+/**
+ * @nullable
+ */
+export type TodoSeverity =
+  | (typeof TodoSeverity)[keyof typeof TodoSeverity]
+  | null;
+
+export const TodoSeverity = {
+  minor: "minor",
+  moderate: "moderate",
+  major: "major",
+  critical: "critical",
+} as const;
+
+export type TodoStatus = (typeof TodoStatus)[keyof typeof TodoStatus];
+
+export const TodoStatus = {
+  open: "open",
+  "in-progress": "in-progress",
+  done: "done",
+  wontfix: "wontfix",
+} as const;
+
+export interface Todo {
+  id: number;
+  type: TodoType;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  priority: TodoPriority;
+  /** @nullable */
+  severity?: TodoSeverity;
+  status: TodoStatus;
+  /** @nullable */
+  wordSuggestion?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodoList {
+  todos: Todo[];
+  total: number;
+}
+
+export type CreateTodoBodyType =
+  (typeof CreateTodoBodyType)[keyof typeof CreateTodoBodyType];
+
+export const CreateTodoBodyType = {
+  bug: "bug",
+  "word-idea": "word-idea",
+  feature: "feature",
+  task: "task",
+  other: "other",
+} as const;
+
+export type CreateTodoBodyPriority =
+  (typeof CreateTodoBodyPriority)[keyof typeof CreateTodoBodyPriority];
+
+export const CreateTodoBodyPriority = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+/**
+ * @nullable
+ */
+export type CreateTodoBodySeverity =
+  | (typeof CreateTodoBodySeverity)[keyof typeof CreateTodoBodySeverity]
+  | null;
+
+export const CreateTodoBodySeverity = {
+  minor: "minor",
+  moderate: "moderate",
+  major: "major",
+  critical: "critical",
+} as const;
+
+export type CreateTodoBodyStatus =
+  (typeof CreateTodoBodyStatus)[keyof typeof CreateTodoBodyStatus];
+
+export const CreateTodoBodyStatus = {
+  open: "open",
+  "in-progress": "in-progress",
+  done: "done",
+  wontfix: "wontfix",
+} as const;
+
+export interface CreateTodoBody {
+  type?: CreateTodoBodyType;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  priority?: CreateTodoBodyPriority;
+  /** @nullable */
+  severity?: CreateTodoBodySeverity;
+  status?: CreateTodoBodyStatus;
+  /** @nullable */
+  wordSuggestion?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type PatchTodoBodyType =
+  (typeof PatchTodoBodyType)[keyof typeof PatchTodoBodyType];
+
+export const PatchTodoBodyType = {
+  bug: "bug",
+  "word-idea": "word-idea",
+  feature: "feature",
+  task: "task",
+  other: "other",
+} as const;
+
+export type PatchTodoBodyPriority =
+  (typeof PatchTodoBodyPriority)[keyof typeof PatchTodoBodyPriority];
+
+export const PatchTodoBodyPriority = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+/**
+ * @nullable
+ */
+export type PatchTodoBodySeverity =
+  | (typeof PatchTodoBodySeverity)[keyof typeof PatchTodoBodySeverity]
+  | null;
+
+export const PatchTodoBodySeverity = {
+  minor: "minor",
+  moderate: "moderate",
+  major: "major",
+  critical: "critical",
+} as const;
+
+export type PatchTodoBodyStatus =
+  (typeof PatchTodoBodyStatus)[keyof typeof PatchTodoBodyStatus];
+
+export const PatchTodoBodyStatus = {
+  open: "open",
+  "in-progress": "in-progress",
+  done: "done",
+  wontfix: "wontfix",
+} as const;
+
+export interface PatchTodoBody {
+  type?: PatchTodoBodyType;
+  title?: string;
+  /** @nullable */
+  description?: string | null;
+  priority?: PatchTodoBodyPriority;
+  /** @nullable */
+  severity?: PatchTodoBodySeverity;
+  status?: PatchTodoBodyStatus;
+  /** @nullable */
+  wordSuggestion?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
 export type ListWordsParams = {
   search?: string;
   region?: string;

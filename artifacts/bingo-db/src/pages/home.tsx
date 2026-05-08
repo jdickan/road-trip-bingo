@@ -8,18 +8,20 @@ import DefinitionsPanel from "@/components/DefinitionsPanel";
 import SnapshotsPanel from "@/components/SnapshotsPanel";
 import AnalysisPanel from "@/components/AnalysisPanel";
 import DeletedWordsPanel from "@/components/DeletedWordsPanel";
+import TodoPanel from "@/components/TodoPanel";
 import ConnectionBanner from "@/components/ConnectionBanner";
 import { cn } from "@/lib/utils";
-import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2, Trash2 } from "lucide-react";
+import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2, Trash2, ClipboardList } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
 const STATIC_TABS = [
-  { id: "words",       icon: TableIcon,    label: "Words" },
-  { id: "analysis",    icon: BarChart2,    label: "Stats" },
-  { id: "boards",      icon: LayoutGrid,   label: "Boards" },
-  { id: "definitions", icon: BookOpen,     label: "Definitions" },
-  { id: "theme",       icon: Palette,      label: "Theme" },
-  { id: "snapshots",   icon: DatabaseZap,  label: "Snapshots" },
+  { id: "words",       icon: TableIcon,     label: "Words" },
+  { id: "analysis",    icon: BarChart2,     label: "Stats" },
+  { id: "boards",      icon: LayoutGrid,    label: "Boards" },
+  { id: "definitions", icon: BookOpen,      label: "Definitions" },
+  { id: "theme",       icon: Palette,       label: "Theme" },
+  { id: "snapshots",   icon: DatabaseZap,   label: "Snapshots" },
+  { id: "todo",        icon: ClipboardList, label: "To-Do" },
 ] as const;
 
 const TRASH_TAB = { id: "trash", icon: Trash2, label: "Trash" } as const;
@@ -228,6 +230,8 @@ export default function Home() {
             <DefinitionsPanel />
           ) : tab === "snapshots" ? (
             <SnapshotsPanel />
+          ) : tab === "todo" ? (
+            <TodoPanel />
           ) : tab === "trash" ? (
             <DeletedWordsPanel onEmpty={() => handleTabChange("words")} />
           ) : (
