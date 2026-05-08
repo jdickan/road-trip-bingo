@@ -50,11 +50,32 @@ export default function Home() {
     if (!el) return;
     // Measure immediately so the first scroll event uses the real height.
     filterBarHeightRef.current = el.getBoundingClientRect().height;
-    const observer = new ResizeObserver(() => {
+
+    const remeasure = () => {
       filterBarHeightRef.current = el.getBoundingClientRect().height;
-    });
+    };
+
+    // ResizeObserver catches element-level resizes (text size, flex reflow, etc).
+    const observer = new ResizeObserver(remeasure);
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // window "resize" fires on browser zoom changes (Ctrl+scroll, pinch-zoom,
+    // Ctrl+0/+/-) in Chrome and Firefox — even when the window dimensions
+    // don't change — so this acts as a belt-and-suspenders fallback to keep
+    // filterBarHeightRef in sync and re-evaluate the fixed overlay swap point.
+    const onWindowResize = () => {
+      remeasure();
+      // Re-check the swap point with the freshly measured height.
+      if (!filterRowRef.current) return;
+      const bottom = filterRowRef.current.getBoundingClientRect().bottom;
+      setFilterBarFixed(bottom <= filterBarHeightRef.current);
+    };
+    window.addEventListener("resize", onWindowResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", onWindowResize);
+    };
   }, [tab]);
 
   function handleAutofillComplete(results: Array<{ id: number }>, fields: string[]) {
