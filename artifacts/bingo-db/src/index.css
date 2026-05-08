@@ -458,26 +458,33 @@ html[data-colored-tags] .dark .tag-badge {
 }
 
 /* ── Analysis bar fills ──────────────────────────────────────────────────────
-   Horizontal bar fills in the Analysis tab use --_bar-h / --_bar-s CSS vars
-   (set via inline style) so they share the same palette as tag badges but
-   remain overridable by the Atelier skin.
-   Rule order matters for equal-specificity cascade:
-     1. .analysis-bar-fill       (0,1,0) — colored fill via CSS vars
-     2. .analysis-bar-subdued    (0,2,0) — "All" / "Unknown" → border color
-     3. .skin-atelier override   (0,2,0) — collapses ALL bars to monochrome
+   Bar fills use --_bar-h / --_bar-s CSS vars (injected via inline style),
+   mirroring the --_h / --_s system used by .tag-badge.
+
+   CASCADE ORDER — must be preserved to keep Atelier monochrome working:
+     (0,1,0) base colored fill
+     (0,2,0) dark-mode lightness tweak
+     (0,2,0) subdued (All / Unknown) → border color
+     (0,3,0) dark subdued
+     (0,3,0) Atelier last — wins all equal-specificity ties above, and the
+             explicit subdued variant beats the dark subdued (0,3,0 tie → later)
    ────────────────────────────────────────────────────────────────────────── */
 .analysis-bar-fill {
   background-color: hsl(var(--_bar-h) var(--_bar-s) 60%);
 }
+.dark .analysis-bar-fill {
+  background-color: hsl(var(--_bar-h) var(--_bar-s) 55%);
+}
 .analysis-bar-fill.analysis-bar-subdued {
   background-color: hsl(var(--border));
-}
-.skin-atelier .analysis-bar-fill {
-  background-color: hsl(var(--foreground) / 0.12);
 }
 .dark .analysis-bar-fill.analysis-bar-subdued {
   background-color: hsl(var(--border) / 0.6);
 }
-.dark .analysis-bar-fill {
-  background-color: hsl(var(--_bar-h) var(--_bar-s) 55%);
+/* Atelier: collapse ALL fills (colored + subdued, light + dark) to monochrome.
+   Two selectors — specificities 0,2,0 and 0,3,0 — placed last so they win
+   every equal-specificity race above. */
+.skin-atelier .analysis-bar-fill,
+.skin-atelier .analysis-bar-fill.analysis-bar-subdued {
+  background-color: hsl(var(--foreground) / 0.12);
 }
