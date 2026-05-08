@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ListWordsParams, useCreateWord } from "@workspace/api-client-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -100,68 +99,79 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
   const showFilters = !section || section === "filters";
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* ── Search row ── */}
+    <div className="flex flex-col">
+      {/* ── Search bar — Boards-style flat strip ── */}
       {showSearch && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <form onSubmit={handleSearch} className="relative flex items-center w-full max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search words..."
-                className="pl-9 bg-background w-full font-mono text-sm placeholder:font-mono placeholder:text-xs"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                data-testid="input-search"
-              />
-            </form>
+        <div className="flex items-stretch">
 
-            {quickAddOpen ? (
-              <form onSubmit={handleQuickAdd} className="flex items-center gap-1.5">
-                <Input
-                  ref={quickAddRef}
-                  placeholder="New word name…"
-                  className="h-9 text-sm bg-background w-44"
-                  value={quickAddValue}
-                  onChange={(e) => setQuickAddValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") { setQuickAddOpen(false); setQuickAddValue(""); }
-                  }}
-                  data-testid="input-quick-add-toolbar"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-9 text-xs px-3"
-                  disabled={!quickAddValue.trim() || createMutation.isPending}
-                  data-testid="btn-quick-add-toolbar"
-                >
-                  {createMutation.isPending ? "Adding…" : "Add"}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => { setQuickAddOpen(false); setQuickAddValue(""); }}
-                  className="p-1 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </form>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 text-xs shrink-0"
-                onClick={handleQuickAddToggle}
-                data-testid="btn-open-quick-add"
+          {/* Search input — borderless, right divider */}
+          <div className="relative flex items-center py-3 px-4 border-r border-border shrink-0">
+            <Search className="h-3.5 w-3.5 text-muted-foreground mr-2.5 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search words..."
+              className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/60 placeholder:text-xs outline-none border-none w-44"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setFilters((prev) => ({ ...prev, search: searchQuery, offset: 0 }));
+              }}
+              data-testid="input-search"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(""); setFilters((prev) => ({ ...prev, search: undefined, offset: 0 })); }}
+                className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Plus className="h-3.5 w-3.5" />
-                Add Word
-              </Button>
+                <X className="h-3 w-3" />
+              </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* + Add Word — flat mono button or inline form */}
+          {quickAddOpen ? (
+            <form onSubmit={handleQuickAdd} className="flex items-center gap-3 px-4 border-r border-border">
+              <input
+                ref={quickAddRef}
+                type="text"
+                placeholder="New word name…"
+                className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/50 outline-none border-none w-40"
+                value={quickAddValue}
+                onChange={(e) => setQuickAddValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") { setQuickAddOpen(false); setQuickAddValue(""); }
+                }}
+                data-testid="input-quick-add-toolbar"
+              />
+              <button
+                type="submit"
+                disabled={!quickAddValue.trim() || createMutation.isPending}
+                className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors disabled:opacity-40"
+                data-testid="btn-quick-add-toolbar"
+              >
+                {createMutation.isPending ? "Adding…" : "Add"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setQuickAddOpen(false); setQuickAddValue(""); }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={handleQuickAddToggle}
+              className="flex items-center gap-1.5 px-5 py-3 font-mono text-[10.5px] tracking-[0.18em] uppercase border-r border-border text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="btn-open-quick-add"
+            >
+              <Plus className="h-3 w-3" />
+              Add Word
+            </button>
+          )}
+
+          {/* Right: primary action buttons */}
+          <div className="ml-auto flex items-center gap-3 px-4">
             <SuggestWordsModal />
             <AutofillPanel onComplete={onAutofillComplete} />
             <ExportModal filters={filters} />

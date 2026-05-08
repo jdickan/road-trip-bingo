@@ -189,7 +189,7 @@ export default function Home() {
 
           {/* Search + actions row — words tab only */}
           {tab === "words" && (
-            <div className="border-t bg-muted/30 px-4 py-2">
+            <div className="border-t">
               <WordToolbar
                 filters={filters}
                 setFilters={setFilters}
@@ -202,7 +202,7 @@ export default function Home() {
 
           {/* Filter row — words tab only; ref tracked for scroll + height measurement */}
           {tab === "words" && (
-            <div ref={filterRowRef} className="border-t bg-muted/20 px-4 py-2">
+            <div ref={filterRowRef} className="border-t px-4 py-2">
               <WordToolbar
                 filters={filters}
                 setFilters={setFilters}
