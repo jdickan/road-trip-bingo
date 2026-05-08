@@ -147,16 +147,16 @@ export default function Home() {
           {/* Brand + stats row */}
           <div className="px-4 py-3 flex items-center justify-between">
             <button
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 hover:opacity-75 transition-opacity"
               title="Reset to home"
               onClick={resetHome}
             >
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0">
+              <div className="w-9 h-9 rounded-[6px] overflow-hidden shrink-0">
                 <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
               </div>
               <div className="text-left">
-                <h1 className="font-bold text-lg leading-tight tracking-tight">Road Trip Bingo</h1>
-                <p className="text-xs text-muted-foreground font-medium">Data Cockpit</p>
+                <h1 className="font-semibold text-[17px] leading-tight tracking-[-0.025em]">Road Trip Bingo</h1>
+                <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mt-0.5">Data Cockpit</p>
               </div>
             </button>
             <StatsSidebar onClick={() => handleTabChange("analysis")} />
@@ -169,17 +169,17 @@ export default function Home() {
                 key={id}
                 onClick={() => handleTabChange(id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  "flex items-center gap-1.5 px-4 py-2.5 font-mono text-[10.5px] tracking-[0.06em] uppercase border-b-2 transition-colors",
                   tab === id
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                 )}
                 data-testid={`tab-${id}`}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon className="h-3 w-3" />
                 {label}
                 {id === "words" && selectedBoard && (
-                  <span className="ml-1 px-1.5 py-0 text-[10px] rounded-full bg-primary/15 text-primary font-semibold">
+                  <span className="ml-1 px-1.5 py-px font-mono text-[9px] tracking-[0.04em] border border-primary/30 text-primary bg-primary/10">
                     {selectedBoard}
                   </span>
                 )}

@@ -103,9 +103,9 @@
   --chart-4: 280 80% 50%;
   --chart-5: 0 84% 60%;
 
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
+  --app-font-sans: 'Geist', sans-serif;
+  --app-font-serif: 'Instrument Serif', Georgia, serif;
+  --app-font-mono: 'Geist Mono', monospace;
   --radius: 0.5rem;
 
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.02);
