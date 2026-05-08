@@ -481,10 +481,4 @@ html[data-colored-tags] .dark .tag-badge {
 .dark .analysis-bar-fill.analysis-bar-subdued {
   background-color: hsl(var(--border) / 0.6);
 }
-/* Atelier: collapse ALL fills (colored + subdued, light + dark) to monochrome.
-   Two selectors — specificities 0,2,0 and 0,3,0 — placed last so they win
-   every equal-specificity race above. */
-.skin-atelier .analysis-bar-fill,
-.skin-atelier .analysis-bar-fill.analysis-bar-subdued {
-  background-color: hsl(var(--foreground) / 0.12);
-}
+/* Atelier skin: bars keep their pastel colors — no monochrome override. */
