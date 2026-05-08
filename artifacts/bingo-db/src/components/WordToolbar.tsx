@@ -37,7 +37,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
   };
 
   const hasActiveFilters = Object.keys(filters).some(
-    (k) => !["limit", "offset", "search"].includes(k) && filters[k as keyof ListWordsParams] !== undefined
+    (k) => !["limit", "offset", "search", "incomplete"].includes(k) && filters[k as keyof ListWordsParams] !== undefined
   ) || !!filters.search;
 
   const showSearch = !section || section === "search";
