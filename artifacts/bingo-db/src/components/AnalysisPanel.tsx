@@ -224,7 +224,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
                   <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-2))" }}>{complete}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="font-mono text-muted-foreground">Missing</span>
+                  <span className="font-mono text-muted-foreground">Incomplete</span>
                   <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-5))" }}>{stats.incomplete}</span>
                 </div>
                 <div className="flex justify-between gap-3">
