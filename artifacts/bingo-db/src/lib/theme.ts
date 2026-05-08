@@ -1,4 +1,5 @@
-export const STORAGE_KEY = "bingo-theme-v1";
+export const STORAGE_KEY      = "bingo-theme-v1";   // stores My Theme + darkMode pref
+export const ACTIVE_SKIN_KEY  = "bingo-active-skin"; // "basic" | "custom"
 
 export interface ThemeValue {
   primaryHue: number;
@@ -11,7 +12,8 @@ export interface ThemeValue {
   rowDividerOpacity: number;
 }
 
-export const DEFAULTS: ThemeValue = {
+// ── Basic theme — the original designed look, always recoverable ──────────────
+export const BASIC_THEME: ThemeValue = {
   primaryHue: 26,
   primarySat: 90,
   primaryLight: 55,
@@ -22,24 +24,83 @@ export const DEFAULTS: ThemeValue = {
   rowDividerOpacity: 0.38,
 };
 
+// Backward-compat alias
+export const DEFAULTS = BASIC_THEME;
+
+export type SkinName = "basic" | "custom";
+
+// ── Skin helpers ──────────────────────────────────────────────────────────────
+
+export function getActiveSkin(): SkinName {
+  try {
+    if (localStorage.getItem(ACTIVE_SKIN_KEY) === "custom") return "custom";
+  } catch {}
+  return "basic";
+}
+
+export function setActiveSkin(skin: SkinName): void {
+  try {
+    localStorage.setItem(ACTIVE_SKIN_KEY, skin);
+  } catch {}
+}
+
 export function getSystemDark(): boolean {
   return typeof window !== "undefined" &&
     window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-export function loadTheme(): ThemeValue {
+/** Load the saved dark-mode preference (stored inside STORAGE_KEY). */
+function loadSavedDarkMode(): boolean {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.darkMode === undefined) parsed.darkMode = getSystemDark();
-      return { ...DEFAULTS, ...parsed };
+      if (typeof parsed.darkMode === "boolean") return parsed.darkMode;
     }
   } catch {}
-  return { ...DEFAULTS, darkMode: getSystemDark() };
+  return getSystemDark();
 }
 
-export function applyTheme(t: ThemeValue) {
+/** Load the saved "My Theme" custom values (falls back to BASIC_THEME). */
+export function loadCustomTheme(): ThemeValue {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...BASIC_THEME, ...parsed };
+    }
+  } catch {}
+  return { ...BASIC_THEME };
+}
+
+/** Save the "My Theme" custom values (+ darkMode) to STORAGE_KEY. */
+export function saveCustomTheme(t: ThemeValue): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
+  } catch {}
+}
+
+/** Save just the dark-mode preference without touching other My Theme values. */
+export function saveDarkModePref(dark: boolean): void {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const existing = raw ? JSON.parse(raw) : {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, darkMode: dark }));
+  } catch {}
+}
+
+/** Load the theme to apply on app startup. */
+export function loadTheme(): ThemeValue {
+  const darkMode = loadSavedDarkMode();
+  if (getActiveSkin() === "basic") {
+    return { ...BASIC_THEME, darkMode };
+  }
+  return { ...loadCustomTheme(), darkMode };
+}
+
+// ── Apply ─────────────────────────────────────────────────────────────────────
+
+export function applyTheme(t: ThemeValue): void {
   const root = document.documentElement;
 
   if (t.darkMode) {
@@ -48,10 +109,10 @@ export function applyTheme(t: ThemeValue) {
     root.classList.remove("dark");
   }
 
-  root.style.setProperty("--primary", `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--ring", `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--sidebar-primary", `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--sidebar-ring", `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
+  root.style.setProperty("--primary",          `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
+  root.style.setProperty("--ring",             `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
+  root.style.setProperty("--sidebar-primary",  `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
+  root.style.setProperty("--sidebar-ring",     `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
 
   if (!t.darkMode) {
     root.style.setProperty("--background", `${t.bgHue} ${t.bgSat}% 98%`);
@@ -61,10 +122,9 @@ export function applyTheme(t: ThemeValue) {
 
   root.style.setProperty("--radius", `${t.radius}rem`);
 
-  // Row divider: near-black in light mode, near-white in dark mode
   const op = t.rowDividerOpacity;
-  const dividerColor = t.darkMode
-    ? `rgba(255, 255, 255, ${op})`
-    : `rgba(0, 0, 0, ${op})`;
-  root.style.setProperty("--row-divider", dividerColor);
+  root.style.setProperty(
+    "--row-divider",
+    t.darkMode ? `rgba(255,255,255,${op})` : `rgba(0,0,0,${op})`
+  );
 }
