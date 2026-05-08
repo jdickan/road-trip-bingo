@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X, Plus, Trash2, Pencil } from "lucide-react";
+import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
+import { REGIONS, SURROUNDINGS, DAY_NIGHT, AGES, FINDABILITY, SEASONS } from "@/lib/constants";
 
 const STORAGE_KEY = "bingo-definitions-v2";
 
@@ -89,6 +91,15 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
   },
 ];
 
+const CORE_TAGS: Record<string, readonly string[]> = {
+  "Region": REGIONS,
+  "Surroundings": SURROUNDINGS,
+  "Day / Night": DAY_NIGHT,
+  "Age": AGES,
+  "Findability": FINDABILITY,
+  "Season": SEASONS,
+};
+
 function loadGroups(): ColumnGroup[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -114,15 +125,43 @@ interface AddState {
   definition: string;
 }
 
+interface PendingDelete {
+  groupIdx: number;
+  defIdx: number;
+}
+
 export default function DefinitionsPanel() {
   const [groups, setGroups] = useState<ColumnGroup[]>(loadGroups);
   const [editing, setEditing] = useState<EditState | null>(null);
   const [adding, setAdding] = useState<AddState | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   useEffect(() => { saveGroups(groups); }, [groups]);
 
+  const { data: stats } = useGetWordStats({
+    query: { queryKey: getGetWordStatsQueryKey(), staleTime: 60_000 },
+  });
+
+  const usageLookup: Record<string, Record<string, number>> = {
+    "Region":     stats?.byRegion     ?? {},
+    "Surroundings": stats?.bySurroundings ?? {},
+    "Day / Night":  stats?.byDayNight   ?? {},
+    "Age":          stats?.byAge         ?? {},
+    "Findability":  stats?.byFindability ?? {},
+    "Season":       stats?.bySeason      ?? {},
+  };
+
+  function getUsage(column: string, tag: string): number {
+    return usageLookup[column]?.[tag] ?? 0;
+  }
+
+  function isCore(column: string, tag: string): boolean {
+    return (CORE_TAGS[column] as string[] | undefined)?.includes(tag) ?? false;
+  }
+
   function startEdit(groupIdx: number, defIdx: number, field: "tag" | "definition") {
     setAdding(null);
+    setPendingDelete(null);
     setEditing({ groupIdx, defIdx, field, value: groups[groupIdx].definitions[defIdx][field] });
   }
 
@@ -144,13 +183,24 @@ export default function DefinitionsPanel() {
 
   function cancelEdit() { setEditing(null); }
 
-  function deleteDef(groupIdx: number, defIdx: number) {
+  function requestDelete(groupIdx: number, defIdx: number) {
+    setEditing(null);
+    setAdding(null);
+    setPendingDelete({ groupIdx, defIdx });
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    const { groupIdx, defIdx } = pendingDelete;
     setGroups((prev) =>
       prev.map((g, gi) =>
         gi !== groupIdx ? g : { ...g, definitions: g.definitions.filter((_, di) => di !== defIdx) }
       )
     );
+    setPendingDelete(null);
   }
+
+  function cancelDelete() { setPendingDelete(null); }
 
   function commitAdd() {
     if (!adding || !adding.tag.trim() || !adding.definition.trim()) return;
@@ -210,10 +260,14 @@ export default function DefinitionsPanel() {
             {group.definitions.map((def, di) => {
               const isEditingTag = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "tag";
               const isEditingDef = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "definition";
+              const isPendingDel = pendingDelete?.groupIdx === gi && pendingDelete.defIdx === di;
+              const usage = stats ? getUsage(group.column, def.tag) : null;
+              const core = isCore(group.column, def.tag);
+
               return (
                 <div
                   key={di}
-                  className="group/row flex items-start gap-5 py-5 border-t border-border/50 hover:bg-muted/20 transition-colors -mx-4 px-4"
+                  className={`group/row flex items-start gap-5 py-5 border-t border-border/50 transition-colors -mx-4 px-4 ${isPendingDel ? "bg-destructive/5" : "hover:bg-muted/20"}`}
                 >
                   {/* Tag name */}
                   <div className="w-36 md:w-44 shrink-0">
@@ -235,22 +289,71 @@ export default function DefinitionsPanel() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => startEdit(gi, di, "tag")}
-                        title="Click to edit tag name"
-                        className="group/tag flex items-center gap-2 text-left"
-                      >
-                        <span className="text-2xl font-editorial italic text-foreground leading-tight">
-                          {def.tag}
-                        </span>
-                        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover/tag:opacity-50 transition-opacity shrink-0" />
-                      </button>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => !isPendingDel && startEdit(gi, di, "tag")}
+                          title={isPendingDel ? undefined : "Click to edit tag name"}
+                          className="group/tag flex items-center gap-2 text-left"
+                        >
+                          <span className="text-2xl font-editorial italic text-foreground leading-tight">
+                            {def.tag}
+                          </span>
+                          {!isPendingDel && (
+                            <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover/tag:opacity-50 transition-opacity shrink-0" />
+                          )}
+                        </button>
+                        <div className="flex items-center gap-2">
+                          {core && (
+                            <span className="font-mono text-[9.5px] tracking-[0.1em] uppercase text-muted-foreground/40">
+                              core
+                            </span>
+                          )}
+                          {usage !== null && (
+                            <span className="font-mono text-[9.5px] tracking-[0.1em] text-muted-foreground/50">
+                              {usage === 0 ? "0 words" : `${usage} word${usage === 1 ? "" : "s"}`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {/* Definition text */}
+                  {/* Definition text / pending delete confirmation */}
                   <div className="flex-1 min-w-0 pt-1">
-                    {isEditingDef ? (
+                    {isPendingDel ? (
+                      <div className="space-y-3">
+                        {usage !== null && usage > 0 ? (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            <span className="text-foreground font-medium">{usage} word{usage === 1 ? "" : "s"}</span> {usage === 1 ? "has" : "have"} this tag.
+                            {core
+                              ? " Deleting removes the explanation only — the tag value stays available in all dropdowns because it's a core option."
+                              : " Deleting removes the explanation only — the tag value stays on those words."}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            No words currently use this tag.
+                            {core && " The tag value will still appear in dropdowns because it's a core option."}
+                            {" "}Delete this definition?
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs px-3 rounded-none"
+                            onClick={confirmDelete}
+                          >
+                            Delete definition
+                          </Button>
+                          <button
+                            onClick={cancelDelete}
+                            className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : isEditingDef ? (
                       <div className="flex flex-col gap-2">
                         <Textarea
                           autoFocus
@@ -278,12 +381,10 @@ export default function DefinitionsPanel() {
                     )}
                   </div>
 
-                  {/* Delete */}
-                  <div className="shrink-0 pt-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                  {/* Delete trigger */}
+                  <div className={`shrink-0 pt-1 transition-opacity ${isPendingDel ? "opacity-0 pointer-events-none" : "opacity-0 group-hover/row:opacity-100"}`}>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete the "${def.tag}" definition?`)) deleteDef(gi, di);
-                      }}
+                      onClick={() => requestDelete(gi, di)}
                       className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                       title="Delete this definition"
                     >
@@ -336,7 +437,7 @@ export default function DefinitionsPanel() {
             ) : (
               <div className="py-4 border-t border-border/50 -mx-4 px-4">
                 <button
-                  onClick={() => { setEditing(null); setAdding({ groupIdx: gi, tag: "", definition: "" }); }}
+                  onClick={() => { setEditing(null); setPendingDelete(null); setAdding({ groupIdx: gi, tag: "", definition: "" }); }}
                   className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
