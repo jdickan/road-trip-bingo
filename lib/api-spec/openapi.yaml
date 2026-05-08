@@ -207,6 +207,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: surroundings
+          in: query
+          schema:
+            type: string
         - name: age
           in: query
           schema:

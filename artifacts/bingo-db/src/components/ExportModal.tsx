@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useExportWords, ExportWordsParams } from "@workspace/api-client-react";
+import { useExportWords, ExportWordsParams, getExportWordsQueryKey } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, Check } from "lucide-react";
@@ -21,8 +21,8 @@ export default function ExportModal({ filters }: { filters: ExportWordsParams })
     board: filters.board,
   };
 
-  const { data, isLoading, refetch, isFetching } = useExportWords(exportParams, { 
-    query: { enabled: open } 
+  const { data, isLoading, refetch, isFetching } = useExportWords(exportParams, {
+    query: { enabled: open, queryKey: getExportWordsQueryKey(exportParams) },
   });
 
   const handleCopy = () => {

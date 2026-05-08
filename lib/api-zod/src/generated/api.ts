@@ -190,6 +190,7 @@ export const ExportWordsQueryParams = zod.object({
   board: zod.coerce.string().optional(),
   season: zod.coerce.string().optional(),
   region: zod.coerce.string().optional(),
+  surroundings: zod.coerce.string().optional(),
   age: zod.coerce.string().optional(),
   findability: zod.coerce.string().optional(),
 });

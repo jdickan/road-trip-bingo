@@ -7,7 +7,7 @@ import {
   useDeleteWord,
   getListWordsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -130,7 +130,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
   const queryParams = { ...filters, limit, offset };
   const { data, isLoading } = useListWords(queryParams, {
-    query: { queryKey: getListWordsQueryKey(queryParams), keepPreviousData: true },
+    query: { queryKey: getListWordsQueryKey(queryParams), placeholderData: keepPreviousData },
   });
 
   const createMutation = useCreateWord();

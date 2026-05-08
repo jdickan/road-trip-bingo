@@ -10,6 +10,7 @@ export type ExportWordsParams = {
   board?: string;
   season?: string;
   region?: string;
+  surroundings?: string;
   age?: string;
   findability?: string;
 };
