@@ -34,8 +34,12 @@ export interface TagColor {
  * 13  sky
  * 14  sky-blue
  * 15  blue-gray
- * 16  steel-blue
- * 17  blue
+ * 16  steel-blue       24  red-orange (spare)
+ * 17  blue             25  chartreuse (spare)
+ *                      26  sea-green (spare)
+ *                      27  periwinkle (spare)
+ *                      28  rose (spare)
+ *                      29  amber-red (spare)
  */
 const PALETTE: ReadonlyArray<TagColor> = [
   { h: 5,   s: "75%" },  //  0  coral-red
@@ -62,6 +66,13 @@ const PALETTE: ReadonlyArray<TagColor> = [
   { h: 272, s: "70%" },  // 21  purple
   { h: 286, s: "68%" },  // 22  violet
   { h: 318, s: "65%" },  // 23  magenta-pink
+  // ── Spare slots for future known-value mappings ──────────────────────────
+  { h: 12,  s: "78%" },  // 24  red-orange
+  { h: 78,  s: "66%" },  // 25  chartreuse
+  { h: 140, s: "57%" },  // 26  sea-green
+  { h: 230, s: "70%" },  // 27  periwinkle
+  { h: 340, s: "68%" },  // 28  rose
+  { h: 25,  s: "82%" },  // 29  amber-red
 ];
 
 /** Subdued swatch for "All" and "Unknown" placeholder values. */
@@ -122,10 +133,10 @@ const KNOWN_IDX: Partial<Record<TagType, Record<string, number>>> = {
 if (import.meta.env.DEV) {
   const allIndices = Object.values(KNOWN_IDX).flatMap(m => Object.values(m!));
   const unique = new Set(allIndices);
-  if (unique.size !== allIndices.length || allIndices.length !== PALETTE.length) {
+  if (unique.size !== allIndices.length) {
     console.error(
-      `[tagColors] KNOWN_IDX has ${allIndices.length} entries with ${unique.size} unique ` +
-      `indices — expected ${PALETTE.length} unique. Palette slots used more than once: ` +
+      `[tagColors] KNOWN_IDX has ${allIndices.length} entries with only ${unique.size} unique ` +
+      `indices — duplicates: ` +
       allIndices.filter((v, i, a) => a.indexOf(v) !== i).join(", ")
     );
   }
