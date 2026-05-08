@@ -1,0 +1,200 @@
+# Atelier Design System — LLM Briefing Document
+
+Paste this document into an LLM alongside reference screenshots to replicate the aesthetic in a new project.
+
+---
+
+## Design Philosophy
+
+**Editorial software, circa 2027.** The product should feel like a quiet print magazine that happens to run in a browser — not a SaaS dashboard, not a landing page template. Every screen earns its ink. The chrome recedes; the content performs.
+
+Three governing principles:
+
+1. **Restraint is the brand.** No gradients, no drop shadows, no glassmorphism, no glow effects, no rounded blobs. One accent color, used sparingly. Hairline borders do the work that shadows do elsewhere.
+2. **Typography carries the emotion.** A neo-grotesque sans for the system's voice, a ligatured italic serif for rare display moments, and a mono for labels and numerics. The serif is a guest, not a host — used for one or two words per screen, never for body or UI.
+3. **Print-inspired structure.** Eyebrow labels, plate numbers, colophons, marginalia, masthead/footer rhythm. Pages feel like spreads in a single issue, not separate routes.
+
+**Never look like:** a generic shadcn demo, a Vercel template, a purple-gradient SaaS, a glassmorphic crypto site, a Linear clone. If the result could be mistaken for any of those, start over.
+
+---
+
+## Type System
+
+| Role | Family | Usage |
+|---|---|---|
+| UI / body / headings | **Geist** (300, 400, 500, 600, 700) | Everything by default. Tight tracking (`-0.025em` on headings, `-0.01em` on body). Headings weight 500, never 700+ |
+| Labels / numerics / metadata | **Geist Mono** (400, 500) | Eyebrows, timestamps, plate numbers, status chips, table numerics. Always uppercase with `0.18em` letter-spacing for eyebrows |
+| Display accent only | **Instrument Serif** (italic) | One or two words per page maximum. Used for emotional emphasis ("*Founders*", "*the chronically photographed*") inside otherwise sans copy. Letter-spacing `-0.02em`. Never for headings, never for body, never for UI |
+
+**Forbidden fonts:** Inter, Poppins, Roboto, Open Sans, Manrope, any rounded geometric sans, any decorative serif other than Instrument Serif.
+
+**Type scale** (tight, editorial — line-heights drop as size grows):
+```
+2xs  11px / 1.4
+xs   12px / 1.5
+sm   13px / 1.55
+base 15px / 1.6
+lg   17px / 1.55
+xl   20px / 1.4
+2xl  24px / 1.3
+3xl  30px / 1.2
+4xl  38px / 1.1
+5xl  52px / 1.02
+6xl  68px / 0.98
+7xl  92px / 0.95
+```
+
+Enable OpenType: `font-feature-settings: "ss01", "ss02", "cv11";` and tabular numerics (`font-variant-numeric: tabular-nums`) anywhere numbers appear in tables, prices, or counters.
+
+---
+
+## Color System
+
+A monochrome ink scale plus **one** electric accent. Define everything in HSL, never hex in components.
+
+**Light mode (paper):**
+```
+background     0 0% 99%      /* paper white, not pure white */
+foreground     0 0% 7%       /* ink black, not pure black */
+surface        0 0% 100%     /* raised panels */
+surface-2      0 0% 96.5%    /* sunken panels, sidebar */
+surface-3      0 0% 93%      /* muted fills */
+
+ink-1          0 0% 7%       /* primary text */
+ink-2          0 0% 28%      /* body */
+ink-3          0 0% 46%      /* muted */
+ink-4          0 0% 64%      /* hint */
+ink-5          0 0% 82%      /* divider strong */
+ink-6          0 0% 90%      /* hairline */
+
+border         0 0% 90%      /* hairline — used everywhere instead of shadow */
+border-strong  0 0% 82%
+```
+
+**The one accent — electric cobalt:**
+```
+accent         230 100% 56%
+accent-soft    230 100% 96%  /* tinted backgrounds only, never fills */
+```
+
+Used for: focus rings, the single primary CTA per screen, one chart series, link hover. **Never** for headings, decorative blocks, or "to make it pop." If a screen uses the accent more than three times, remove two.
+
+**Dark mode** mirrors the structure — background `0 0% 6%`, foreground `0 0% 96%`, accent shifts to `230 100% 65%`. Same hairlines, same restraint.
+
+---
+
+## Surfaces, Borders, Radii
+
+- **Radius:** `6px` everywhere (`--radius: 0.375rem`). Tight, software-feel. No `rounded-2xl`, no pills except for one CTA shape.
+- **Borders:** `1px solid hsl(var(--border))` — a hairline at 90% gray. This is the structural primitive. Cards, panels, inputs, dividers all use it.
+- **Shadows:** none. If you reach for a shadow, use a hairline border instead. The only exception is a focus ring (the cobalt accent at 2px outline, no offset).
+- **Panels:** `rounded-md border border-border bg-card` — flat, hairline, no shadow.
+
+---
+
+## Layout & Composition
+
+**Print-inspired anatomy.** Every major page opens with the same rhythm:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ EYEBROW · PLATE №                          side-meta│  <- mono, uppercase, 0.18em tracking
+│                                                     │
+│ The headline lives here, set in Geist               │  <- large, tight, weight 500
+│ at 5xl–7xl, tracking -0.035em                       │
+│                                                     │
+│ A short standfirst in ink-2, max ~70ch.             │  <- body sans, generous leading
+│                                                     │
+│ ─────────────────────────────────────────────────── │  <- hairline
+│                                                     │
+│ Content begins.                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+- **Measure:** body text capped at ~70 characters per line. Generous leading (1.6).
+- **Negative space is the design.** Center columns of the masthead are intentionally empty. Don't fill them.
+- **Asymmetry:** 12-column grid, but compositions skew. A headline takes 8 columns, side-meta takes 3, gutter takes 1. Avoid centered everything.
+- **Container:** max-width ~1400px, padding `1.25rem` mobile, `2rem` desktop.
+
+**Three-chassis pattern** (separate the experiences):
+- **Marketing chassis** — slim transparent masthead that solidifies on scroll, editorial colophon footer with a slow marquee. No sidebar. No breadcrumbs. No status chips.
+- **App chassis** — sidebar + topbar + breadcrumbs. This is where SaaS chrome is *correct* because the user is operating a tool.
+- **Document chassis** (legal, terms) — wordmark + back link, single-column ~70ch measure, no footer beyond a hairline slug. Reads like a printed document.
+
+Never share chrome across chassis.
+
+---
+
+## Signature Components
+
+**Eyebrow label** — the system's voice:
+```
+mono, 10.5px, uppercase, letter-spacing 0.18em, color ink-3
+```
+Used above every section heading, every panel title, every editorial moment.
+
+**Plate number** — `Plate № IV` style indicator at the top corner of marketing pages, mono, same eyebrow treatment. Makes the site feel like a magazine you're paging through.
+
+**Marquee** — slow horizontal scroll of mono words separated by `·`, with a `linear-gradient` mask fading the edges. Used in the footer as connective tissue between pages. Animation duration 40s, linear, infinite.
+
+**Link underline** — animated from 0% to 100% width on hover via `background-image` gradient trick (not `text-decoration`). Cubic-bezier `(0.22, 1, 0.36, 1)`, 300ms.
+
+**Dot grid** — subtle 24px radial-gradient dot pattern at ~45% opacity, used as the canvas for hero sections. Replaces hero gradients.
+
+**Live cursor** — a single character `▍` that blinks every 1.1s via `steps(1)` animation, attached to status chips ("Studio · live"). The only piece of motion in the chrome.
+
+**CTAs** — exactly one primary per screen. Small pill, ink-black background, paper-white text, no shadow, hairline border on hover. Secondary actions are plain links with the underline animation.
+
+---
+
+## Motion
+
+- Easing: `cubic-bezier(0.22, 1, 0.36, 1)` for everything. No `ease-in-out`, no springs.
+- Durations: 250–500ms. Never longer.
+- Three keyframes total: `fade-up` (8px translate + opacity), `fade-in`, `scale-in` (0.98 → 1).
+- One hero animation per page maximum. No scattered micro-interactions.
+- Marquee and blink are the only ambient motion in the chrome.
+- `prefers-reduced-motion` disables all of it.
+
+---
+
+## Voice & Microcopy
+
+The interface speaks like an editor, not a product manager.
+
+- "Begin a session" not "Get started"
+- "Open the Studio" not "Go to dashboard"
+- "Rate Card" not "Pricing"
+- "Method" not "How it works"
+- "Notes" not "FAQ"
+- "Correspondence" not "Contact"
+- "Imprint" not "Legal"
+
+Empty states get a sentence, not an illustration. Errors are one line, mono-cased label + sans explanation. Toasts are short and unstyled beyond a hairline border.
+
+---
+
+## What this aesthetic refuses
+
+- Gradients of any kind (background, text, border)
+- Drop shadows, glow effects, glassmorphism
+- Rounded-2xl cards, pill buttons (except one CTA)
+- Emoji in UI
+- Stock photography, 3D blobs, abstract shapes
+- Multi-color palettes, "fun" accents
+- Sentence-case headings with exclamation points
+- Centered everything
+- Hero sections with floating mockups at a 15° tilt
+- "Trusted by" logo bars unless the logos are set in a hairline-bordered grid
+- Any sans other than Geist; any serif other than Instrument Serif italic
+- Motion that exists to be noticed
+
+---
+
+## Quick adaptation guide for a new project
+
+1. Pick a different single accent if cobalt doesn't fit (suggested alternatives: signal red `4 84% 52%`, oxide green `152 60% 32%`, sodium yellow `48 100% 52%`). Keep the *one accent* rule.
+2. Keep the ink scale, hairlines, 6px radius, type stack, and editorial vocabulary.
+3. Rename the chassis but preserve the three-chassis split if the product has marketing + app + legal surfaces.
+4. Rewrite microcopy in the editor's voice for your domain (a legal product might use "Brief", "Docket", "Filing"; a finance product "Ledger", "Statement", "Position").
+5. The screenshots should anchor the *feeling*; this document anchors the *rules*.

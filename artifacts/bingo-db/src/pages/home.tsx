@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
 import WordToolbar from "@/components/WordToolbar";
@@ -43,7 +43,9 @@ export default function Home() {
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
 
   // Re-run whenever tab changes so we pick up the element after it mounts.
-  useEffect(() => {
+  // useLayoutEffect fires synchronously after DOM mutation, before paint,
+  // so the first scroll event always sees the correct measured height.
+  useLayoutEffect(() => {
     const el = filterRowRef.current;
     if (!el) return;
     // Measure immediately so the first scroll event uses the real height.
