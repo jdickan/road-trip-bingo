@@ -144,7 +144,7 @@ export default function TodoPanel() {
   const doneCount = all.filter(t => t.status === "done" || t.status === "wontfix").length;
 
   return (
-    <div className="max-w-3xl mx-auto pb-16">
+    <div className="max-w-5xl mx-auto pb-16">
 
       {/* ── Page header ── */}
       <div className="border-b border-border py-8">
