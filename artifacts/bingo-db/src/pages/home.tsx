@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
 import WordToolbar from "@/components/WordToolbar";
@@ -12,9 +12,6 @@ import { cn } from "@/lib/utils";
 import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2 } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
-// Single source of truth for tabs — Tab type is derived automatically so the
-// type and the array can never drift apart. Adding a tab to TABS but forgetting
-// to update the type produces a compile-time error at every call site.
 const TABS = [
   { id: "words",       icon: TableIcon,    label: "Words" },
   { id: "boards",      icon: LayoutGrid,   label: "Boards" },
@@ -30,53 +27,12 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
   const [filters, setFilters] = useState<ListWordsParams>({ limit: 500, offset: 0 });
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
-  const [filterBarFixed, setFilterBarFixed] = useState(false);
   const [aiChanges, setAiChanges] = useState<Record<number, Set<string>>>({});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const filterRowRef = useRef<HTMLDivElement>(null);
-  // Actual rendered height of the filter bar — measured via ResizeObserver so
-  // the scroll swap stays correct at any browser zoom level or text size.
-  const filterBarHeightRef = useRef<number>(49);
   const aiClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
-
-  // Re-run whenever tab changes so we pick up the element after it mounts.
-  // useLayoutEffect fires synchronously after DOM mutation, before paint,
-  // so the first scroll event always sees the correct measured height.
-  useLayoutEffect(() => {
-    const el = filterRowRef.current;
-    if (!el) return;
-    // Measure immediately so the first scroll event uses the real height.
-    filterBarHeightRef.current = el.getBoundingClientRect().height;
-
-    const remeasure = () => {
-      filterBarHeightRef.current = el.getBoundingClientRect().height;
-    };
-
-    // ResizeObserver catches element-level resizes (text size, flex reflow, etc).
-    const observer = new ResizeObserver(remeasure);
-    observer.observe(el);
-
-    // window "resize" fires on browser zoom changes (Ctrl+scroll, pinch-zoom,
-    // Ctrl+0/+/-) in Chrome and Firefox — even when the window dimensions
-    // don't change — so this acts as a belt-and-suspenders fallback to keep
-    // filterBarHeightRef in sync and re-evaluate the fixed overlay swap point.
-    const onWindowResize = () => {
-      remeasure();
-      // Re-check the swap point with the freshly measured height.
-      if (!filterRowRef.current) return;
-      const bottom = filterRowRef.current.getBoundingClientRect().bottom;
-      setFilterBarFixed(bottom <= filterBarHeightRef.current);
-    };
-    window.addEventListener("resize", onWindowResize);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", onWindowResize);
-    };
-  }, [tab]);
 
   function handleAutofillComplete(results: Array<{ id: number }>, fields: string[]) {
     if (aiClearTimer.current) clearTimeout(aiClearTimer.current);
@@ -86,20 +42,8 @@ export default function Home() {
     aiClearTimer.current = setTimeout(() => setAiChanges({}), 90_000);
   }
 
-  // Show the fixed overlay exactly when the native filter row's bottom has
-  // scrolled to the position of the fixed bar — seamless swap at any zoom.
-  const handleScroll = useCallback(() => {
-    if (!filterRowRef.current) {
-      setFilterBarFixed(false);
-      return;
-    }
-    const bottom = filterRowRef.current.getBoundingClientRect().bottom;
-    setFilterBarFixed(bottom <= filterBarHeightRef.current);
-  }, []);
-
   function handleTabChange(next: Tab) {
     setTab(next);
-    setFilterBarFixed(false);
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }
 
@@ -123,22 +67,9 @@ export default function Home() {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
 
-      {/* ── Fixed filter overlay — only rendered when filter row is off-screen ── */}
-      {tab === "words" && filterBarFixed && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-md px-4 py-2">
-          <WordToolbar
-            filters={filters}
-            setFilters={setFilters}
-            onClearBoard={clearBoard}
-            section="filters"
-          />
-        </div>
-      )}
-
-      {/* ── Single scrollable container — header + content scroll together ── */}
+      {/* ── Single scrollable container ── */}
       <div
         ref={scrollContainerRef}
-        onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
         {/* Header flows naturally with content */}
@@ -199,18 +130,6 @@ export default function Home() {
               />
             </div>
           )}
-
-          {/* Filter row — words tab only; ref tracked for scroll + height measurement */}
-          {tab === "words" && (
-            <div ref={filterRowRef} className="border-t px-4 py-2">
-              <WordToolbar
-                filters={filters}
-                setFilters={setFilters}
-                onClearBoard={clearBoard}
-                section="filters"
-              />
-            </div>
-          )}
         </header>
 
         {/* Main content */}
@@ -218,7 +137,7 @@ export default function Home() {
           {tab === "words" ? (
             <WordTable
               filters={filters}
-              stickyTop={filterBarFixed ? filterBarHeightRef.current : 0}
+              setFilters={setFilters}
               aiChanges={aiChanges}
             />
           ) : tab === "boards" ? (

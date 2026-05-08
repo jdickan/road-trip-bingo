@@ -17,16 +17,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface WordTableProps {
   filters: ListWordsParams;
+  setFilters?: React.Dispatch<React.SetStateAction<ListWordsParams>>;
   stickyTop?: number;
   aiChanges?: Record<number, Set<string>>;
 }
+
+const FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: readonly string[] }> = {
+  "Region":       { filterKey: "region",       options: REGIONS.filter(r => r !== "All") },
+  "Surroundings": { filterKey: "surroundings", options: SURROUNDINGS.filter(s => s !== "All") },
+  "Day/Night":    { filterKey: "dayNight",     options: DAY_NIGHT },
+  "Age":          { filterKey: "age",          options: AGES },
+  "Findability":  { filterKey: "findability",  options: FINDABILITY },
+  "Season":       { filterKey: "season",       options: SEASONS.filter(s => s !== "All") },
+  "Boards":       { filterKey: "board",        options: BOARDS },
+};
 
 /** Start a column resize drag. Captures startX + startW so closure is correct. */
 function startResize(
@@ -58,8 +70,9 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
   );
 }
 
-export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTableProps) {
+export default function WordTable({ filters, setFilters, stickyTop = 0, aiChanges }: WordTableProps) {
   const [page, setPage] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const limit = filters.limit || 100;
   const offset = page * limit;
 
@@ -109,6 +122,47 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
 
   const thBase = "font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal relative select-none";
 
+  function FilterableHead({
+    label,
+    className,
+    style,
+  }: {
+    label: string;
+    className?: string;
+    style?: React.CSSProperties;
+  }) {
+    const col = FILTER_COLS[label];
+    if (!col || !setFilters) {
+      return <TableHead className={cn(thBase, className)} style={style}>{label}</TableHead>;
+    }
+    const isActive = filters[col.filterKey] !== undefined && filters[col.filterKey] !== null;
+    return (
+      <TableHead
+        className={cn(
+          thBase,
+          "cursor-pointer transition-colors duration-150",
+          isActive ? "text-foreground" : "hover:text-foreground/70",
+          className
+        )}
+        style={style}
+        onClick={(e) => {
+          e.stopPropagation();
+          setActiveFilter(activeFilter === label ? null : label);
+        }}
+      >
+        <span className="flex items-center gap-1.5">
+          {label}
+          {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0" />}
+        </span>
+      </TableHead>
+    );
+  }
+
+  const activeFiltCol = activeFilter ? FILTER_COLS[activeFilter] : null;
+  const activeFiltOpts = activeFiltCol ? activeFiltCol.options : [];
+  const activeFiltKey = activeFiltCol ? activeFiltCol.filterKey : null;
+  const activeFiltVal = activeFiltKey ? (filters[activeFiltKey] as string | undefined) : undefined;
+
   return (
     <div className="border border-border">
       <Table>
@@ -131,13 +185,13 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
               <ResizeHandle onMouseDown={(e) => startResize(e, spanishWidth, setSpanishWidth)} />
             </TableHead>
 
-            <TableHead className={`${thBase} w-[100px]`}>Region</TableHead>
-            <TableHead className={`${thBase} w-[150px]`}>Surroundings</TableHead>
-            <TableHead className={`${thBase} w-[96px]`}>Day/Night</TableHead>
-            <TableHead className={`${thBase} w-[78px]`}>Age</TableHead>
-            <TableHead className={`${thBase} w-[100px]`}>Findability</TableHead>
-            <TableHead className={`${thBase} w-[128px]`}>Season</TableHead>
-            <TableHead className={`${thBase} w-[155px]`}>Boards</TableHead>
+            <FilterableHead label="Region" className="w-[100px]" />
+            <FilterableHead label="Surroundings" className="w-[150px]" />
+            <FilterableHead label="Day/Night" className="w-[96px]" />
+            <FilterableHead label="Age" className="w-[78px]" />
+            <FilterableHead label="Findability" className="w-[100px]" />
+            <FilterableHead label="Season" className="w-[128px]" />
+            <FilterableHead label="Boards" className="w-[155px]" />
             <TableHead className={`${thBase} min-w-[120px]`}>Notes</TableHead>
             <TableHead className="w-[40px]" />
           </TableRow>
@@ -262,6 +316,69 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Column filter overlay ── */}
+      {activeFilter && setFilters && activeFiltCol && (
+        <>
+          {/* Click-outside catcher — invisible */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setActiveFilter(null)}
+          />
+          {/* Filter panel — centered, subtle shadow, no dark backdrop */}
+          <div className="fixed top-[28vh] left-1/2 -translate-x-1/2 z-50 bg-card border border-border w-72 shadow-[0_8px_40px_rgba(0,0,0,0.13),0_2px_8px_rgba(0,0,0,0.06)]">
+            {/* Header */}
+            <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+                Filter · {activeFilter}
+              </p>
+              <button
+                onClick={() => setActiveFilter(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Options */}
+            <div className="py-1 max-h-[55vh] overflow-y-auto">
+              {/* All / clear option */}
+              <button
+                onClick={() => {
+                  setFilters((p) => ({ ...p, [activeFiltKey!]: undefined, offset: 0 }));
+                  setActiveFilter(null);
+                }}
+                className={cn(
+                  "w-full text-left px-5 py-2.5 text-sm transition-colors",
+                  !activeFiltVal
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                )}
+              >
+                All
+              </button>
+
+              {activeFiltOpts.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    setFilters((p) => ({ ...p, [activeFiltKey!]: opt, offset: 0 }));
+                    setActiveFilter(null);
+                  }}
+                  className={cn(
+                    "w-full text-left px-5 py-2.5 text-sm transition-colors",
+                    activeFiltVal === opt
+                      ? "text-foreground font-medium bg-muted/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

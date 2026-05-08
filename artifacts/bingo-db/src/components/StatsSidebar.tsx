@@ -34,7 +34,7 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
         <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
           Total
         </div>
-        <div className="font-mono text-3xl font-bold tabular-nums leading-none text-foreground">
+        <div className="font-mono text-xl font-semibold tabular-nums leading-none text-foreground">
           {stats.total}
         </div>
       </div>
@@ -43,7 +43,7 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
         <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
           Incomplete
         </div>
-        <div className="font-mono text-3xl font-bold tabular-nums leading-none text-rose-600 dark:text-rose-400">
+        <div className="font-mono text-xl font-semibold tabular-nums leading-none text-rose-600 dark:text-rose-400">
           {stats.incomplete}
         </div>
       </div>
