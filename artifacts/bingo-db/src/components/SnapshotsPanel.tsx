@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, RotateCcw, Trash2, Loader2, DatabaseZap, Plus } from "lucide-react";
+import { Camera, RotateCcw, Trash2, Loader2, DatabaseZap, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
@@ -213,6 +213,20 @@ export default function SnapshotsPanel() {
                     <RotateCcw className="h-3 w-3" />
                     Restore
                   </Button>
+                  <a
+                    href={`${API_BASE}/snapshots/${s.id}/download`}
+                    download
+                    title="Download SQL dump"
+                  >
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  </a>
                   <Button
                     size="icon"
                     variant="ghost"

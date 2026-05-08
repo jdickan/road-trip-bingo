@@ -145,6 +145,38 @@ router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
   }
 });
 
+// GET /snapshots/:id/download — stream the SQL dump file to the client
+router.get("/snapshots/:id/download", async (req, res): Promise<void> => {
+  const { id } = req.params;
+  if (!/^snap_\d+$/.test(id)) { res.status(400).json({ error: "Invalid snapshot id" }); return; }
+
+  const dumpFile = path.join(SNAPSHOTS_DIR, `${id}.sql`);
+  const metaFile = path.join(SNAPSHOTS_DIR, `${id}.meta.json`);
+
+  try {
+    await fs.access(dumpFile);
+
+    // Build a clean filename from the label if available
+    let filename = `${id}.sql`;
+    try {
+      const raw = await fs.readFile(metaFile, "utf8");
+      const meta: SnapshotMeta = JSON.parse(raw);
+      const safe = meta.label.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim();
+      if (safe) filename = `${safe}.sql`;
+    } catch {}
+
+    const data = await fs.readFile(dumpFile);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Content-Length", data.length);
+    res.send(data);
+    logger.info({ id, filename }, "Snapshot downloaded");
+  } catch (err) {
+    logger.error({ err }, "Failed to download snapshot");
+    res.status(404).json({ error: "Snapshot not found" });
+  }
+});
+
 // DELETE /snapshots/:id
 router.delete("/snapshots/:id", async (req, res): Promise<void> => {
   const { id } = req.params;
