@@ -95,17 +95,22 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
             </div>
           </div>
 
-          {/* Incomplete toggle */}
+          {/* Incomplete only toggle */}
           <button
             onClick={() => setFilters((prev) => ({ ...prev, incomplete: prev.incomplete ? undefined : true, offset: 0 }))}
             className={cn(
-              "flex items-center gap-1.5 px-5 py-3 font-mono text-[10.5px] tracking-[0.18em] uppercase border-r border-border transition-colors",
-              filters.incomplete ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              "flex items-center gap-1.5 mx-3 my-2 px-3 py-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase border transition-all rounded-sm",
+              filters.incomplete
+                ? "border-foreground/30 bg-foreground/8 text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
             )}
             data-testid="switch-incomplete"
           >
-            {filters.incomplete && <span className="h-1.5 w-1.5 rounded-full bg-foreground" />}
-            Incomplete
+            <span className={cn(
+              "h-1.5 w-1.5 rounded-full transition-colors",
+              filters.incomplete ? "bg-foreground" : "bg-border"
+            )} />
+            Incomplete only
           </button>
 
           {/* Clear — only when filters active */}
