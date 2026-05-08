@@ -1,6 +1,7 @@
 import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
 import { keepPreviousData } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, BarChart2 } from "lucide-react";
+import { EmptyState } from "./EmptyState";
 
 // Bar fill colors — CSS custom property references so they re-skin with the
 // active theme. chart-1=amber, chart-2=emerald, chart-3=blue, chart-4=violet,
@@ -135,7 +136,11 @@ function KpiStat({ label, value, color }: { label: string; value: number | strin
   );
 }
 
-export default function AnalysisPanel() {
+interface AnalysisPanelProps {
+  onGoToWords?: () => void;
+}
+
+export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) {
   const { data: stats, isLoading, isError } = useGetWordStats({
     query: { queryKey: getGetWordStatsQueryKey(), placeholderData: keepPreviousData },
   });
@@ -149,6 +154,25 @@ export default function AnalysisPanel() {
     );
   }
   if (!stats) return null;
+
+  if (stats.total === 0) {
+    return (
+      <EmptyState
+        icon={<BarChart2 className="h-12 w-12 text-muted-foreground/25" />}
+        headline="No data yet"
+        body="Stats and charts appear once words are added to the database."
+      >
+        {onGoToWords && (
+          <button
+            onClick={onGoToWords}
+            className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+          >
+            Go to Words →
+          </button>
+        )}
+      </EmptyState>
+    );
+  }
 
   const total       = stats.total;
   const complete    = total - stats.incomplete;

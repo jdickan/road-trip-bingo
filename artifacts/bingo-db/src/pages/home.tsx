@@ -220,7 +220,7 @@ export default function Home() {
           ) : tab === "boards" ? (
             <BoardsPanel onSelectBoard={handleSelectBoard} selectedBoard={selectedBoard} />
           ) : tab === "analysis" ? (
-            <AnalysisPanel />
+            <AnalysisPanel onGoToWords={() => handleTabChange("words")} />
           ) : tab === "definitions" ? (
             <DefinitionsPanel />
           ) : tab === "snapshots" ? (

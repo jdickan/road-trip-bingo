@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, X, Plus, Trash2, Pencil } from "lucide-react";
 import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
 import { REGIONS, SURROUNDINGS, DAY_NIGHT, AGES, FINDABILITY, SEASONS } from "@/lib/constants";
+import { EmptyState } from "./EmptyState";
 
 const STORAGE_KEY = "bingo-definitions-v2";
 
@@ -223,6 +224,15 @@ export default function DefinitionsPanel() {
     setConfirmReset(false);
   }
 
+  function restoreGroupDefaults(gi: number) {
+    const col = groups[gi]?.column;
+    const defaults = DEFAULT_GROUPS.find((g) => g.column === col);
+    if (!defaults) return;
+    setGroups((prev) =>
+      prev.map((g, i) => (i === gi ? { ...g, definitions: defaults.definitions } : g))
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto pb-16">
 
@@ -235,6 +245,21 @@ export default function DefinitionsPanel() {
           Tag Definitions
         </h2>
       </div>
+
+      {/* ── All-groups-gone empty state ── */}
+      {groups.length === 0 && (
+        <EmptyState
+          headline="No definitions"
+          body="All definition groups have been removed. Restore the defaults to bring them back."
+        >
+          <button
+            onClick={resetToDefaults}
+            className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+          >
+            Restore default definitions
+          </button>
+        </EmptyState>
+      )}
 
       {/* ── Column groups ── */}
       {groups.map((group, gi) => (
@@ -257,6 +282,30 @@ export default function DefinitionsPanel() {
 
           {/* Tag definitions list */}
           <div className="pb-2">
+            {/* Per-group empty state */}
+            {group.definitions.length === 0 && adding?.groupIdx !== gi && (
+              <div className="py-10 border-t border-border/50 flex flex-col items-center gap-3 text-center">
+                <p className="text-sm text-muted-foreground">No definitions in this group yet.</p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={() => { setEditing(null); setPendingDelete(null); setAdding({ groupIdx: gi, tag: "", definition: "" }); }}
+                    className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add definition
+                  </button>
+                  {DEFAULT_GROUPS.some(g => g.column === group.column) && (
+                    <button
+                      onClick={() => restoreGroupDefaults(gi)}
+                      className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground hover:text-foreground border border-border/60 px-3 py-1.5 hover:bg-muted/40 transition-colors"
+                    >
+                      Restore defaults for this group
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {group.definitions.map((def, di) => {
               const isEditingTag = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "tag";
               const isEditingDef = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "definition";

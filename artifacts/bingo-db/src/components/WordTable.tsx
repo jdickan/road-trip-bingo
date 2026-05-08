@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Word,
   ListWordsParams,
@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "./EmptyState";
+import SuggestWordsModal from "./SuggestWordsModal";
 
 interface WordTableProps {
   filters: ListWordsParams;
@@ -138,6 +140,47 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWordTop, setNewWordTop] = useState("");
+  const [suggestOpen, setSuggestOpen] = useState(false);
+
+  const hasActiveFilters = Boolean(
+    filters.search || filters.region || filters.surroundings ||
+    filters.age || filters.findability || filters.season ||
+    filters.board || filters.dayNight || filters.incomplete
+  );
+
+  function clearFilters() {
+    setFilters?.({ limit: filters.limit ?? 100, offset: 0 });
+    setPage(0);
+  }
+
+  async function handleImportWords(rows: Record<string, unknown>[]) {
+    const wordRows = rows.filter(r => typeof r.word === "string" && String(r.word).trim());
+    if (wordRows.length === 0) {
+      toast({ title: "No words found", description: "Each entry needs a 'word' field.", variant: "destructive" });
+      return;
+    }
+    const results = await Promise.allSettled(
+      wordRows.map(row => {
+        const s = (k: string) => typeof row[k] === "string" ? String(row[k]) : undefined;
+        const a = (k: string) => Array.isArray(row[k]) ? (row[k] as string[]) : undefined;
+        return createMutation.mutateAsync({
+          data: {
+            word: String(row.word).trim(),
+            spanish: s("spanish"), emoji: s("emoji"), age: s("age"),
+            findability: s("findability"), notes: s("notes"),
+            regions: a("regions"), surroundings: a("surroundings"),
+            dayNight: a("dayNight"), seasons: a("seasons"), boards: a("boards"),
+          },
+        });
+      })
+    );
+    queryClient.invalidateQueries({ queryKey: ["/api/words"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+    const done = results.filter(r => r.status === "fulfilled").length;
+    const failed = results.filter(r => r.status === "rejected").length;
+    if (failed === 0) toast({ title: `${done} word${done === 1 ? "" : "s"} imported` });
+    else toast({ title: `${done} of ${wordRows.length} words imported`, description: `${failed} failed`, variant: "destructive" });
+  }
 
   function parseQuickAddWords(raw: string): string[] {
     return raw
@@ -415,10 +458,48 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                 </div>
               </TableCell>
             </TableRow>
-          ) : data?.words.length === 0 ? (
+          ) : data?.total === 0 && !hasActiveFilters ? (
+            /* True empty database — big inviting drop zone */
             <TableRow>
-              <TableCell colSpan={12} className="h-24 text-center">
-                <p className="font-mono text-xs text-muted-foreground tracking-wide">No words found.</p>
+              <TableCell colSpan={12} className="p-0">
+                <SuggestWordsModal open={suggestOpen} onOpenChange={setSuggestOpen} />
+                <EmptyState
+                  icon="🗺️"
+                  headline="No words yet"
+                  body="Add your first bingo word, import an existing list from JSON, or let AI suggest some ideas."
+                  onJsonImport={handleImportWords}
+                  jsonLabel="word"
+                >
+                  <button
+                    onClick={() => (document.querySelector('[data-testid="input-quick-add-top"]') as HTMLInputElement | null)?.focus()}
+                    className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add a word
+                  </button>
+                  <button
+                    onClick={() => setSuggestOpen(true)}
+                    className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Suggest with AI
+                  </button>
+                </EmptyState>
+              </TableCell>
+            </TableRow>
+          ) : data?.words.length === 0 ? (
+            /* Filtered empty — compact message + clear filters */
+            <TableRow>
+              <TableCell colSpan={12} className="py-16 text-center">
+                <p className="font-mono text-xs text-muted-foreground tracking-wide mb-4">No words match your filters.</p>
+                {setFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                )}
               </TableCell>
             </TableRow>
           ) : (

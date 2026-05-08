@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "./EmptyState";
 
 interface Board {
   id: number;
@@ -133,6 +134,28 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       setTimeout(() => newBoardNameRef.current?.focus(), 50);
     }
   }, [newBoard.open]);
+
+  async function handleImportBoards(rows: Record<string, unknown>[]) {
+    const boardRows = rows.filter(r => typeof r.name === "string" && String(r.name).trim());
+    if (boardRows.length === 0) {
+      toast({ title: "No boards found", description: "Each entry needs a 'name' field.", variant: "destructive" });
+      return;
+    }
+    const results = await Promise.allSettled(
+      boardRows.map(row => createBoard({
+        name: String(row.name).trim(),
+        description: typeof row.description === "string" ? row.description : undefined,
+        status: (["active", "draft", "concept"] as string[]).includes(String(row.status))
+          ? (row.status as Board["status"])
+          : "draft",
+      }))
+    );
+    qc.invalidateQueries({ queryKey: ["boards"] });
+    const done = results.filter(r => r.status === "fulfilled").length;
+    const failed = results.filter(r => r.status === "rejected").length;
+    if (failed === 0) toast({ title: `${done} board${done === 1 ? "" : "s"} imported` });
+    else toast({ title: `${done} of ${boardRows.length} boards imported`, description: `${failed} failed`, variant: "destructive" });
+  }
 
   const boards = data?.boards ?? [];
 
@@ -343,20 +366,35 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
 
       {/* ── Empty state ── */}
       {data && !isLoading && filtered.length === 0 && (
-        <div className="py-32 text-center">
-          <p className="text-3xl font-editorial italic text-muted-foreground mb-3">
-            No boards found.
-          </p>
-          <p className="text-sm text-muted-foreground mb-8">
-            {search ? "No boards match your search." : "Create your first board to begin."}
-          </p>
-          <button
-            onClick={() => setNewBoard((p) => ({ ...p, open: true }))}
-            className="text-xs text-foreground border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+        search || statusFilter !== "all" ? (
+          /* Compact — filters returned nothing */
+          <div className="py-24 text-center">
+            <p className="font-editorial italic text-2xl text-muted-foreground mb-3">No boards match.</p>
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); }}
+              className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          /* Full — truly empty database */
+          <EmptyState
+            icon="🗺️"
+            headline="No boards yet"
+            body="Create your first bingo board or import board definitions from a JSON file."
+            onJsonImport={handleImportBoards}
+            jsonLabel="board"
           >
-            New board
-          </button>
-        </div>
+            <button
+              onClick={() => setNewBoard((p) => ({ ...p, open: true }))}
+              className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Create first board
+            </button>
+          </EmptyState>
+        )
       )}
 
       {/* ── Board rows ── */}

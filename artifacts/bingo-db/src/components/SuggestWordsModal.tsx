@@ -9,8 +9,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-export default function SuggestWordsModal() {
-  const [open, setOpen] = useState(false);
+interface SuggestWordsModalProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function SuggestWordsModal({ open: openProp, onOpenChange }: SuggestWordsModalProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp! : internalOpen;
+  const setOpen = controlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
+
   const [theme, setTheme] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,12 +49,14 @@ export default function SuggestWordsModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150" data-testid="btn-suggest-dialog">
-          <Sparkles className="h-3.5 w-3.5" />
-          Suggest Words
-        </button>
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger asChild>
+          <button className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150" data-testid="btn-suggest-dialog">
+            <Sparkles className="h-3.5 w-3.5" />
+            Suggest Words
+          </button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>AI Word Suggestions</DialogTitle>
