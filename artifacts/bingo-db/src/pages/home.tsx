@@ -12,10 +12,19 @@ import { cn } from "@/lib/utils";
 import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2 } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
-type Tab = "words" | "boards" | "definitions" | "theme" | "snapshots" | "analysis";
+// Single source of truth for tabs — Tab type is derived automatically so the
+// type and the array can never drift apart. Adding a tab to TABS but forgetting
+// to update the type produces a compile-time error at every call site.
+const TABS = [
+  { id: "words",       icon: TableIcon,    label: "Words" },
+  { id: "boards",      icon: LayoutGrid,   label: "Boards" },
+  { id: "analysis",    icon: BarChart2,    label: "Analysis" },
+  { id: "definitions", icon: BookOpen,     label: "Definitions" },
+  { id: "theme",       icon: Palette,      label: "Theme" },
+  { id: "snapshots",   icon: DatabaseZap,  label: "Snapshots" },
+] as const;
 
-// Height of the fixed filter overlay bar (py-2 × 2 + h-8 content + 1px border)
-const FILTER_BAR_HEIGHT = 49;
+type Tab = typeof TABS[number]["id"];
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
@@ -26,9 +35,25 @@ export default function Home() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const filterRowRef = useRef<HTMLDivElement>(null);
+  // Actual rendered height of the filter bar — measured via ResizeObserver so
+  // the scroll swap stays correct at any browser zoom level or text size.
+  const filterBarHeightRef = useRef<number>(49);
   const aiClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
+
+  // Re-run whenever tab changes so we pick up the element after it mounts.
+  useEffect(() => {
+    const el = filterRowRef.current;
+    if (!el) return;
+    // Measure immediately so the first scroll event uses the real height.
+    filterBarHeightRef.current = el.getBoundingClientRect().height;
+    const observer = new ResizeObserver(() => {
+      filterBarHeightRef.current = el.getBoundingClientRect().height;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tab]);
 
   function handleAutofillComplete(results: Array<{ id: number }>, fields: string[]) {
     if (aiClearTimer.current) clearTimeout(aiClearTimer.current);
@@ -38,15 +63,15 @@ export default function Home() {
     aiClearTimer.current = setTimeout(() => setAiChanges({}), 90_000);
   }
 
-  // Show the fixed overlay exactly when the native filter row's bottom
-  // has scrolled to the position of the fixed bar (seamless swap).
+  // Show the fixed overlay exactly when the native filter row's bottom has
+  // scrolled to the position of the fixed bar — seamless swap at any zoom.
   const handleScroll = useCallback(() => {
     if (!filterRowRef.current) {
       setFilterBarFixed(false);
       return;
     }
     const bottom = filterRowRef.current.getBoundingClientRect().bottom;
-    setFilterBarFixed(bottom <= FILTER_BAR_HEIGHT);
+    setFilterBarFixed(bottom <= filterBarHeightRef.current);
   }, []);
 
   function handleTabChange(next: Tab) {
@@ -116,16 +141,7 @@ export default function Home() {
 
           {/* Tab row */}
           <div className="flex items-center px-4 border-t">
-            {(
-              [
-                { id: "words",       icon: <TableIcon className="h-3.5 w-3.5" />, label: "Words" },
-                { id: "boards",      icon: <LayoutGrid className="h-3.5 w-3.5" />, label: "Boards" },
-                { id: "analysis",    icon: <BarChart2 className="h-3.5 w-3.5" />, label: "Analysis" },
-                { id: "definitions", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Definitions" },
-                { id: "theme",       icon: <Palette className="h-3.5 w-3.5" />, label: "Theme" },
-                { id: "snapshots",   icon: <DatabaseZap className="h-3.5 w-3.5" />, label: "Snapshots" },
-              ] as const
-            ).map(({ id, icon, label }) => (
+            {TABS.map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
                 onClick={() => handleTabChange(id)}
@@ -137,7 +153,7 @@ export default function Home() {
                 )}
                 data-testid={`tab-${id}`}
               >
-                {icon}
+                <Icon className="h-3.5 w-3.5" />
                 {label}
                 {id === "words" && selectedBoard && (
                   <span className="ml-1 px-1.5 py-0 text-[10px] rounded-full bg-primary/15 text-primary font-semibold">
@@ -161,7 +177,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Filter row — words tab only; ref tracked for scroll detection */}
+          {/* Filter row — words tab only; ref tracked for scroll + height measurement */}
           {tab === "words" && (
             <div ref={filterRowRef} className="border-t bg-muted/20 px-4 py-2">
               <WordToolbar
@@ -179,7 +195,7 @@ export default function Home() {
           {tab === "words" ? (
             <WordTable
               filters={filters}
-              stickyTop={filterBarFixed ? FILTER_BAR_HEIGHT : 0}
+              stickyTop={filterBarFixed ? filterBarHeightRef.current : 0}
               aiChanges={aiChanges}
             />
           ) : tab === "boards" ? (
