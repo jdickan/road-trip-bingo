@@ -14,33 +14,52 @@ export interface TagColor {
 
 /**
  * Single flat palette — 24 entries spanning the full hue wheel.
- * All known tag values and dynamic board names reference this array
- * (known values by fixed index, boards by name hash mod length).
- * Adding new values: pick an unused or semantically fitting index.
+ * Each of the 24 known non-placeholder tag values maps to exactly one
+ * unique index (see KNOWN_IDX below). Dynamic board names use
+ * hashString(name) % 24 for a stable per-name assignment.
+ *
+ *  0  coral-red       18  slate-blue
+ *  1  orange-red      19  indigo
+ *  2  warm-orange     20  blue-violet
+ *  3  amber-orange    21  purple
+ *  4  amber-yellow    22  violet
+ *  5  golden-yellow   23  magenta-pink
+ *  6  yellow-green
+ *  7  lime-green
+ *  8  green
+ *  9  sage-green
+ * 10  mint
+ * 11  teal
+ * 12  teal-cyan
+ * 13  sky
+ * 14  sky-blue
+ * 15  blue-gray
+ * 16  steel-blue
+ * 17  blue
  */
 const PALETTE: ReadonlyArray<TagColor> = [
-  { h: 5,   s: "75%" },  //  0  coral-red       (Fall, SE)
-  { h: 18,  s: "80%" },  //  1  orange-red       (High findability)
-  { h: 30,  s: "80%" },  //  2  warm-orange      (S Cent, Medium findability)
-  { h: 40,  s: "80%" },  //  3  amber-orange     (SW+HI, Highway)
-  { h: 48,  s: "85%" },  //  4  amber-yellow     (Summer)
-  { h: 58,  s: "72%" },  //  5  golden-yellow    (Low findability)
+  { h: 5,   s: "75%" },  //  0  coral-red
+  { h: 18,  s: "80%" },  //  1  orange-red
+  { h: 30,  s: "80%" },  //  2  warm-orange
+  { h: 40,  s: "80%" },  //  3  amber-orange
+  { h: 48,  s: "85%" },  //  4  amber-yellow
+  { h: 58,  s: "72%" },  //  5  golden-yellow
   { h: 70,  s: "68%" },  //  6  yellow-green
-  { h: 88,  s: "65%" },  //  7  lime-green       (Spring)
+  { h: 88,  s: "65%" },  //  7  lime-green
   { h: 105, s: "60%" },  //  8  green
-  { h: 128, s: "55%" },  //  9  sage-green       (Rural/Xurban)
-  { h: 150, s: "58%" },  // 10  mint             (Tween)
-  { h: 170, s: "62%" },  // 11  teal             (Suburban/Town, NW+AK)
+  { h: 128, s: "55%" },  //  9  sage-green
+  { h: 150, s: "58%" },  // 10  mint
+  { h: 170, s: "62%" },  // 11  teal
   { h: 182, s: "65%" },  // 12  teal-cyan
-  { h: 195, s: "75%" },  // 13  sky              (Day only, Coast)
-  { h: 210, s: "68%" },  // 14  sky-blue         (Winter)
-  { h: 215, s: "52%" },  // 15  blue-gray        (Urban/City)
-  { h: 218, s: "72%" },  // 16  steel-blue       (Kid)
-  { h: 222, s: "76%" },  // 17  blue             (NE)
-  { h: 235, s: "65%" },  // 18  slate-blue       (N Cent)
-  { h: 245, s: "65%" },  // 19  indigo           (Night only)
+  { h: 195, s: "75%" },  // 13  sky
+  { h: 210, s: "68%" },  // 14  sky-blue
+  { h: 215, s: "52%" },  // 15  blue-gray
+  { h: 218, s: "72%" },  // 16  steel-blue
+  { h: 222, s: "76%" },  // 17  blue
+  { h: 235, s: "65%" },  // 18  slate-blue
+  { h: 245, s: "65%" },  // 19  indigo
   { h: 258, s: "70%" },  // 20  blue-violet
-  { h: 272, s: "70%" },  // 21  purple           (Day+Night, Young)
+  { h: 272, s: "70%" },  // 21  purple
   { h: 286, s: "68%" },  // 22  violet
   { h: 318, s: "65%" },  // 23  magenta-pink
 ];
@@ -49,47 +68,73 @@ const PALETTE: ReadonlyArray<TagColor> = [
 const SUBDUED: TagColor = { h: 215, s: "14%" };
 
 /**
- * Per-(type, value) palette index.  All known values map to a fixed PALETTE
- * slot so the color is stable regardless of data order.
+ * Each known non-placeholder value maps to a unique palette index (0-23).
+ * All 24 slots are used exactly once across all categories — verified by
+ * the dev-time assertion below.
+ *
+ * dayNight  (3): Day only→13  Night only→19  Day+Night→21
+ * age       (3): Young→22     Kid→16         Tween→10
+ * findability(3):High→1       Medium→3       Low→5
+ * season    (4): Spring→7     Summer→4       Fall→0      Winter→14
+ * region    (6): NE→17  SE→2  N Cent→18  S Cent→6  NW+AK→11  SW+HI→23
+ * surroundings(5): Rural→9  Suburban→8  Urban→20  Highway→15  Coast→12
  */
 const KNOWN_IDX: Partial<Record<TagType, Record<string, number>>> = {
   dayNight: {
-    "Day only":    13,
-    "Night only":  19,
-    "Day + Night": 21,
+    "Day only":    13,  // sky
+    "Night only":  19,  // indigo
+    "Day + Night": 21,  // purple
   },
   age: {
-    "Young": 21,
-    "Kid":   16,
-    "Tween": 10,
+    "Young": 22,  // violet
+    "Kid":   16,  // steel-blue
+    "Tween": 10,  // mint
   },
   findability: {
-    "High":   1,
-    "Medium": 2,
-    "Low":    5,
+    "High":   1,  // orange-red
+    "Medium": 3,  // amber-orange
+    "Low":    5,  // golden-yellow
   },
   season: {
-    "Spring": 7,
-    "Summer": 4,
-    "Fall":   0,
-    "Winter": 14,
+    "Spring": 7,   // lime-green
+    "Summer": 4,   // amber-yellow
+    "Fall":   0,   // coral-red
+    "Winter": 14,  // sky-blue
   },
   region: {
-    "NE":      17,
-    "SE":      0,
-    "N Cent":  18,
-    "S Cent":  2,
-    "NW + AK": 11,
-    "SW + HI": 3,
+    "NE":      17,  // blue
+    "SE":      2,   // warm-orange
+    "N Cent":  18,  // slate-blue
+    "S Cent":  6,   // yellow-green
+    "NW + AK": 11,  // teal
+    "SW + HI": 23,  // magenta-pink
   },
   surroundings: {
-    "Rural / Xurban":  9,
-    "Suburban / Town": 11,
-    "Urban / City":    15,
-    "Highway":         3,
-    "Coast":           13,
+    "Rural / Xurban":  9,   // sage-green
+    "Suburban / Town": 8,   // green
+    "Urban / City":    20,  // blue-violet
+    "Highway":         15,  // blue-gray
+    "Coast":           12,  // teal-cyan
   },
 };
+
+// Dev-time assertion: all 24 known indices must be unique and in range.
+if (import.meta.env.DEV) {
+  const allIndices = Object.values(KNOWN_IDX).flatMap(m => Object.values(m!));
+  const unique = new Set(allIndices);
+  if (unique.size !== allIndices.length || allIndices.length !== PALETTE.length) {
+    console.error(
+      `[tagColors] KNOWN_IDX has ${allIndices.length} entries with ${unique.size} unique ` +
+      `indices — expected ${PALETTE.length} unique. Palette slots used more than once: ` +
+      allIndices.filter((v, i, a) => a.indexOf(v) !== i).join(", ")
+    );
+  }
+  for (const idx of allIndices) {
+    if (idx < 0 || idx >= PALETTE.length) {
+      console.error(`[tagColors] Index ${idx} is out of bounds (palette has ${PALETTE.length} entries)`);
+    }
+  }
+}
 
 function hashString(str: string): number {
   let hash = 0;
@@ -102,7 +147,7 @@ function hashString(str: string): number {
 /**
  * Returns hue + saturation for a given tag type + value.
  * - "All" / "Unknown" → SUBDUED (muted gray-blue)
- * - Known values      → fixed PALETTE index (stable across re-renders)
+ * - Known values      → unique fixed PALETTE index (one-to-one, stable)
  * - Everything else   → hash-based PALETTE index (stable per name)
  */
 export function getTagColor(type: TagType, value: string): TagColor {
