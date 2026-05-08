@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Palette } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -164,6 +165,22 @@ export default function ThemePanel() {
   const customPrimaryColor = `hsl(${theme.primaryHue}, ${theme.primarySat}%, ${theme.primaryLight}%)`;
 
   return (
+    <div className="max-w-5xl mx-auto pb-16">
+
+      {/* ── Page header ── */}
+      <div className="border-b border-border py-8">
+        <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
+          Theme · Appearance settings
+        </p>
+        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight flex items-center gap-3">
+          <Palette className="h-6 w-6 shrink-0 text-muted-foreground/50" />
+          Appearance
+        </h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
+          Customize colors, dark mode, and visual settings for the interface.
+        </p>
+      </div>
+
     <div className="max-w-2xl py-2 space-y-0">
 
       {/* ── Dark mode ───────────────────────────────────────────────────────── */}
@@ -376,6 +393,8 @@ export default function ThemePanel() {
           Reset to defaults
         </button>
       </div>
+
+    </div>
 
     </div>
   );

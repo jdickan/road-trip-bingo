@@ -44,12 +44,13 @@ const FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: r
 function startResize(
   e: React.MouseEvent,
   currentWidth: number,
-  setter: (w: number) => void
+  setter: (w: number) => void,
+  minWidth = 60
 ) {
   e.preventDefault();
   const startX = e.clientX;
   const startW = currentWidth;
-  const onMove = (ev: MouseEvent) => setter(Math.max(80, startW + ev.clientX - startX));
+  const onMove = (ev: MouseEvent) => setter(Math.max(minWidth, startW + ev.clientX - startX));
   const onUp = () => {
     window.removeEventListener("mousemove", onMove);
     window.removeEventListener("mouseup", onUp);
@@ -117,6 +118,14 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   // Resizable column widths (px)
   const [wordWidth, setWordWidth] = useState(220);
   const [spanishWidth, setSpanishWidth] = useState(180);
+  const [regionWidth, setRegionWidth] = useState(100);
+  const [surroundingsWidth, setSurroundingsWidth] = useState(150);
+  const [dayNightWidth, setDayNightWidth] = useState(96);
+  const [ageWidth, setAgeWidth] = useState(78);
+  const [findabilityWidth, setFindabilityWidth] = useState(100);
+  const [seasonWidth, setSeasonWidth] = useState(128);
+  const [boardsWidth, setBoardsWidth] = useState(155);
+  const [notesWidth, setNotesWidth] = useState(160);
 
   const queryParams = { ...filters, limit, offset };
   const { data, isLoading } = useListWords(queryParams, {
@@ -164,14 +173,29 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     label,
     className,
     style,
+    width,
+    setWidth,
+    minWidth = 60,
   }: {
     label: string;
     className?: string;
     style?: React.CSSProperties;
+    width?: number;
+    setWidth?: (w: number) => void;
+    minWidth?: number;
   }) {
     const col = FILTER_COLS[label];
+    const combinedStyle: React.CSSProperties = width !== undefined
+      ? { width, minWidth, ...style }
+      : style ?? {};
+
     if (!col || !setFilters) {
-      return <TableHead className={cn(thBase, className)} style={style}>{label}</TableHead>;
+      return (
+        <TableHead className={cn(thBase, className)} style={combinedStyle}>
+          {label}
+          {setWidth && <ResizeHandle onMouseDown={(e) => startResize(e, width!, setWidth, minWidth)} />}
+        </TableHead>
+      );
     }
     const isActive = filters[col.filterKey] !== undefined && filters[col.filterKey] !== null;
     return (
@@ -182,7 +206,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           isActive ? "text-foreground" : "hover:text-foreground/70",
           className
         )}
-        style={style}
+        style={combinedStyle}
         onClick={(e) => {
           e.stopPropagation();
           setActiveFilter(activeFilter === label ? null : label);
@@ -196,6 +220,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           )} />
           {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0 ml-0.5" />}
         </span>
+        {setWidth && <ResizeHandle onMouseDown={(e) => { e.stopPropagation(); startResize(e, width!, setWidth, minWidth); }} />}
       </TableHead>
     );
   }
@@ -227,14 +252,17 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               <ResizeHandle onMouseDown={(e) => startResize(e, spanishWidth, setSpanishWidth)} />
             </TableHead>
 
-            <FilterableHead label="Region" className="w-[100px]" />
-            <FilterableHead label="Surroundings" className="w-[150px]" />
-            <FilterableHead label="Day/Night" className="w-[96px]" />
-            <FilterableHead label="Age" className="w-[78px]" />
-            <FilterableHead label="Findability" className="w-[100px]" />
-            <FilterableHead label="Season" className="w-[128px]" />
-            <FilterableHead label="Boards" className="w-[155px]" />
-            <TableHead className={`${thBase} min-w-[120px]`}>Notes</TableHead>
+            <FilterableHead label="Region" width={regionWidth} setWidth={setRegionWidth} minWidth={60} />
+            <FilterableHead label="Surroundings" width={surroundingsWidth} setWidth={setSurroundingsWidth} minWidth={80} />
+            <FilterableHead label="Day/Night" width={dayNightWidth} setWidth={setDayNightWidth} minWidth={60} />
+            <FilterableHead label="Age" width={ageWidth} setWidth={setAgeWidth} minWidth={55} />
+            <FilterableHead label="Findability" width={findabilityWidth} setWidth={setFindabilityWidth} minWidth={70} />
+            <FilterableHead label="Season" width={seasonWidth} setWidth={setSeasonWidth} minWidth={70} />
+            <FilterableHead label="Boards" width={boardsWidth} setWidth={setBoardsWidth} minWidth={80} />
+            <TableHead className={thBase} style={{ width: notesWidth, minWidth: 80 }}>
+              Notes
+              <ResizeHandle onMouseDown={(e) => startResize(e, notesWidth, setNotesWidth, 80)} />
+            </TableHead>
             <TableHead className="w-[40px]" />
           </TableRow>
         </TableHeader>
