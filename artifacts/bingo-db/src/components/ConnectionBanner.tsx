@@ -1,13 +1,26 @@
 import { useApiStatus } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { Loader2, WifiOff, Wifi } from "lucide-react";
+import { Loader2, WifiOff, Wifi, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function ConnectionBanner() {
   const status = useApiStatus();
+  const queryClient = useQueryClient();
+  const [isRetrying, setIsRetrying] = useState(false);
 
   if (status === "online") return null;
 
   const isRecovering = status === "recovering";
+
+  async function handleRetry() {
+    setIsRetrying(true);
+    try {
+      await queryClient.refetchQueries({ type: "active" });
+    } finally {
+      setIsRetrying(false);
+    }
+  }
 
   return (
     <div
@@ -31,6 +44,17 @@ export default function ConnectionBanner() {
           <WifiOff className="h-4 w-4 shrink-0" />
           <span>API server is restarting — your data is safe, please wait&hellip;</span>
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          <button
+            onClick={handleRetry}
+            disabled={isRetrying}
+            className={cn(
+              "ml-2 flex items-center gap-1 rounded border border-amber-800/40 bg-amber-600/30 px-2 py-0.5 text-xs font-semibold hover:bg-amber-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-800 disabled:opacity-60",
+            )}
+            aria-label="Retry connection now"
+          >
+            <RefreshCw className={cn("h-3 w-3", isRetrying && "animate-spin")} />
+            {isRetrying ? "Retrying…" : "Retry now"}
+          </button>
         </>
       )}
     </div>
