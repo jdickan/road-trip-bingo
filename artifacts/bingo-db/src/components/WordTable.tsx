@@ -24,16 +24,48 @@ import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } 
 
 interface WordTableProps {
   filters: ListWordsParams;
-  /** Pixels from top where the sticky column header should land (to clear any fixed overlay bar). */
   stickyTop?: number;
-  /** Word ID → set of field names recently changed by AI autofill. Drives green dot indicators. */
   aiChanges?: Record<number, Set<string>>;
+}
+
+/** Start a column resize drag. Captures startX + startW so closure is correct. */
+function startResize(
+  e: React.MouseEvent,
+  currentWidth: number,
+  setter: (w: number) => void
+) {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startW = currentWidth;
+  const onMove = (ev: MouseEvent) => setter(Math.max(80, startW + ev.clientX - startX));
+  const onUp = () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+
+/** Resize handle rendered at the right edge of a <th>. */
+function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <div
+      className="absolute right-0 top-0 h-full w-2 cursor-col-resize group/rh flex items-center justify-center"
+      onMouseDown={onMouseDown}
+    >
+      <div className="w-px h-4 bg-border/40 group-hover/rh:bg-border transition-colors" />
+    </div>
+  );
 }
 
 export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTableProps) {
   const [page, setPage] = useState(0);
   const limit = filters.limit || 100;
   const offset = page * limit;
+
+  // Resizable column widths (px)
+  const [wordWidth, setWordWidth] = useState(160);
+  const [spanishWidth, setSpanishWidth] = useState(140);
 
   const queryParams = { ...filters, limit, offset };
   const { data, isLoading } = useListWords(queryParams, {
@@ -75,6 +107,8 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
     );
   };
 
+  const thBase = "font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal relative select-none";
+
   return (
     <div className="border border-border">
       <Table>
@@ -83,17 +117,28 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
           style={{ position: "sticky", top: stickyTop }}
         >
           <TableRow className="border-b border-border hover:bg-transparent">
-            <TableHead className="w-[52px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Emoji</TableHead>
-            <TableHead className="w-[160px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Word</TableHead>
-            <TableHead className="w-[140px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Spanish</TableHead>
-            <TableHead className="w-[100px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Region</TableHead>
-            <TableHead className="w-[150px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Surroundings</TableHead>
-            <TableHead className="w-[96px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Day/Night</TableHead>
-            <TableHead className="w-[78px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Age</TableHead>
-            <TableHead className="w-[100px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Findability</TableHead>
-            <TableHead className="w-[128px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Season</TableHead>
-            <TableHead className="w-[155px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Boards</TableHead>
-            <TableHead className="min-w-[120px] font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal">Notes</TableHead>
+            <TableHead className={`${thBase} w-[52px]`}>Emoji</TableHead>
+
+            {/* Word — resizable */}
+            <TableHead className={thBase} style={{ width: wordWidth, minWidth: 80 }}>
+              Word
+              <ResizeHandle onMouseDown={(e) => startResize(e, wordWidth, setWordWidth)} />
+            </TableHead>
+
+            {/* Spanish — resizable */}
+            <TableHead className={thBase} style={{ width: spanishWidth, minWidth: 80 }}>
+              Spanish
+              <ResizeHandle onMouseDown={(e) => startResize(e, spanishWidth, setSpanishWidth)} />
+            </TableHead>
+
+            <TableHead className={`${thBase} w-[100px]`}>Region</TableHead>
+            <TableHead className={`${thBase} w-[150px]`}>Surroundings</TableHead>
+            <TableHead className={`${thBase} w-[96px]`}>Day/Night</TableHead>
+            <TableHead className={`${thBase} w-[78px]`}>Age</TableHead>
+            <TableHead className={`${thBase} w-[100px]`}>Findability</TableHead>
+            <TableHead className={`${thBase} w-[128px]`}>Season</TableHead>
+            <TableHead className={`${thBase} w-[155px]`}>Boards</TableHead>
+            <TableHead className={`${thBase} min-w-[120px]`}>Notes</TableHead>
             <TableHead className="w-[40px]" />
           </TableRow>
         </TableHeader>
@@ -122,10 +167,10 @@ export default function WordTable({ filters, stickyTop = 0, aiChanges }: WordTab
                   <TableCell className="p-1 align-top text-center">
                     <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-lg font-normal" />
                   </TableCell>
-                  <TableCell className="p-1 align-top font-medium">
+                  <TableCell className="p-1 align-top font-medium" style={{ width: wordWidth }}>
                     <CellEditor word={word} field="word" type="text" />
                   </TableCell>
-                  <TableCell className="p-1 align-top">
+                  <TableCell className="p-1 align-top" style={{ width: spanishWidth }}>
                     <CellEditor word={word} field="spanish" type="text" placeholder="Traducción…" />
                   </TableCell>
                   <TableCell className="p-1 align-top">
