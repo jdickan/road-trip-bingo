@@ -26,6 +26,7 @@ function Eyebrow({ children, className }: { children: React.ReactNode; className
 // ── Color presets ─────────────────────────────────────────────────────────────
 
 const PRESET_COLORS = [
+  { label: "Noir",   hue: 0,   sat: 0,  light: 7  },
   { label: "Amber",  hue: 26,  sat: 90, light: 55 },
   { label: "Coral",  hue: 10,  sat: 85, light: 58 },
   { label: "Rose",   hue: 345, sat: 80, light: 55 },
@@ -391,8 +392,8 @@ export default function ThemePanel() {
           <button
             className="px-3 py-1.5 text-sm font-medium"
             style={{
-              background: theme.darkMode ? "#f0f0f0" : "#111111",
-              color: theme.darkMode ? "#111111" : "#f9f9f9",
+              background: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
               borderRadius: `${theme.radius * 0.875}rem`,
             }}
           >
