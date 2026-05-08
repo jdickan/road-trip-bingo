@@ -192,7 +192,30 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
   const handleAddWordTop = (e: React.FormEvent) => {
     e.preventDefault();
-    const words = parseQuickAddWords(newWordTop);
+    const raw = newWordTop.trim();
+
+    // Detect JSON paste — try to parse as array or {words:[]} object
+    if (raw.startsWith("[") || raw.startsWith("{")) {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        let rows: Record<string, unknown>[] | null = null;
+        if (Array.isArray(parsed)) {
+          rows = parsed as Record<string, unknown>[];
+        } else if (parsed && typeof parsed === "object") {
+          const d = parsed as Record<string, unknown>;
+          if (Array.isArray(d.words)) rows = d.words as Record<string, unknown>[];
+        }
+        if (rows) {
+          setNewWordTop("");
+          void handleImportWords(rows);
+          return;
+        }
+      } catch {
+        // not valid JSON — fall through to comma-separated handling
+      }
+    }
+
+    const words = parseQuickAddWords(raw);
     if (words.length === 0) return;
 
     if (words.length === 1) {
