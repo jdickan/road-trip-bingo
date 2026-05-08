@@ -353,19 +353,20 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
             key={board.id}
             className={cn(
               "group relative flex items-start gap-6 md:gap-10 py-8 border-b border-border transition-colors duration-200",
-              !isEditing && "hover:bg-muted/40",
-              board.status === "concept" && !isEditing && !isSelected && "opacity-40"
+              !isEditing && "hover:bg-muted/40"
             )}
             data-testid={`board-card-${board.id}`}
           >
             {/* Left rail: serif plate number */}
-            <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
+            <div className="w-10 md:w-16 shrink-0 flex justify-end pt-5">
               <span
                 className={cn(
                   "text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none transition-colors duration-200",
                   isSelected
                     ? "text-foreground/60"
-                    : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
+                    : board.status === "concept"
+                      ? "text-muted-foreground/30 line-through decoration-1"
+                      : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
                 )}
               >
                 {plateNumber(index + 1)}
