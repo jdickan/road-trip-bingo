@@ -158,8 +158,11 @@ export default function ThemePanel() {
     setTheme((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  const [confirmReset, setConfirmReset] = useState(false);
+
   const resetToDefaults = () => {
     setTheme((prev) => ({ ...ATELIER_THEME, darkMode: prev.darkMode }));
+    setConfirmReset(false);
   };
 
   const customPrimaryColor = `hsl(${theme.primaryHue}, ${theme.primarySat}%, ${theme.primaryLight}%)`;
@@ -386,12 +389,30 @@ export default function ThemePanel() {
       {/* ── Reset ───────────────────────────────────────────────────────────── */}
       <div className="border-x border-b border-border px-4 py-3 flex items-center justify-between gap-4">
         <Eyebrow>Reset</Eyebrow>
-        <button
-          onClick={resetToDefaults}
-          className="text-sm text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
-        >
-          Reset to defaults
-        </button>
+        {confirmReset ? (
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/60">Sure?</span>
+            <button
+              onClick={resetToDefaults}
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground hover:text-foreground/70 transition-colors underline underline-offset-4 decoration-border shrink-0"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setConfirmReset(false)}
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border shrink-0"
+          >
+            Reset Defaults
+          </button>
+        )}
       </div>
 
     </div>

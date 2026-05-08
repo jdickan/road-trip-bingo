@@ -166,10 +166,11 @@ export default function DefinitionsPanel() {
     setAdding(null);
   }
 
+  const [confirmReset, setConfirmReset] = useState(false);
+
   function resetToDefaults() {
-    if (confirm("Reset all definitions to the original defaults? Any edits you've made will be lost.")) {
-      setGroups(DEFAULT_GROUPS);
-    }
+    setGroups(DEFAULT_GROUPS);
+    setConfirmReset(false);
   }
 
   return (
@@ -209,18 +210,11 @@ export default function DefinitionsPanel() {
             {group.definitions.map((def, di) => {
               const isEditingTag = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "tag";
               const isEditingDef = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "definition";
-              const plateNum = String(di + 1).padStart(2, "0");
-
               return (
                 <div
                   key={di}
                   className="group/row flex items-start gap-5 py-5 border-t border-border/50 hover:bg-muted/20 transition-colors -mx-4 px-4"
                 >
-                  {/* Plate number */}
-                  <span className="text-xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
-                    {plateNum}
-                  </span>
-
                   {/* Tag name */}
                   <div className="w-36 md:w-44 shrink-0">
                     {isEditingTag ? (
@@ -365,12 +359,30 @@ export default function DefinitionsPanel() {
           <p className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/50">
             Changes saved automatically in your browser.
           </p>
-          <button
-            onClick={resetToDefaults}
-            className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border shrink-0"
-          >
-            Reset Defaults
-          </button>
+          {confirmReset ? (
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/60">Sure?</span>
+              <button
+                onClick={resetToDefaults}
+                className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground hover:text-foreground/70 transition-colors underline underline-offset-4 decoration-border shrink-0"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border shrink-0"
+            >
+              Reset Defaults
+            </button>
+          )}
         </div>
       </div>
 
