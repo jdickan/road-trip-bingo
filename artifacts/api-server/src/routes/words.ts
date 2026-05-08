@@ -28,6 +28,7 @@ function buildFilters(params: {
   board?: string;
   dayNight?: string;
   incomplete?: boolean;
+  complete?: boolean;
 }) {
   const conditions = [];
 
@@ -92,6 +93,15 @@ function buildFilters(params: {
     );
   }
 
+  if (params.complete) {
+    conditions.push(
+      and(
+        sql`${wordsTable.age} IS NOT NULL`,
+        sql`${wordsTable.findability} IS NOT NULL`
+      )
+    );
+  }
+
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
@@ -122,9 +132,9 @@ router.get("/words", async (req, res): Promise<void> => {
     return;
   }
 
-  const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, limit = 1000, offset = 0 } = parsed.data;
+  const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete, limit = 1000, offset = 0 } = parsed.data;
 
-  const where = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete });
+  const where = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
 
   const [words, countResult] = await Promise.all([
     db

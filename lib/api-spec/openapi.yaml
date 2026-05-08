@@ -70,6 +70,10 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: complete
+          in: query
+          schema:
+            type: boolean
         - name: limit
           in: query
           schema:

@@ -62,10 +62,10 @@ function startResize(
 function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
   return (
     <div
-      className="absolute right-0 top-0 h-full w-2 cursor-col-resize group/rh flex items-center justify-center"
+      className="absolute right-0 top-0 h-full w-3 cursor-col-resize group/rh flex items-center justify-center z-10"
       onMouseDown={onMouseDown}
     >
-      <div className="w-px h-4 bg-border/40 group-hover/rh:bg-border transition-colors" />
+      <div className="w-px h-4 bg-border/60 group-hover/rh:bg-foreground/40 transition-colors" />
     </div>
   );
 }

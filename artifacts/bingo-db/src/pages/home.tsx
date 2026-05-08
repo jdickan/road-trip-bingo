@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
-import WordToolbar from "@/components/WordToolbar";
-import StatsSidebar from "@/components/StatsSidebar";
+import WordFilterBar from "@/components/WordFilterBar";
 import BoardsPanel from "@/components/BoardsPanel";
 import ThemePanel from "@/components/ThemePanel";
 import DefinitionsPanel from "@/components/DefinitionsPanel";
@@ -81,12 +80,12 @@ export default function Home() {
 
       {/* ── Fixed filter overlay — only rendered when filter row is off-screen ── */}
       {tab === "words" && filterBarFixed && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b px-4 py-2">
-          <WordToolbar
+        <div className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b">
+          <WordFilterBar
             filters={filters}
             setFilters={setFilters}
             onClearBoard={clearBoard}
-            section="filters"
+            onAutofillComplete={handleAutofillComplete}
           />
         </div>
       )}
@@ -99,8 +98,8 @@ export default function Home() {
         {/* Header flows naturally with content */}
         <header className="bg-card border-b">
 
-          {/* Brand + stats row */}
-          <div className="px-4 py-3 flex items-center justify-between">
+          {/* Brand row */}
+          <div className="px-4 py-3 flex items-center">
             <button
               className="flex items-center gap-3 hover:opacity-75 transition-opacity"
               title="Reset to home"
@@ -114,7 +113,6 @@ export default function Home() {
                 <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mt-0.5">Data Cockpit</p>
               </div>
             </button>
-            <StatsSidebar onClick={() => handleTabChange("analysis")} />
           </div>
 
           {/* Tab row */}
@@ -142,14 +140,13 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Search + actions row — words tab only */}
+          {/* Filter bar — words tab only */}
           {tab === "words" && (
             <div className="border-t">
-              <WordToolbar
+              <WordFilterBar
                 filters={filters}
                 setFilters={setFilters}
                 onClearBoard={clearBoard}
-                section="search"
                 onAutofillComplete={handleAutofillComplete}
               />
             </div>

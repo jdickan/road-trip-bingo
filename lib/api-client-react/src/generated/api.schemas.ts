@@ -158,6 +158,7 @@ export type ListWordsParams = {
   board?: string;
   dayNight?: string;
   incomplete?: boolean;
+  complete?: boolean;
   limit?: number;
   offset?: number;
 };

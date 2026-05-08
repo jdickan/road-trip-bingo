@@ -28,6 +28,7 @@ export const ListWordsQueryParams = zod.object({
   board: zod.coerce.string().optional(),
   dayNight: zod.coerce.string().optional(),
   incomplete: zod.coerce.boolean().optional(),
+  complete: zod.coerce.boolean().optional(),
   limit: zod.coerce.number().optional(),
   offset: zod.coerce.number().optional(),
 });
