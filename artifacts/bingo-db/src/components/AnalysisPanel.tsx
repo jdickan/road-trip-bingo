@@ -2,55 +2,7 @@ import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-
 import { keepPreviousData } from "@tanstack/react-query";
 import { Loader2, BarChart2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
-
-// Bar fill colors — CSS custom property references so they re-skin with the
-// active theme. chart-1=amber, chart-2=emerald, chart-3=blue, chart-4=violet,
-// chart-5=red, chart-6=indigo, chart-7=teal, chart-8=sky
-const DAY_NIGHT_COLORS: Record<string, string> = {
-  "Day only":    "hsl(var(--chart-8) / 0.7)",
-  "Night only":  "hsl(var(--chart-6) / 0.7)",
-  "Day + Night": "hsl(var(--chart-4) / 0.7)",
-  "Unknown":     "hsl(var(--border))",
-};
-const AGE_COLORS: Record<string, string> = {
-  "Young":   "hsl(var(--chart-4) / 0.8)",
-  "Kid":     "hsl(var(--chart-4) / 0.6)",
-  "Tween":   "hsl(var(--chart-4) / 0.4)",
-  "Unknown": "hsl(var(--border))",
-};
-const FINDABILITY_COLORS: Record<string, string> = {
-  "High":    "hsl(var(--chart-1) / 0.85)",
-  "Medium":  "hsl(var(--chart-1) / 0.65)",
-  "Low":     "hsl(var(--chart-1) / 0.45)",
-  "Unknown": "hsl(var(--border))",
-};
-const SEASON_COLORS: Record<string, string> = {
-  "All":    "hsl(var(--border))",
-  "Spring": "hsl(var(--chart-2) / 0.65)",
-  "Summer": "hsl(var(--chart-2) / 0.85)",
-  "Fall":   "hsl(var(--chart-2) / 0.55)",
-  "Winter": "hsl(var(--chart-2) / 0.40)",
-};
-const REGION_COLORS: Record<string, string> = {
-  "All":      "hsl(var(--border))",
-  "NE":       "hsl(var(--chart-3) / 0.70)",
-  "SE":       "hsl(var(--chart-3) / 0.85)",
-  "N Cent":   "hsl(var(--chart-3) / 0.60)",
-  "S Cent":   "hsl(var(--chart-3) / 0.55)",
-  "NW + AK":  "hsl(var(--chart-8) / 0.65)",
-  "SW + HI":  "hsl(var(--chart-8) / 0.50)",
-  "Unknown":  "hsl(var(--border))",
-};
-const SURROUNDINGS_COLORS: Record<string, string> = {
-  "All":               "hsl(var(--border))",
-  "Rural / Xurban":    "hsl(var(--chart-7) / 0.80)",
-  "Suburban / Town":   "hsl(var(--chart-7) / 0.65)",
-  "Urban / City":      "hsl(var(--chart-7) / 0.50)",
-  "Highway":           "hsl(var(--chart-7) / 0.60)",
-  "Coast":             "hsl(var(--chart-8) / 0.50)",
-  "Unknown":           "hsl(var(--border))",
-};
-const BOARD_COLOR = "hsl(var(--chart-6) / 0.65)";
+import { getBarColor } from "@/lib/tagColors";
 
 const DAY_NIGHT_ORDER    = ["Day only", "Night only", "Day + Night", "Unknown"];
 const AGE_ORDER          = ["Young", "Kid", "Tween", "Unknown"];
@@ -239,7 +191,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Day / Night">
               {DAY_NIGHT_ORDER.map(k => (
-                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} color={DAY_NIGHT_COLORS[k] ?? "hsl(var(--border))"} />
+                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} color={getBarColor("dayNight", k)} />
               ))}
             </Section>
           </div>
@@ -248,7 +200,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Age Group">
               {AGE_ORDER.map(k => (
-                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} color={AGE_COLORS[k] ?? "hsl(var(--border))"} />
+                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} color={getBarColor("age", k)} />
               ))}
             </Section>
           </div>
@@ -257,7 +209,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Findability">
               {FINDABILITY_ORDER.map(k => (
-                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} color={FINDABILITY_COLORS[k] ?? "hsl(var(--border))"} />
+                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} color={getBarColor("findability", k)} />
               ))}
             </Section>
           </div>
@@ -270,7 +222,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Seasons">
               {SEASON_ORDER.map(k => (
-                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} color={SEASON_COLORS[k] ?? "hsl(var(--border))"} />
+                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} color={getBarColor("season", k)} />
               ))}
             </Section>
           </div>
@@ -279,7 +231,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="US Regions">
               {REGION_ORDER.map(k => (
-                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} color={REGION_COLORS[k] ?? "hsl(var(--border))"} />
+                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} color={getBarColor("region", k)} />
               ))}
             </Section>
           </div>
@@ -289,7 +241,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
             <Section title="Surroundings">
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                 {SURROUNDINGS_ORDER.map(k => (
-                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} color={SURROUNDINGS_COLORS[k] ?? "hsl(var(--border))"} />
+                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} color={getBarColor("surroundings", k)} />
                 ))}
               </div>
             </Section>
@@ -301,7 +253,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <Section title="Boards">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1.5">
               {sortedBoards.map(([name, count]) => (
-                <StatRow key={name} label={name} value={count} max={brdMax} color={BOARD_COLOR} />
+                <StatRow key={name} label={name} value={count} max={brdMax} color={getBarColor("board", name)} />
               ))}
             </div>
           </Section>

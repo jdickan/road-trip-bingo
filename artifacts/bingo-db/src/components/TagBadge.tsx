@@ -1,20 +1,5 @@
 import { cn } from "@/lib/utils";
-
-// Per-category hue + saturation — drives the .tag-badge CSS utility class
-// (defined in index.css) so colors adapt to the active theme skin.
-// Atelier collapses all categories to monochrome via a CSS override.
-function getCategoryHSL(type: TagBadgeProps["type"]): { h: number; s: string } {
-  switch (type) {
-    case "findability":  return { h: 35,  s: "85%" };
-    case "age":          return { h: 270, s: "70%" };
-    case "season":       return { h: 145, s: "65%" };
-    case "region":       return { h: 215, s: "85%" };
-    case "surroundings": return { h: 175, s: "60%" };
-    case "board":        return { h: 245, s: "65%" };
-    case "dayNight":     return { h: 200, s: "82%" };
-    default:             return { h: 215, s: "20%" };
-  }
-}
+import { getTagColor, type TagType } from "@/lib/tagColors";
 
 // Weight contrast for priority fields — layered on top of the hue.
 function getWeightClass(type: string, value: string): string {
@@ -37,7 +22,7 @@ function getWeightClass(type: string, value: string): string {
 }
 
 interface TagBadgeProps {
-  type: "findability" | "age" | "season" | "region" | "surroundings" | "board" | "dayNight";
+  type: TagType;
   value: string | null;
   className?: string;
   onClick?: () => void;
@@ -59,7 +44,7 @@ export function TagBadge({ type, value, className, onClick }: TagBadgeProps) {
     );
   }
 
-  const { h, s } = getCategoryHSL(type);
+  const { h, s } = getTagColor(type, value);
 
   return (
     <span
