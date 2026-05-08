@@ -369,7 +369,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                       : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
                 )}
               >
-                {plateNumber(index + 1)}
+                {plateNumber(board.wordCount)}
               </span>
             </div>
 

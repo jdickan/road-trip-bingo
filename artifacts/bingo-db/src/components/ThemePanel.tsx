@@ -181,7 +181,7 @@ export default function ThemePanel() {
         </p>
       </div>
 
-    <div className="max-w-2xl py-2 space-y-0">
+    <div className="py-2 space-y-0">
 
       {/* ── Dark mode ───────────────────────────────────────────────────────── */}
       <div className="border border-border px-4 py-3 flex items-center justify-between gap-4">
