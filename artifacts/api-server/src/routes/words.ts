@@ -31,45 +31,67 @@ function buildFilters(params: {
 }) {
   const conditions = [];
 
+  /** Split a comma-separated filter string into trimmed non-empty values. */
+  const split = (v?: string) => (v ? v.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
   if (params.search) {
     conditions.push(ilike(wordsTable.word, `%${params.search}%`));
   }
-  if (params.region && params.region !== "All") {
+
+  const regionVals = split(params.region);
+  if (regionVals.length > 0) {
     conditions.push(
       or(
-        sql`${wordsTable.regions} @> ARRAY[${params.region}]::text[]`,
+        ...regionVals.map((v) => sql`${wordsTable.regions} @> ARRAY[${v}]::text[]`),
         sql`${wordsTable.regions} @> ARRAY['All']::text[]`
       )
     );
   }
-  if (params.surroundings && params.surroundings !== "All") {
+
+  const surroundingsVals = split(params.surroundings);
+  if (surroundingsVals.length > 0) {
     conditions.push(
       or(
-        sql`${wordsTable.surroundings} @> ARRAY[${params.surroundings}]::text[]`,
+        ...surroundingsVals.map((v) => sql`${wordsTable.surroundings} @> ARRAY[${v}]::text[]`),
         sql`${wordsTable.surroundings} @> ARRAY['All']::text[]`
       )
     );
   }
-  if (params.age) {
-    conditions.push(eq(wordsTable.age, params.age));
+
+  const ageVals = split(params.age);
+  if (ageVals.length > 0) {
+    conditions.push(or(...ageVals.map((v) => eq(wordsTable.age, v))));
   }
-  if (params.findability) {
-    conditions.push(eq(wordsTable.findability, params.findability));
+
+  const findabilityVals = split(params.findability);
+  if (findabilityVals.length > 0) {
+    conditions.push(or(...findabilityVals.map((v) => eq(wordsTable.findability, v))));
   }
-  if (params.season && params.season !== "All") {
+
+  const seasonVals = split(params.season);
+  if (seasonVals.length > 0) {
     conditions.push(
       or(
-        sql`${wordsTable.seasons} @> ARRAY[${params.season}]::text[]`,
+        ...seasonVals.map((v) => sql`${wordsTable.seasons} @> ARRAY[${v}]::text[]`),
         sql`${wordsTable.seasons} @> ARRAY['All']::text[]`
       )
     );
   }
-  if (params.board) {
-    conditions.push(sql`${wordsTable.boards} @> ARRAY[${params.board}]::text[]`);
+
+  const boardVals = split(params.board);
+  if (boardVals.length > 0) {
+    conditions.push(
+      or(...boardVals.map((v) => sql`${wordsTable.boards} @> ARRAY[${v}]::text[]`))
+    );
   }
-  if (params.dayNight) {
-    conditions.push(sql`${wordsTable.dayNight} @> ARRAY[${params.dayNight}]::text[]`);
+
+  const dayNightVals = split(params.dayNight);
+  if (dayNightVals.length > 0) {
+    conditions.push(
+      or(...dayNightVals.map((v) => sql`${wordsTable.dayNight} @> ARRAY[${v}]::text[]`))
+    );
   }
+
   if (params.incomplete) {
     conditions.push(
       or(
