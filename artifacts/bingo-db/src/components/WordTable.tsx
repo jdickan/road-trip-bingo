@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
@@ -75,7 +75,8 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [draftSelections, setDraftSelections] = useState<Set<string>>(new Set());
 
-  // Sync draft from current filter value whenever the panel opens
+  // Sync draft from current filter value whenever the panel opens.
+  // No active filter = all options visible = initialize all as checked.
   useEffect(() => {
     if (!activeFilter) return;
     const col = FILTER_COLS[activeFilter];
@@ -84,7 +85,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     setDraftSelections(
       currentVal
         ? new Set(currentVal.split(",").map((s) => s.trim()).filter(Boolean))
-        : new Set()
+        : new Set(col.options)
     );
   }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -99,7 +100,9 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
   function applyDraft() {
     if (!activeFilter || !activeFiltKey) return;
-    const val = draftSelections.size > 0 ? [...draftSelections].join(",") : undefined;
+    // All options checked (or none) = no filter active
+    const allSelected = activeFiltOpts.length > 0 && activeFiltOpts.every((o) => draftSelections.has(o));
+    const val = (!allSelected && draftSelections.size > 0) ? [...draftSelections].join(",") : undefined;
     setFilters?.((p) => ({ ...p, [activeFiltKey]: val, offset: 0 }));
     setPage(0);
     setActiveFilter(null);
@@ -185,9 +188,13 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           setActiveFilter(activeFilter === label ? null : label);
         }}
       >
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-1">
           {label}
-          {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0" />}
+          <ChevronDown className={cn(
+            "h-2.5 w-2.5 shrink-0 transition-transform duration-150",
+            activeFilter === label ? "rotate-180 text-foreground/70" : "text-muted-foreground/35"
+          )} />
+          {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0 ml-0.5" />}
         </span>
       </TableHead>
     );

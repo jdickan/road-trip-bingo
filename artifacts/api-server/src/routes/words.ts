@@ -41,20 +41,14 @@ function buildFilters(params: {
   const regionVals = split(params.region);
   if (regionVals.length > 0) {
     conditions.push(
-      or(
-        ...regionVals.map((v) => sql`${wordsTable.regions} @> ARRAY[${v}]::text[]`),
-        sql`${wordsTable.regions} @> ARRAY['All']::text[]`
-      )
+      or(...regionVals.map((v) => sql`${wordsTable.regions} @> ARRAY[${v}]::text[]`))
     );
   }
 
   const surroundingsVals = split(params.surroundings);
   if (surroundingsVals.length > 0) {
     conditions.push(
-      or(
-        ...surroundingsVals.map((v) => sql`${wordsTable.surroundings} @> ARRAY[${v}]::text[]`),
-        sql`${wordsTable.surroundings} @> ARRAY['All']::text[]`
-      )
+      or(...surroundingsVals.map((v) => sql`${wordsTable.surroundings} @> ARRAY[${v}]::text[]`))
     );
   }
 
@@ -71,10 +65,7 @@ function buildFilters(params: {
   const seasonVals = split(params.season);
   if (seasonVals.length > 0) {
     conditions.push(
-      or(
-        ...seasonVals.map((v) => sql`${wordsTable.seasons} @> ARRAY[${v}]::text[]`),
-        sql`${wordsTable.seasons} @> ARRAY['All']::text[]`
-      )
+      or(...seasonVals.map((v) => sql`${wordsTable.seasons} @> ARRAY[${v}]::text[]`))
     );
   }
 
