@@ -90,15 +90,16 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWord, setNewWord] = useState("");
+  const [newWordTop, setNewWordTop] = useState("");
 
-  const handleAddWord = (e: React.FormEvent) => {
+  const makeAddHandler = (word: string, clear: () => void) => (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWord.trim()) return;
+    if (!word.trim()) return;
     createMutation.mutate(
-      { data: { word: newWord.trim() } },
+      { data: { word: word.trim() } },
       {
         onSuccess: () => {
-          setNewWord("");
+          clear();
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
           toast({ title: "Word added" });
@@ -106,6 +107,9 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
       }
     );
   };
+
+  const handleAddWord = makeAddHandler(newWord, () => setNewWord(""));
+  const handleAddWordTop = makeAddHandler(newWordTop, () => setNewWordTop(""));
 
   const handleDelete = (id: number) => {
     deleteMutation.mutate(
@@ -198,6 +202,32 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         </TableHeader>
 
         <TableBody className="text-sm">
+          {/* Quick-add row — top */}
+          <TableRow className="hover:bg-muted/10 border-b border-border/50">
+            <TableCell colSpan={12} className="p-2">
+              <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
+                <Plus className="h-3.5 w-3.5 text-muted-foreground/40 ml-2 shrink-0" />
+                <Input
+                  placeholder="Quick add new word…"
+                  value={newWordTop}
+                  onChange={(e) => setNewWordTop(e.target.value)}
+                  className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
+                  data-testid="input-quick-add-top"
+                />
+                {newWordTop.trim() && (
+                  <button
+                    type="submit"
+                    className="h-7 px-3 text-xs font-mono border border-border hover:bg-muted/40 transition-colors disabled:opacity-40"
+                    disabled={createMutation.isPending}
+                    data-testid="btn-submit-quick-add-top"
+                  >
+                    {createMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                  </button>
+                )}
+              </form>
+            </TableCell>
+          </TableRow>
+
           {isLoading && !data ? (
             <TableRow>
               <TableCell colSpan={12} className="h-24 text-center">
