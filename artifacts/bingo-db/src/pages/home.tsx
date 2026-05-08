@@ -13,8 +13,8 @@ import appIcon from "@assets/icon-512_1775010520611.png";
 
 const TABS = [
   { id: "words",       icon: TableIcon,    label: "Words" },
+  { id: "analysis",    icon: BarChart2,    label: "Stats" },
   { id: "boards",      icon: LayoutGrid,   label: "Boards" },
-  { id: "analysis",    icon: BarChart2,    label: "Analysis" },
   { id: "definitions", icon: BookOpen,     label: "Definitions" },
   { id: "theme",       icon: Palette,      label: "Theme" },
   { id: "snapshots",   icon: DatabaseZap,  label: "Snapshots" },
