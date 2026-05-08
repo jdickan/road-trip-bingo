@@ -15,9 +15,9 @@ export interface ThemeValue {
 
 // ── Basic theme — the original designed look, always recoverable ──────────────
 export const BASIC_THEME: ThemeValue = {
-  primaryHue: 26,
-  primarySat: 90,
-  primaryLight: 55,
+  primaryHue: 220,
+  primarySat: 10,
+  primaryLight: 12,
   bgHue: 40,
   bgSat: 33,
   radius: 0.5,
@@ -137,24 +137,29 @@ export function applyTheme(t: ThemeValue, skin?: SkinName): void {
     root.removeAttribute("data-colored-tags");
   }
 
+  // ── Primary color (both skins) — slider-driven with dark-mode lightness flip ─
+  // In dark mode the lightness is inverted so near-black becomes near-white and
+  // saturated hues stay readable. --primary-foreground is computed accordingly.
+  const effectivePrimaryLight = t.darkMode ? 100 - t.primaryLight : t.primaryLight;
+  const primaryFg = effectivePrimaryLight > 55 ? "0 0% 9%" : "0 0% 99%";
+  const primaryVal = `${t.primaryHue} ${t.primarySat}% ${effectivePrimaryLight}%`;
+  root.style.setProperty("--primary",                      primaryVal);
+  root.style.setProperty("--primary-foreground",           primaryFg);
+  root.style.setProperty("--ring",                         primaryVal);
+  root.style.setProperty("--sidebar-primary",              primaryVal);
+  root.style.setProperty("--sidebar-primary-foreground",   primaryFg);
+  root.style.setProperty("--sidebar-ring",                 primaryVal);
+
   if (isAtelier) {
-    // Atelier owns every token via .skin-atelier in index.css.
-    // Strip any inline overrides left by Basic so they don't leak through.
-    root.style.removeProperty("--primary");
-    root.style.removeProperty("--ring");
-    root.style.removeProperty("--sidebar-primary");
-    root.style.removeProperty("--sidebar-ring");
+    // Atelier owns background, radius, and row-divider via .skin-atelier CSS.
+    // Strip any inline overrides left by Basic so the CSS cascade applies.
     root.style.removeProperty("--background");
     root.style.removeProperty("--radius");
     root.style.removeProperty("--row-divider");
     return;
   }
 
-  // ── Basic skin: original slider-driven behaviour ──────────────────────────
-  root.style.setProperty("--primary",          `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--ring",             `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--sidebar-primary",  `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
-  root.style.setProperty("--sidebar-ring",     `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
+  // ── Basic skin: set remaining slider-driven tokens ────────────────────────
 
   if (!t.darkMode) {
     root.style.setProperty("--background", `${t.bgHue} ${t.bgSat}% 98%`);

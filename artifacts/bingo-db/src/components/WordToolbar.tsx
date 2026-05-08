@@ -101,14 +101,14 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
             className={cn(
               "flex items-center gap-1.5 mx-3 my-2 px-3 py-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase border transition-all rounded-sm",
               filters.incomplete
-                ? "border-foreground/30 bg-muted text-foreground"
+                ? "border-primary/30 bg-muted text-primary"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
             )}
             data-testid="switch-incomplete"
           >
             <span className={cn(
               "h-1.5 w-1.5 rounded-full transition-colors",
-              filters.incomplete ? "bg-foreground" : "bg-border"
+              filters.incomplete ? "bg-primary" : "bg-border"
             )} />
             Incomplete only
           </button>

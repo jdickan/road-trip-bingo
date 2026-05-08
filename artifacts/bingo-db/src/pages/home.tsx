@@ -154,7 +154,10 @@ export default function Home() {
               <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
                 <img src={appIcon} alt="Road Trip Bingo Data" className="w-full h-full object-cover" />
               </div>
-              <h1 className="font-mono text-[10.5px] tracking-[0.06em] uppercase text-foreground leading-none">Road Trip Bingo Data</h1>
+              <h1 className="font-mono text-[10.5px] tracking-[0.06em] uppercase leading-none">
+                <span className="text-primary">Road Trip Bingo</span>
+                <span className="text-muted-foreground"> · Data</span>
+              </h1>
             </button>
 
             {/* Tabs */}

@@ -121,7 +121,7 @@ export default function WordFilterBar({
             className={cn(
               "relative px-5 py-3 font-mono text-[10.5px] tracking-[0.18em] uppercase transition-colors duration-150",
               viewMode === id
-                ? "text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-px after:bg-foreground"
+                ? "text-primary after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-px after:bg-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

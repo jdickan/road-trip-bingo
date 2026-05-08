@@ -108,7 +108,7 @@ function CompletionArc({ pct }: { pct: number }) {
         cx="34" cy="34" r={r} fill="none" strokeWidth="5"
         strokeDasharray={`${filled} ${circ}`}
         strokeLinecap="butt"
-        style={{ stroke: "hsl(var(--chart-2) / 0.75)" }}
+        style={{ stroke: "hsl(var(--primary) / 0.85)" }}
         className="transition-all duration-700"
         transform="rotate(-90 34 34)"
       />
@@ -221,7 +221,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
               <div className="flex flex-col gap-1.5 text-xs min-w-0">
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Complete</span>
-                  <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-2))" }}>{complete}</span>
+                  <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--primary))" }}>{complete}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Incomplete</span>
