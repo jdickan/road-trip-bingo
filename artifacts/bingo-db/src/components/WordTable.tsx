@@ -112,8 +112,8 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const offset = page * limit;
 
   // Resizable column widths (px)
-  const [wordWidth, setWordWidth] = useState(160);
-  const [spanishWidth, setSpanishWidth] = useState(140);
+  const [wordWidth, setWordWidth] = useState(220);
+  const [spanishWidth, setSpanishWidth] = useState(180);
 
   const queryParams = { ...filters, limit, offset };
   const { data, isLoading } = useListWords(queryParams, {
@@ -124,17 +124,16 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const deleteMutation = useDeleteWord();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [newWord, setNewWord] = useState("");
   const [newWordTop, setNewWordTop] = useState("");
 
-  const makeAddHandler = (word: string, clear: () => void) => (e: React.FormEvent) => {
+  const handleAddWordTop = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!word.trim()) return;
+    if (!newWordTop.trim()) return;
     createMutation.mutate(
-      { data: { word: word.trim() } },
+      { data: { word: newWordTop.trim() } },
       {
         onSuccess: () => {
-          clear();
+          setNewWordTop("");
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
           toast({ title: "Word added" });
@@ -142,9 +141,6 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
       }
     );
   };
-
-  const handleAddWord = makeAddHandler(newWord, () => setNewWord(""));
-  const handleAddWordTop = makeAddHandler(newWordTop, () => setNewWordTop(""));
 
   const handleDelete = (id: number) => {
     deleteMutation.mutate(
@@ -212,9 +208,9 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           <TableRow className="border-b border-border hover:bg-transparent">
             <TableHead className={`${thBase} w-[52px]`}>Emoji</TableHead>
 
-            {/* Word — resizable */}
+            {/* English — resizable */}
             <TableHead className={thBase} style={{ width: wordWidth, minWidth: 80 }}>
-              Word
+              English
               <ResizeHandle onMouseDown={(e) => startResize(e, wordWidth, setWordWidth)} />
             </TableHead>
 
@@ -330,31 +326,6 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             })
           )}
 
-          {/* Quick-add row */}
-          <TableRow className="hover:bg-muted/10 border-none">
-            <TableCell colSpan={12} className="p-2">
-              <form onSubmit={handleAddWord} className="flex items-center gap-2">
-                <Plus className="h-3.5 w-3.5 text-muted-foreground/40 ml-2 shrink-0" />
-                <Input
-                  placeholder="Quick add new word…"
-                  value={newWord}
-                  onChange={(e) => setNewWord(e.target.value)}
-                  className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
-                  data-testid="input-quick-add"
-                />
-                {newWord.trim() && (
-                  <button
-                    type="submit"
-                    className="h-7 px-3 text-xs font-mono border border-border hover:bg-muted/40 transition-colors disabled:opacity-40"
-                    disabled={createMutation.isPending}
-                    data-testid="btn-submit-quick-add"
-                  >
-                    {createMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
-                  </button>
-                )}
-              </form>
-            </TableCell>
-          </TableRow>
         </TableBody>
       </Table>
 
