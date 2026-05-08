@@ -105,7 +105,7 @@ export default function WordFilterBar({
             ref={searchInputRef}
             type="text"
             placeholder="Search words..."
-            className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/60 placeholder:text-xs outline-none border-none w-44 shrink-0"
+            className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:text-xs outline-none border-none w-44 shrink-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {

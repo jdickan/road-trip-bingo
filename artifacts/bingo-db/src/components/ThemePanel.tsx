@@ -68,7 +68,7 @@ function ColorChip({
           outlineOffset: "2px",
         }}
       />
-      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+      <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </span>
     </button>
@@ -190,7 +190,7 @@ export default function ThemePanel() {
       <div className="border border-border px-4 py-3 flex items-center justify-between gap-4">
         <div>
           <Eyebrow className="mb-1">Dark Mode</Eyebrow>
-          <p className="text-[13px] text-muted-foreground">Switch between light and dark appearance</p>
+          <p className="text-sm text-muted-foreground">Switch between light and dark appearance</p>
         </div>
         <Switch
           checked={theme.darkMode}
@@ -208,7 +208,7 @@ export default function ThemePanel() {
             className="w-8 h-8 rounded-full border border-border shrink-0"
             style={{ background: customPrimaryColor }}
           />
-          <p className="text-[13px] text-muted-foreground">Used for buttons, tabs, badges, and highlights</p>
+          <p className="text-sm text-muted-foreground">Used for buttons, tabs, badges, and highlights</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -252,7 +252,7 @@ export default function ThemePanel() {
       {/* ── Background Tint ─────────────────────────────────────────────────── */}
       <div className="border-x border-b border-border px-4 py-4 space-y-4">
         <Eyebrow>Background Tint</Eyebrow>
-        <p className="text-[13px] text-muted-foreground -mt-2">Subtle hue applied to the page background (light mode only)</p>
+        <p className="text-sm text-muted-foreground -mt-2">Subtle hue applied to the page background (light mode only)</p>
 
         <div className="flex flex-wrap gap-3">
           {PRESET_BG.map((p) => (
@@ -305,16 +305,16 @@ export default function ThemePanel() {
             />
           </div>
         </div>
-        <p className="text-[13px] text-muted-foreground">Strength of the separator line between rows</p>
+        <p className="text-sm text-muted-foreground">Strength of the separator line between rows</p>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground w-10">Subtle</span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground w-10">Subtle</span>
           <Slider
             min={0} max={0.6} step={0.01}
             value={[theme.rowDividerOpacity]}
             onValueChange={([v]) => update({ rowDividerOpacity: v })}
             className="flex-1 [&_[role=slider]]:shadow-none"
           />
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground w-10 text-right">Strong</span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground w-10 text-right">Strong</span>
         </div>
         <p className="font-mono tabular-nums text-xs text-muted-foreground text-center">
           {Math.round(theme.rowDividerOpacity * 100)}% opacity ·{" "}
@@ -331,16 +331,16 @@ export default function ThemePanel() {
             style={{ borderRadius: `${theme.radius}rem` }}
           />
         </div>
-        <p className="text-[13px] text-muted-foreground">Rounding applied to cards, buttons, and inputs</p>
+        <p className="text-sm text-muted-foreground">Rounding applied to cards, buttons, and inputs</p>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground w-10">Square</span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground w-10">Square</span>
           <Slider
             min={0} max={1.5} step={0.05}
             value={[theme.radius]}
             onValueChange={([v]) => update({ radius: v })}
             className="flex-1 [&_[role=slider]]:shadow-none"
           />
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground w-10 text-right">Round</span>
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground w-10 text-right">Round</span>
         </div>
         <p className="font-mono tabular-nums text-xs text-muted-foreground text-center">{theme.radius.toFixed(2)} rem</p>
       </div>
@@ -350,7 +350,7 @@ export default function ThemePanel() {
         <Eyebrow>Specimen · Live</Eyebrow>
         <div className="flex flex-wrap gap-2 items-center border border-border rounded-sm px-4 py-3">
           <button
-            className="px-3 py-1.5 text-[13px] font-medium"
+            className="px-3 py-1.5 text-sm font-medium"
             style={{
               background: theme.darkMode ? "#f0f0f0" : "#111111",
               color: theme.darkMode ? "#111111" : "#f9f9f9",
@@ -360,19 +360,19 @@ export default function ThemePanel() {
             Primary
           </button>
           <button
-            className="px-3 py-1.5 text-[13px] font-medium border border-border bg-transparent text-foreground"
+            className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground"
             style={{ borderRadius: `${theme.radius * 0.875}rem` }}
           >
             Outline
           </button>
           <button
-            className="px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors bg-transparent"
+            className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors bg-transparent"
             style={{ borderRadius: `${theme.radius * 0.875}rem` }}
           >
             Ghost
           </button>
           <span
-            className="px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-primary-foreground"
+            className="px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-primary-foreground"
             style={{
               background: customPrimaryColor,
               borderRadius: `${theme.radius * 0.5}rem`,
@@ -381,7 +381,7 @@ export default function ThemePanel() {
             Badge
           </span>
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
           Changes apply instantly — no save needed.
         </p>
       </div>
@@ -391,7 +391,7 @@ export default function ThemePanel() {
         <Eyebrow>Reset</Eyebrow>
         {confirmReset ? (
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/60">Sure?</span>
+            <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/50">Sure?</span>
             <button
               onClick={resetToDefaults}
               className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground hover:text-foreground/70 transition-colors underline underline-offset-4 decoration-border shrink-0"

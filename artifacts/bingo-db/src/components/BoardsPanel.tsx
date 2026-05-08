@@ -286,7 +286,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               ref={newBoardNameRef}
               type="text"
               placeholder="Board name"
-              className="bg-transparent border-0 border-b border-border text-2xl font-editorial italic text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors py-1 w-full"
+              className="bg-transparent border-0 border-b border-border text-2xl font-editorial italic text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground transition-colors py-1 w-full"
               value={newBoard.name}
               onChange={(e) => setNewBoard((p) => ({ ...p, name: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") submitNewBoard(); if (e.key === "Escape") setNewBoard((p) => ({ ...p, open: false })); }}
@@ -294,7 +294,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
             <input
               type="text"
               placeholder="Description (optional)"
-              className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border transition-colors py-1 w-full"
+              className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/50 outline-none focus:border-border transition-colors py-1 w-full"
               value={newBoard.description}
               onChange={(e) => setNewBoard((p) => ({ ...p, description: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") submitNewBoard(); if (e.key === "Escape") setNewBoard((p) => ({ ...p, open: false })); }}
@@ -371,7 +371,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                 className={cn(
                   "text-3xl md:text-4xl font-editorial italic select-none tabular-nums leading-none transition-colors duration-200",
                   isSelected
-                    ? "text-foreground/60"
+                    ? "text-foreground/70"
                     : board.status === "concept"
                       ? "text-muted-foreground/30 line-through decoration-1"
                       : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
@@ -429,7 +429,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                     if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none py-1 w-full mt-2"
+                  className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/50 outline-none py-1 w-full mt-2"
                 />
               ) : board.description ? (
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-2">

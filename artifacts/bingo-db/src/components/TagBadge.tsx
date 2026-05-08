@@ -48,8 +48,8 @@ export function TagBadge({ type, value, className, onClick }: TagBadgeProps) {
     return (
       <span
         className={cn(
-          "inline-flex items-center font-mono text-[10px] tracking-[0.04em] text-muted-foreground/35 select-none",
-          onClick && "cursor-pointer hover:text-muted-foreground/60 transition-colors",
+          "inline-flex items-center font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground/30 select-none",
+          onClick && "cursor-pointer hover:text-muted-foreground/50 transition-colors",
           className
         )}
         onClick={onClick}
@@ -64,7 +64,7 @@ export function TagBadge({ type, value, className, onClick }: TagBadgeProps) {
   return (
     <span
       className={cn(
-        "tag-badge inline-flex items-center font-mono text-[10px] tracking-[0.04em]",
+        "tag-badge inline-flex items-center font-mono text-[10.5px] tracking-[0.04em]",
         "px-1.5 py-px border rounded-[3px] whitespace-nowrap",
         getWeightClass(type, value),
         onClick && "cursor-pointer hover:brightness-95 transition-[filter]",

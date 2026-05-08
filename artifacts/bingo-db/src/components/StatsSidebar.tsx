@@ -11,11 +11,11 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
     return (
       <div className="hidden md:flex items-center gap-5" data-testid="stats-loading">
         <div className="text-right">
-          <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Total</div>
+          <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Total</div>
           <div className="h-7 w-12 bg-muted/40 rounded animate-pulse" />
         </div>
         <div className="text-right">
-          <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Incomplete</div>
+          <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Incomplete</div>
           <div className="h-7 w-10 bg-muted/40 rounded animate-pulse" />
         </div>
       </div>
@@ -31,7 +31,7 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
       data-testid="stats-container"
     >
       <div className="text-right">
-        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
+        <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
           Total
         </div>
         <div className="font-mono text-xl font-semibold tabular-nums leading-none text-foreground">
@@ -40,7 +40,7 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
       </div>
 
       <div className="text-right">
-        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
+        <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
           Incomplete
         </div>
         <div className="font-mono text-3xl font-bold tabular-nums leading-none" style={{ color: "hsl(var(--chart-5))" }}>

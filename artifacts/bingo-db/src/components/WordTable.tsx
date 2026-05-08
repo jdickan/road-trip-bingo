@@ -170,7 +170,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     );
   };
 
-  const thBase = "font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-normal relative select-none";
+  const thBase = "font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground font-normal relative select-none";
 
   function FilterableHead({
     label,
@@ -224,7 +224,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               {label}
               <ChevronDown className={cn(
                 "h-2.5 w-2.5 shrink-0 transition-transform duration-150",
-                isOpen ? "rotate-180 text-foreground/70" : "text-muted-foreground/35"
+                isOpen ? "rotate-180 text-foreground/70" : "text-muted-foreground/30"
               )} />
               {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0 ml-0.5" />}
             </span>
@@ -262,7 +262,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                     "w-full text-left px-4 py-2 flex items-center gap-3 transition-colors",
                     selected
                       ? "bg-muted/40 text-foreground"
-                      : "text-foreground/60 hover:bg-muted/20 hover:text-foreground"
+                      : "text-foreground/70 hover:bg-muted/20 hover:text-foreground"
                   )}
                 >
                   <div className={cn(
@@ -282,13 +282,13 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             <button
               onClick={clearDraft}
               disabled={draftSelections.size === 0}
-              className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
             >
               Clear
             </button>
             <button
               onClick={applyDraft}
-              className="font-mono text-[10px] tracking-[0.18em] uppercase bg-foreground text-background px-3 py-1.5 hover:opacity-80 transition-opacity"
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase bg-foreground text-background px-3 py-1.5 hover:opacity-80 transition-opacity"
             >
               Apply{draftSelections.size > 0 ? ` (${draftSelections.size})` : ""}
             </button>
@@ -345,7 +345,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           <TableRow className="hover:bg-muted/10 border-b border-border/50">
             <TableCell colSpan={12} className="p-2">
               <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
-                <Plus className="h-3.5 w-3.5 text-muted-foreground/40 ml-2 shrink-0" />
+                <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                 <Input
                   placeholder="Quick add new word…"
                   value={newWordTop}
@@ -439,7 +439,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             <TableRow className="hover:bg-muted/10 border-t border-border/50">
               <TableCell colSpan={12} className="p-2">
                 <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground/40 ml-2 shrink-0" />
+                  <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                   <Input
                     placeholder="Quick add new word…"
                     value={newWordTop}

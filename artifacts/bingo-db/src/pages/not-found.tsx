@@ -59,7 +59,7 @@ export default function NotFound() {
           >
             ← Back to the database
           </Link>
-          <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/60">
+          <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/50">
             Or just stare out the window for a bit.
           </span>
         </div>

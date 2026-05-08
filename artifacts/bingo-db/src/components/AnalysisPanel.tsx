@@ -75,7 +75,7 @@ function StatRow({ label, value, max, color }: { label: string; value: number; m
         {label}
       </span>
       <Bar value={value} max={max} color={color} />
-      <span className="font-mono text-[11px] font-semibold tabular-nums w-8 text-right shrink-0 text-foreground">
+      <span className="font-mono text-xs font-semibold tabular-nums w-8 text-right shrink-0 text-foreground">
         {value}
       </span>
     </div>
@@ -86,7 +86,7 @@ function StatRow({ label, value, max, color }: { label: string; value: number; m
 function Section({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`min-w-0 ${className}`}>
-      <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground pb-2 mb-3 border-b border-border/50">
+      <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground pb-2 mb-3 border-b border-border/50">
         {title}
       </p>
       <div className="flex flex-col gap-1.5">{children}</div>
@@ -121,7 +121,7 @@ function CompletionArc({ pct }: { pct: number }) {
 function KpiStat({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div className="flex flex-col items-end px-4 py-3 min-w-[72px]">
-      <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
+      <span className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
         {label}
       </span>
       <span
@@ -180,12 +180,12 @@ export default function AnalysisPanel() {
 
           {/* Completion */}
           <div className="p-4">
-            <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground pb-2 mb-3 border-b border-border/50">
+            <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground pb-2 mb-3 border-b border-border/50">
               Completion
             </p>
             <div className="flex items-center gap-3">
               <CompletionArc pct={completePct} />
-              <div className="flex flex-col gap-1.5 text-[11px] min-w-0">
+              <div className="flex flex-col gap-1.5 text-xs min-w-0">
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Complete</span>
                   <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-2))" }}>{complete}</span>

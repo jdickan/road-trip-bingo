@@ -196,7 +196,7 @@ export default function DefinitionsPanel() {
               <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
                 {group.emoji} {group.column}
               </p>
-              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-muted-foreground/50">
+              <span className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-muted-foreground/50">
                 · {group.definitions[0]?.type ?? "Multiselect"}
               </span>
             </div>
@@ -297,7 +297,7 @@ export default function DefinitionsPanel() {
             {/* Add row */}
             {adding?.groupIdx === gi ? (
               <div className="flex items-start gap-5 py-5 border-t border-border/50 -mx-4 px-4 bg-muted/20">
-                <span className="text-xl font-editorial italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
+                <span className="text-xl font-editorial italic select-none tabular-nums leading-none text-muted-foreground/30 shrink-0 pt-1 w-6 text-right">
                   {String(group.definitions.length + 1).padStart(2, "0")}
                 </span>
                 <div className="w-36 md:w-44 shrink-0">
@@ -313,7 +313,7 @@ export default function DefinitionsPanel() {
                 <div className="flex-1 flex flex-col gap-2 pt-1">
                   <Textarea
                     placeholder="Definition text…"
-                    className="text-sm min-h-[70px] resize-y bg-transparent border-border/50 rounded-none focus-visible:border-foreground focus-visible:ring-0 placeholder:text-muted-foreground/40"
+                    className="text-sm min-h-[70px] resize-y bg-transparent border-border/50 rounded-none focus-visible:border-foreground focus-visible:ring-0 placeholder:text-muted-foreground/50"
                     value={adding.definition}
                     onChange={(e) => setAdding({ ...adding, definition: e.target.value })}
                   />
@@ -361,7 +361,7 @@ export default function DefinitionsPanel() {
           </p>
           {confirmReset ? (
             <div className="flex items-center gap-3">
-              <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/60">Sure?</span>
+              <span className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/50">Sure?</span>
               <button
                 onClick={resetToDefaults}
                 className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground hover:text-foreground/70 transition-colors underline underline-offset-4 decoration-border shrink-0"
