@@ -1,4 +1,4 @@
-import { useGetWordStats } from "@workspace/api-client-react";
+import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
@@ -137,7 +137,7 @@ function KpiStat({ label, value, color }: { label: string; value: number | strin
 
 export default function AnalysisPanel() {
   const { data: stats, isLoading, isError } = useGetWordStats({
-    query: { placeholderData: keepPreviousData },
+    query: { queryKey: getGetWordStatsQueryKey(), placeholderData: keepPreviousData },
   });
 
   if (isLoading && !stats) {

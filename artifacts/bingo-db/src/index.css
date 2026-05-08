@@ -439,3 +439,20 @@
   border-color:     hsl(var(--border));
   color:            hsl(var(--foreground));
 }
+
+/* ── Colored tag pills override ──────────────────────────────────────────────
+   When data-colored-tags is set on <html>, restore pastel hues even inside
+   the Atelier skin. Higher specificity (type + attribute + class = 0,2,1)
+   beats .skin-atelier .tag-badge (0,2,0) so it wins without !important.
+   ────────────────────────────────────────────────────────────────────────── */
+html[data-colored-tags] .tag-badge {
+  background-color: hsl(var(--_h) var(--_s) 95%);
+  border-color:     hsl(var(--_h) var(--_s) 82%);
+  color:            hsl(var(--_h) var(--_s) 22%);
+}
+html[data-colored-tags].dark .tag-badge,
+html[data-colored-tags] .dark .tag-badge {
+  background-color: hsl(var(--_h) var(--_s) 14% / 0.3);
+  border-color:     hsl(var(--_h) var(--_s) 38% / 0.4);
+  color:            hsl(var(--_h) var(--_s) 72%);
+}

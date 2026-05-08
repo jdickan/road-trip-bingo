@@ -10,6 +10,7 @@ export interface ThemeValue {
   radius: number;
   darkMode: boolean;
   rowDividerOpacity: number;
+  coloredTags: boolean;
 }
 
 // ── Basic theme — the original designed look, always recoverable ──────────────
@@ -22,6 +23,7 @@ export const BASIC_THEME: ThemeValue = {
   radius: 0.5,
   darkMode: false,
   rowDividerOpacity: 0.38,
+  coloredTags: true,
 };
 
 // Backward-compat alias
@@ -37,6 +39,7 @@ export const ATELIER_THEME: ThemeValue = {
   radius: 0.375,
   darkMode: false,
   rowDividerOpacity: 0.10,
+  coloredTags: true,
 };
 
 export type SkinName = "basic" | "custom";
@@ -126,6 +129,13 @@ export function applyTheme(t: ThemeValue, skin?: SkinName): void {
   // ── Atelier skin flag ─────────────────────────────────────────────────────
   const isAtelier = getActiveSkin() === "custom";
   root.classList.toggle("skin-atelier", isAtelier);
+
+  // Colored tag pills toggle — works for both skins
+  if (t.coloredTags) {
+    root.setAttribute("data-colored-tags", "1");
+  } else {
+    root.removeAttribute("data-colored-tags");
+  }
 
   if (isAtelier) {
     // Atelier owns every token via .skin-atelier in index.css.

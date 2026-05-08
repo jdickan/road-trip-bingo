@@ -345,6 +345,45 @@ export default function ThemePanel() {
         <p className="font-mono tabular-nums text-xs text-muted-foreground text-center">{theme.radius.toFixed(2)} rem</p>
       </div>
 
+      {/* ── Tag Pill Colors ─────────────────────────────────────────────────── */}
+      <div className="border-x border-b border-border px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <Eyebrow className="mb-1">Tag Pill Colors</Eyebrow>
+          <p className="text-sm text-muted-foreground">Show category badges in pastel colors instead of monochrome</p>
+          {/* Mini tag preview */}
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {[
+              { label: "High",    h: 35,  s: "85%" },
+              { label: "Kid",     h: 270, s: "70%" },
+              { label: "Summer",  h: 145, s: "65%" },
+              { label: "NE",      h: 215, s: "85%" },
+              { label: "Day",     h: 200, s: "82%" },
+            ].map(({ label, h, s }) => (
+              <span
+                key={label}
+                className="font-mono text-[10px] px-1.5 py-px border rounded-[3px] transition-colors"
+                style={theme.coloredTags ? {
+                  backgroundColor: `hsl(${h} ${s} 95%)`,
+                  borderColor: `hsl(${h} ${s} 82%)`,
+                  color: `hsl(${h} ${s} 22%)`,
+                } : {
+                  backgroundColor: "hsl(var(--muted))",
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+        <Switch
+          checked={theme.coloredTags}
+          onCheckedChange={(v) => update({ coloredTags: v })}
+          data-testid="switch-colored-tags"
+        />
+      </div>
+
       {/* ── Live Specimen ───────────────────────────────────────────────────── */}
       <div className="border-x border-b border-border px-4 py-4 space-y-3">
         <Eyebrow>Specimen · Live</Eyebrow>
