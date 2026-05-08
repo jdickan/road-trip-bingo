@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, RotateCcw, Trash2, Loader2, Download } from "lucide-react";
+import { Camera, RotateCcw, Trash2, Loader2, DatabaseZap, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
@@ -104,7 +106,8 @@ export default function SnapshotsPanel() {
         <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
           Snapshots · Point-in-time backups
         </p>
-        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
+        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight flex items-center gap-3">
+          <DatabaseZap className="h-6 w-6 shrink-0 text-muted-foreground/50" />
           Database Snapshots
         </h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
@@ -118,24 +121,23 @@ export default function SnapshotsPanel() {
           Save current state
         </p>
         <div className="flex items-end gap-4 max-w-xl">
-          <input
-            type="text"
+          <Input
             placeholder="Give this snapshot a name (optional)…"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") createMutation.mutate(); }}
-            className="flex-1 bg-transparent border-b border-border font-mono text-sm text-foreground placeholder:text-muted-foreground/50 outline-none py-2 focus:border-foreground transition-colors"
+            className="flex-1 rounded-none"
           />
-          <button
+          <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="flex items-center gap-1.5 text-xs text-foreground border border-border px-4 py-2 hover:bg-muted/40 transition-colors shrink-0 disabled:opacity-40"
+            className="gap-1.5 shrink-0 rounded-none"
           >
             {createMutation.isPending
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : <Camera className="h-3.5 w-3.5" />}
             Save Snapshot
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-3 max-w-[65ch]">
           Restore replaces <strong className="text-foreground font-medium">all</strong> word data — this cannot be undone unless you save another snapshot first.
@@ -147,19 +149,16 @@ export default function SnapshotsPanel() {
         Saved · {snapshots.length} snapshot{snapshots.length !== 1 ? "s" : ""}
       </p>
 
-      {/* ── Loading ── */}
+      {/* ── Loading skeletons ── */}
       {isLoading && (
         <div>
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-start gap-6 md:gap-10 py-6 border-b border-border animate-pulse">
-              <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
-                <div className="h-9 w-9 bg-muted/50 rounded-sm" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 w-48 bg-muted/50 rounded-sm" />
+                <div className="h-2.5 w-72 bg-muted/40 rounded-sm" />
               </div>
-              <div className="flex-1 space-y-2.5">
-                <div className="h-2 w-14 bg-muted/50 rounded-sm" />
-                <div className="h-5 w-56 bg-muted/50 rounded-sm" />
-                <div className="h-2 w-72 bg-muted/40 rounded-sm mt-3" />
-              </div>
+              <div className="h-7 w-24 bg-muted/40 rounded-sm shrink-0" />
             </div>
           ))}
         </div>
@@ -167,107 +166,102 @@ export default function SnapshotsPanel() {
 
       {/* ── Empty state ── */}
       {!isLoading && snapshots.length === 0 && (
-        <div className="py-32 text-center">
-          <p className="text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-muted-foreground mb-3">
-            No snapshots yet.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Save the current state above to create your first snapshot.
-          </p>
+        <div className="text-sm text-muted-foreground py-8 text-center border border-border bg-muted/10">
+          No snapshots yet. Save one above to get started.
         </div>
       )}
 
-      {/* ── Snapshot rows ── */}
-      {snapshots.map((s, index) => {
-        const isRestoring = restoreMutation.isPending && restoreMutation.variables === s.id;
-        const isDeleting = deleteMutation.isPending && deleteMutation.variables === s.id;
-        const isConfirming = confirmRestoreId === s.id;
+      {/* ── Snapshot list ── */}
+      {snapshots.length > 0 && (
+        <div className="border border-border divide-y divide-border">
+          {snapshots.map((s) => {
+            const isRestoring = restoreMutation.isPending && restoreMutation.variables === s.id;
+            const isDeleting = deleteMutation.isPending && deleteMutation.variables === s.id;
+            const isConfirming = confirmRestoreId === s.id;
 
-        return (
-          <div
-            key={s.id}
-            className={cn(
-              "group relative flex items-start gap-6 md:gap-10 py-6 border-b border-border transition-colors duration-200",
-              !isConfirming && "hover:bg-muted/40",
-              isConfirming && "bg-amber-50/50 dark:bg-amber-950/20"
-            )}
-          >
-            {/* Plate number */}
-            <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
-              <span className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/30 group-hover:text-muted-foreground/50 transition-colors duration-200">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-1.5">
-                Snapshot
-              </p>
-              <p className="text-xl md:text-2xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
-                {s.label}
-              </p>
-              <p className="font-mono text-xs text-muted-foreground mt-2 tabular-nums">
-                {formatDate(s.createdAt)} · {s.wordCount} words · {formatBytes(s.sizeBytes)}
-              </p>
-
-              {/* Restore confirmation inline */}
-              {isConfirming && (
-                <div className="flex items-center gap-4 mt-4">
-                  <span className="text-xs text-muted-foreground">Replace all current word data with this snapshot?</span>
-                  <button
-                    onClick={() => restoreMutation.mutate(s.id)}
-                    disabled={isRestoring}
-                    className="text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted hover:text-destructive hover:border-destructive/40 transition-colors disabled:opacity-40"
-                  >
-                    {isRestoring ? "Restoring…" : "Yes, restore"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmRestoreId(null)}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Cancel
-                  </button>
+            return (
+              <div
+                key={s.id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 transition-colors",
+                  isConfirming
+                    ? "border-l-2 border-l-destructive/50 bg-destructive/5"
+                    : "hover:bg-muted/20"
+                )}
+              >
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-sm font-medium truncate text-foreground">{s.label}</p>
+                  <p className="font-mono text-[10.5px] text-muted-foreground mt-0.5">
+                    {formatDate(s.createdAt)} · {s.wordCount} words · {formatBytes(s.sizeBytes)}
+                  </p>
                 </div>
-              )}
-            </div>
 
-            {/* Action buttons — hover-reveal */}
-            {!isConfirming && (
-              <div className="shrink-0 flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  onClick={() => setConfirmRestoreId(s.id)}
-                  title="Restore this snapshot"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border px-2.5 py-1.5 hover:text-foreground hover:border-foreground/40 transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Restore
-                </button>
-                <a
-                  href={`${API_BASE}/snapshots/${s.id}/download`}
-                  download
-                  title="Download SQL dump"
-                >
-                  <button
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                </a>
-                <button
-                  disabled={isDeleting}
-                  onClick={() => deleteMutation.mutate(s.id)}
-                  title="Delete snapshot"
-                  className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
-                >
-                  {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                </button>
+                {/* Actions */}
+                {isConfirming ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-[10.5px] tracking-[0.04em] uppercase text-destructive">Replace all data?</span>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 px-3 text-xs rounded-none"
+                      disabled={isRestoring}
+                      onClick={() => restoreMutation.mutate(s.id)}
+                    >
+                      {isRestoring ? <Loader2 className="h-3 w-3 animate-spin" /> : "Yes, restore"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-3 text-xs rounded-none"
+                      onClick={() => setConfirmRestoreId(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-xs gap-1 rounded-none"
+                      onClick={() => setConfirmRestoreId(s.id)}
+                      title="Restore this snapshot"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Restore
+                    </Button>
+                    <a
+                      href={`${API_BASE}/snapshots/${s.id}/download`}
+                      download
+                      title="Download SQL dump"
+                    >
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      disabled={isDeleting}
+                      onClick={() => deleteMutation.mutate(s.id)}
+                      title="Delete snapshot"
+                    >
+                      {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

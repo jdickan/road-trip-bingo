@@ -102,6 +102,11 @@
   --chart-3: 200 90% 40%;
   --chart-4: 280 80% 50%;
   --chart-5: 0 84% 60%;
+  --chart-6: 245 65% 58%;
+  --chart-7: 175 60% 38%;
+  --chart-8: 200 82% 52%;
+
+  --caution: 30 90% 50%;
 
   --app-font-sans: 'Geist', sans-serif;
   --app-font-serif: 'Instrument Serif', Georgia, serif;
@@ -171,6 +176,11 @@
   --chart-3: 200 90% 40%;
   --chart-4: 280 80% 50%;
   --chart-5: 0 84% 60%;
+  --chart-6: 245 65% 58%;
+  --chart-7: 175 60% 38%;
+  --chart-8: 200 82% 52%;
+
+  --caution: 30 90% 50%;
 
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
   --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
@@ -385,3 +395,31 @@
 
 /* Kill stray shadows globally inside atelier — keeps the flat editorial feel */
 .skin-atelier [class*="shadow-"] { box-shadow: none !important; }
+
+/* ── Tag badge color system ──────────────────────────────────────────────────
+   Each badge category declares --_h (hue) and --_s (saturation) on the
+   element via inline style. The .tag-badge class derives bg/border/text from
+   those two values so every category gets a distinct tint without hardcoding
+   palette classes. Atelier overrides collapse all categories to monochrome.
+   ────────────────────────────────────────────────────────────────────────── */
+.tag-badge {
+  background-color: hsl(var(--_h) var(--_s) 95%);
+  border-color:     hsl(var(--_h) var(--_s) 82%);
+  color:            hsl(var(--_h) var(--_s) 22%);
+}
+.dark .tag-badge {
+  background-color: hsl(var(--_h) var(--_s) 14% / 0.3);
+  border-color:     hsl(var(--_h) var(--_s) 38% / 0.4);
+  color:            hsl(var(--_h) var(--_s) 72%);
+}
+.skin-atelier .tag-badge {
+  background-color: hsl(var(--muted));
+  border-color:     hsl(var(--border));
+  color:            hsl(var(--foreground));
+}
+.skin-atelier.dark .tag-badge,
+.dark .skin-atelier .tag-badge {
+  background-color: hsl(var(--muted));
+  border-color:     hsl(var(--border));
+  color:            hsl(var(--foreground));
+}

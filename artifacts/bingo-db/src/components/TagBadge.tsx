@@ -1,19 +1,18 @@
 import { cn } from "@/lib/utils";
 
-// Per-type pastel backgrounds — each tag category gets its own hue,
-// kept soft enough not to fight the text. Findability and Age also get
-// weight contrast (semibold / medium / normal) so priority still scans fast.
-
-function getTypeColors(type: TagBadgeProps["type"]): string {
+// Per-category hue + saturation — drives the .tag-badge CSS utility class
+// (defined in index.css) so colors adapt to the active theme skin.
+// Atelier collapses all categories to monochrome via a CSS override.
+function getCategoryHSL(type: TagBadgeProps["type"]): { h: number; s: string } {
   switch (type) {
-    case "findability":  return "bg-amber-50   border-amber-200   text-amber-900   dark:bg-amber-950/30  dark:border-amber-800/40  dark:text-amber-300";
-    case "age":          return "bg-violet-50  border-violet-200  text-violet-900  dark:bg-violet-950/30 dark:border-violet-800/40 dark:text-violet-300";
-    case "season":       return "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800/40 dark:text-emerald-300";
-    case "region":       return "bg-blue-50    border-blue-200    text-blue-900    dark:bg-blue-950/30   dark:border-blue-800/40   dark:text-blue-300";
-    case "surroundings": return "bg-teal-50    border-teal-200    text-teal-900    dark:bg-teal-950/30   dark:border-teal-800/40   dark:text-teal-300";
-    case "board":        return "bg-indigo-50  border-indigo-200  text-indigo-900  dark:bg-indigo-950/30 dark:border-indigo-800/40 dark:text-indigo-300";
-    case "dayNight":     return "bg-sky-50     border-sky-200     text-sky-900     dark:bg-sky-950/30    dark:border-sky-800/40    dark:text-sky-300";
-    default:             return "bg-muted/25   border-border/50   text-foreground";
+    case "findability":  return { h: 35,  s: "85%" };
+    case "age":          return { h: 270, s: "70%" };
+    case "season":       return { h: 145, s: "65%" };
+    case "region":       return { h: 215, s: "85%" };
+    case "surroundings": return { h: 175, s: "60%" };
+    case "board":        return { h: 245, s: "65%" };
+    case "dayNight":     return { h: 200, s: "82%" };
+    default:             return { h: 215, s: "20%" };
   }
 }
 
@@ -60,16 +59,18 @@ export function TagBadge({ type, value, className, onClick }: TagBadgeProps) {
     );
   }
 
+  const { h, s } = getCategoryHSL(type);
+
   return (
     <span
       className={cn(
-        "inline-flex items-center font-mono text-[10px] tracking-[0.04em]",
+        "tag-badge inline-flex items-center font-mono text-[10px] tracking-[0.04em]",
         "px-1.5 py-px border rounded-[3px] whitespace-nowrap",
-        getTypeColors(type),
         getWeightClass(type, value),
         onClick && "cursor-pointer hover:brightness-95 transition-[filter]",
         className
       )}
+      style={{ "--_h": String(h), "--_s": s } as React.CSSProperties}
       onClick={onClick}
     >
       {value}

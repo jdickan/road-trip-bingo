@@ -76,13 +76,10 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground border border-border px-3 py-2 hover:bg-muted/40 transition-colors"
-          data-testid="btn-autofill-panel"
-        >
-          <Wand2 className="h-3.5 w-3.5 text-blue-500" />
+        <Button variant="outline" size="sm" className="h-9 gap-2" data-testid="btn-autofill-panel">
+          <Wand2 className="h-4 w-4 text-accent" />
           AI Autofill
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4" align="end">
         <div className="space-y-4">

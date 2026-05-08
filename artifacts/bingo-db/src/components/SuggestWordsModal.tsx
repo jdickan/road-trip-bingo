@@ -41,13 +41,10 @@ export default function SuggestWordsModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase text-foreground border border-border px-3 py-2 hover:bg-muted/40 transition-colors"
-          data-testid="btn-suggest-dialog"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+        <Button variant="secondary" size="sm" className="h-9 gap-2" data-testid="btn-suggest-dialog">
+          <Sparkles className="h-4 w-4 text-primary" />
           Suggest Words
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
         <DialogHeader>
@@ -73,7 +70,7 @@ export default function SuggestWordsModal() {
           </Button>
         </form>
 
-        <div className="flex-1 min-h-[300px] mt-4 border rounded-md overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-[300px] mt-4 border border-border overflow-hidden flex flex-col">
           {suggestMutation.isPending ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -81,20 +78,21 @@ export default function SuggestWordsModal() {
             </div>
           ) : suggestMutation.data?.suggestions && suggestMutation.data.suggestions.length > 0 ? (
             <ScrollArea className="flex-1">
-              <div className="p-4 space-y-3">
+              <div className="divide-y divide-border">
                 {suggestMutation.data.suggestions.map((s, i) => {
                   const isAdded = addedWords.has(s.word);
                   return (
-                    <div key={i} className="flex items-start justify-between gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                    <div key={i} className="flex items-start justify-between gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
                       <div>
-                        <h4 className="font-bold text-sm">{s.word}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{s.rationale}</p>
+                        <h4 className="font-mono text-sm font-semibold text-foreground">{s.word}</h4>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{s.rationale}</p>
                       </div>
                       <Button 
                         size="sm" 
                         variant={isAdded ? "secondary" : "outline"}
                         disabled={isAdded || createMutation.isPending}
                         onClick={() => handleAddWord(s.word, s.rationale)}
+                        className="shrink-0 rounded-none"
                         data-testid={`btn-add-suggestion-${i}`}
                       >
                         {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4 mr-1" />}

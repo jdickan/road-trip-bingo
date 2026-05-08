@@ -1,53 +1,54 @@
 import { useGetWordStats } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 
-// Bar fill colors — pastel mid-tones matching the tag badge palette per category.
-// Using 300-level so bars read clearly but don't compete with text.
+// Bar fill colors — CSS custom property references so they re-skin with the
+// active theme. chart-1=amber, chart-2=emerald, chart-3=blue, chart-4=violet,
+// chart-5=red, chart-6=indigo, chart-7=teal, chart-8=sky
 const DAY_NIGHT_COLORS: Record<string, string> = {
-  "Day only":    "bg-sky-400/70",
-  "Night only":  "bg-indigo-400/70",
-  "Day + Night": "bg-violet-400/70",
-  "Unknown":     "bg-border",
+  "Day only":    "hsl(var(--chart-8) / 0.7)",
+  "Night only":  "hsl(var(--chart-6) / 0.7)",
+  "Day + Night": "hsl(var(--chart-4) / 0.7)",
+  "Unknown":     "hsl(var(--border))",
 };
 const AGE_COLORS: Record<string, string> = {
-  "Young":   "bg-violet-400/70",
-  "Kid":     "bg-violet-300/70",
-  "Tween":   "bg-violet-200/70",
-  "Unknown": "bg-border",
+  "Young":   "hsl(var(--chart-4) / 0.8)",
+  "Kid":     "hsl(var(--chart-4) / 0.6)",
+  "Tween":   "hsl(var(--chart-4) / 0.4)",
+  "Unknown": "hsl(var(--border))",
 };
 const FINDABILITY_COLORS: Record<string, string> = {
-  "High":    "bg-amber-400/80",
-  "Medium":  "bg-amber-300/70",
-  "Low":     "bg-amber-200/70",
-  "Unknown": "bg-border",
+  "High":    "hsl(var(--chart-1) / 0.85)",
+  "Medium":  "hsl(var(--chart-1) / 0.65)",
+  "Low":     "hsl(var(--chart-1) / 0.45)",
+  "Unknown": "hsl(var(--border))",
 };
 const SEASON_COLORS: Record<string, string> = {
-  "All":    "bg-border",
-  "Spring": "bg-emerald-400/70",
-  "Summer": "bg-emerald-500/70",
-  "Fall":   "bg-emerald-300/70",
-  "Winter": "bg-emerald-200/70",
+  "All":    "hsl(var(--border))",
+  "Spring": "hsl(var(--chart-2) / 0.65)",
+  "Summer": "hsl(var(--chart-2) / 0.85)",
+  "Fall":   "hsl(var(--chart-2) / 0.55)",
+  "Winter": "hsl(var(--chart-2) / 0.40)",
 };
 const REGION_COLORS: Record<string, string> = {
-  "All":      "bg-border",
-  "NE":       "bg-blue-400/70",
-  "SE":       "bg-blue-500/70",
-  "N Cent":   "bg-blue-300/70",
-  "S Cent":   "bg-blue-400/60",
-  "NW + AK":  "bg-blue-500/60",
-  "SW + HI":  "bg-blue-300/60",
-  "Unknown":  "bg-border",
+  "All":      "hsl(var(--border))",
+  "NE":       "hsl(var(--chart-3) / 0.70)",
+  "SE":       "hsl(var(--chart-3) / 0.85)",
+  "N Cent":   "hsl(var(--chart-3) / 0.60)",
+  "S Cent":   "hsl(var(--chart-3) / 0.55)",
+  "NW + AK":  "hsl(var(--chart-8) / 0.65)",
+  "SW + HI":  "hsl(var(--chart-8) / 0.50)",
+  "Unknown":  "hsl(var(--border))",
 };
 const SURROUNDINGS_COLORS: Record<string, string> = {
-  "All":               "bg-border",
-  "Rural / Xurban":    "bg-teal-500/70",
-  "Suburban / Town":   "bg-teal-400/70",
-  "Urban / City":      "bg-teal-300/70",
-  "Highway":           "bg-teal-400/60",
-  "Coast":             "bg-teal-300/60",
-  "Unknown":           "bg-border",
+  "All":               "hsl(var(--border))",
+  "Rural / Xurban":    "hsl(var(--chart-7) / 0.80)",
+  "Suburban / Town":   "hsl(var(--chart-7) / 0.65)",
+  "Urban / City":      "hsl(var(--chart-7) / 0.50)",
+  "Highway":           "hsl(var(--chart-7) / 0.60)",
+  "Coast":             "hsl(var(--chart-8) / 0.50)",
+  "Unknown":           "hsl(var(--border))",
 };
-const BOARD_COLOR = "bg-indigo-300/70";
+const BOARD_COLOR = "hsl(var(--chart-6) / 0.65)";
 
 const DAY_NIGHT_ORDER    = ["Day only", "Night only", "Day + Night", "Unknown"];
 const AGE_ORDER          = ["Young", "Kid", "Tween", "Unknown"];
@@ -57,23 +58,23 @@ const REGION_ORDER       = ["All", "NE", "SE", "N Cent", "S Cent", "NW + AK", "S
 const SURROUNDINGS_ORDER = ["All", "Rural / Xurban", "Suburban / Town", "Urban / City", "Highway", "Coast"];
 
 /** Thin flat bar — no rounded ends, track is a hairline. */
-function Bar({ value, max, colorClass }: { value: number; max: number; colorClass: string }) {
+function Bar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
     <div className="flex-1 h-1.5 bg-border/30 overflow-hidden min-w-0">
-      <div className={`h-full transition-all duration-500 ${colorClass}`} style={{ width: `${pct}%` }} />
+      <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
     </div>
   );
 }
 
 /** A single stat row: label · bar · number */
-function StatRow({ label, value, max, colorClass }: { label: string; value: number; max: number; colorClass: string }) {
+function StatRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   return (
     <div className="flex items-center gap-2.5 min-w-0">
       <span className="font-mono text-[10.5px] text-muted-foreground truncate" style={{ minWidth: "7rem", maxWidth: "7rem" }}>
         {label}
       </span>
-      <Bar value={value} max={max} colorClass={colorClass} />
+      <Bar value={value} max={max} color={color} />
       <span className="font-mono text-[11px] font-semibold tabular-nums w-8 text-right shrink-0 text-foreground">
         {value}
       </span>
@@ -93,7 +94,7 @@ function Section({ title, children, className = "" }: { title: string; children:
   );
 }
 
-/** Completion ring — monochrome track, emerald fill kept as the single accent. */
+/** Completion ring — monochrome track, accent fill as the single positive signal. */
 function CompletionArc({ pct }: { pct: number }) {
   const r = 28;
   const circ = 2 * Math.PI * r;
@@ -105,7 +106,8 @@ function CompletionArc({ pct }: { pct: number }) {
         cx="34" cy="34" r={r} fill="none" strokeWidth="5"
         strokeDasharray={`${filled} ${circ}`}
         strokeLinecap="butt"
-        className="stroke-emerald-500/70 transition-all duration-700"
+        style={{ stroke: "hsl(var(--chart-2) / 0.75)" }}
+        className="transition-all duration-700"
         transform="rotate(-90 34 34)"
       />
       <text x="34" y="39" textAnchor="middle" fontSize="13" fontWeight="700" className="fill-foreground font-mono">
@@ -116,13 +118,16 @@ function CompletionArc({ pct }: { pct: number }) {
 }
 
 /** A single display-stat for the KPI strip. */
-function KpiStat({ label, value, colorClass }: { label: string; value: number | string; colorClass?: string }) {
+function KpiStat({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div className="flex flex-col items-end px-4 py-3 min-w-[72px]">
       <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground whitespace-nowrap">
         {label}
       </span>
-      <span className={`font-mono text-3xl font-bold tabular-nums leading-none mt-0.5 ${colorClass ?? "text-foreground"}`}>
+      <span
+        className="font-mono text-3xl font-bold tabular-nums leading-none mt-0.5"
+        style={{ color: color ?? "hsl(var(--foreground))" }}
+      >
         {value}
       </span>
     </div>
@@ -169,17 +174,17 @@ export default function AnalysisPanel() {
 
       {/* ── KPI metrics strip ── */}
       <div className="border border-border flex flex-wrap divide-x divide-border">
-        <KpiStat label="Total"      value={total} />
-        <KpiStat label="Complete"   value={complete}          colorClass="text-emerald-600 dark:text-emerald-400" />
-        <KpiStat label="Incomplete" value={stats.incomplete}  colorClass="text-rose-600 dark:text-rose-400" />
+        <KpiStat label="Total"       value={total} />
+        <KpiStat label="Complete"    value={complete}         color="hsl(var(--chart-2))" />
+        <KpiStat label="Incomplete"  value={stats.incomplete} color="hsl(var(--chart-5))" />
         <div className="border-l border-border/50 mx-0" />
-        <KpiStat label="Day Only"   value={dn["Day only"]   ?? 0} colorClass="text-sky-600 dark:text-sky-400" />
-        <KpiStat label="Night Only" value={dn["Night only"] ?? 0} colorClass="text-indigo-600 dark:text-indigo-400" />
-        <KpiStat label="Day + Night" value={dn["Day + Night"] ?? 0} colorClass="text-violet-600 dark:text-violet-400" />
+        <KpiStat label="Day Only"    value={dn["Day only"]    ?? 0} color="hsl(var(--chart-8))" />
+        <KpiStat label="Night Only"  value={dn["Night only"]  ?? 0} color="hsl(var(--chart-6))" />
+        <KpiStat label="Day + Night" value={dn["Day + Night"] ?? 0} color="hsl(var(--chart-4))" />
         <div className="border-l border-border/50 mx-0" />
-        <KpiStat label="High Find." value={fi["High"]   ?? 0} colorClass="text-amber-700 dark:text-amber-400" />
-        <KpiStat label="Med Find."  value={fi["Medium"] ?? 0} colorClass="text-amber-600 dark:text-amber-400" />
-        <KpiStat label="Low Find."  value={fi["Low"]    ?? 0} colorClass="text-amber-500 dark:text-amber-300" />
+        <KpiStat label="High Find."  value={fi["High"]   ?? 0} color="hsl(var(--chart-1))" />
+        <KpiStat label="Med Find."   value={fi["Medium"] ?? 0} color="hsl(var(--chart-1) / 0.75)" />
+        <KpiStat label="Low Find."   value={fi["Low"]    ?? 0} color="hsl(var(--chart-1) / 0.55)" />
       </div>
 
       {/* ── Main section grid ── */}
@@ -198,11 +203,11 @@ export default function AnalysisPanel() {
               <div className="flex flex-col gap-1.5 text-[11px] min-w-0">
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Complete</span>
-                  <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{complete}</span>
+                  <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-2))" }}>{complete}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Missing</span>
-                  <span className="font-mono font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{stats.incomplete}</span>
+                  <span className="font-mono font-semibold tabular-nums" style={{ color: "hsl(var(--chart-5))" }}>{stats.incomplete}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="font-mono text-muted-foreground">Total</span>
@@ -216,7 +221,7 @@ export default function AnalysisPanel() {
           <div className="p-4">
             <Section title="Day / Night">
               {DAY_NIGHT_ORDER.map(k => (
-                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} colorClass={DAY_NIGHT_COLORS[k] ?? "bg-border"} />
+                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} color={DAY_NIGHT_COLORS[k] ?? "hsl(var(--border))"} />
               ))}
             </Section>
           </div>
@@ -225,7 +230,7 @@ export default function AnalysisPanel() {
           <div className="p-4">
             <Section title="Age Group">
               {AGE_ORDER.map(k => (
-                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} colorClass={AGE_COLORS[k] ?? "bg-border"} />
+                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} color={AGE_COLORS[k] ?? "hsl(var(--border))"} />
               ))}
             </Section>
           </div>
@@ -234,7 +239,7 @@ export default function AnalysisPanel() {
           <div className="p-4">
             <Section title="Findability">
               {FINDABILITY_ORDER.map(k => (
-                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} colorClass={FINDABILITY_COLORS[k] ?? "bg-border"} />
+                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} color={FINDABILITY_COLORS[k] ?? "hsl(var(--border))"} />
               ))}
             </Section>
           </div>
@@ -247,7 +252,7 @@ export default function AnalysisPanel() {
           <div className="p-4">
             <Section title="Seasons">
               {SEASON_ORDER.map(k => (
-                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} colorClass={SEASON_COLORS[k] ?? "bg-border"} />
+                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} color={SEASON_COLORS[k] ?? "hsl(var(--border))"} />
               ))}
             </Section>
           </div>
@@ -256,7 +261,7 @@ export default function AnalysisPanel() {
           <div className="p-4">
             <Section title="US Regions">
               {REGION_ORDER.map(k => (
-                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} colorClass={REGION_COLORS[k] ?? "bg-border"} />
+                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} color={REGION_COLORS[k] ?? "hsl(var(--border))"} />
               ))}
             </Section>
           </div>
@@ -266,7 +271,7 @@ export default function AnalysisPanel() {
             <Section title="Surroundings">
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                 {SURROUNDINGS_ORDER.map(k => (
-                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} colorClass={SURROUNDINGS_COLORS[k] ?? "bg-border"} />
+                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} color={SURROUNDINGS_COLORS[k] ?? "hsl(var(--border))"} />
                 ))}
               </div>
             </Section>
@@ -278,7 +283,7 @@ export default function AnalysisPanel() {
           <Section title="Boards">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1.5">
               {sortedBoards.map(([name, count]) => (
-                <StatRow key={name} label={name} value={count} max={brdMax} colorClass={BOARD_COLOR} />
+                <StatRow key={name} label={name} value={count} max={brdMax} color={BOARD_COLOR} />
               ))}
             </div>
           </Section>
