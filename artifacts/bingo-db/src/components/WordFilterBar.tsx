@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { ListWordsParams, useGetWordStats } from "@workspace/api-client-react";
-import { Search, X } from "lucide-react";
+import { Search, X, LayoutGrid } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
 import AutofillPanel from "./AutofillPanel";
 import ExportModal from "./ExportModal";
@@ -56,20 +56,6 @@ export default function WordFilterBar({
       complete: mode === "complete" ? true : undefined,
       offset: 0,
     } as ListWordsParams));
-  }
-
-  const hasColumnFilters = Object.keys(filters).some(
-    (k) =>
-      !["limit", "offset", "search", "incomplete", "complete"].includes(k) &&
-      filters[k as keyof ListWordsParams] !== undefined
-  );
-
-  const hasActiveSearch = !!filters.search;
-
-  function clearAll() {
-    closeSearch();
-    setFilters({ limit: 500, offset: 0 });
-    onClearBoard?.();
   }
 
   const TABS: { id: ViewMode; label: string; count: number }[] = [
@@ -145,15 +131,24 @@ export default function WordFilterBar({
         ))}
       </div>
 
-      {/* Clear — when column filters or search active */}
-      {(hasColumnFilters || hasActiveSearch) && (
-        <button
-          onClick={clearAll}
-          className="flex items-center gap-1 px-4 font-mono text-[10.5px] tracking-[0.18em] uppercase border-l border-border text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="h-3 w-3" />
-          Clear
-        </button>
+      {/* Active board chip */}
+      {filters.board && (
+        <div className="flex items-center border-l border-border px-4">
+          <div className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 font-mono text-[10.5px] tracking-[0.12em] uppercase border border-border text-foreground bg-muted/40">
+            <LayoutGrid className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span>{filters.board}</span>
+            <button
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, board: undefined, offset: 0 }));
+                onClearBoard?.();
+              }}
+              className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+              title="Remove board filter"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Right: 3 action buttons */}

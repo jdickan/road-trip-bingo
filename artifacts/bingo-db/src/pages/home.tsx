@@ -166,11 +166,6 @@ export default function Home() {
                 >
                   <Icon className="h-3 w-3" />
                   {label}
-                  {id === "words" && selectedBoard && (
-                    <span className="ml-1 px-1.5 py-px font-mono text-[9.5px] tracking-[0.04em] border border-primary/30 text-primary bg-primary/10">
-                      {selectedBoard}
-                    </span>
-                  )}
                 </button>
               ))}
             </div>
