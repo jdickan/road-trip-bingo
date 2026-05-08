@@ -207,12 +207,18 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     setPage(0);
   }
 
-  async function handleImportWords(rows: Record<string, unknown>[]) {
+  async function handleImportWords(
+    rows: Record<string, unknown>[],
+    onProgress: (done: number, total: number) => void
+  ) {
     const wordRows = rows.filter(r => typeof r.word === "string" && String(r.word).trim());
     if (wordRows.length === 0) {
       toast({ title: "No words found", description: "Each entry needs a 'word' field.", variant: "destructive" });
       return;
     }
+    const total = wordRows.length;
+    let done = 0;
+    onProgress(0, total);
     const results = await Promise.allSettled(
       wordRows.map(row => {
         const s = (k: string) => typeof row[k] === "string" ? String(row[k]) : undefined;
@@ -225,15 +231,18 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             regions: a("regions"), surroundings: a("surroundings"),
             dayNight: a("dayNight"), seasons: a("seasons"), boards: a("boards"),
           },
-        });
+        }).then(
+          (r) => { onProgress(++done, total); return r; },
+          (e) => { onProgress(++done, total); throw e; }
+        );
       })
     );
     queryClient.invalidateQueries({ queryKey: ["/api/words"] });
     queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
-    const done = results.filter(r => r.status === "fulfilled").length;
+    const succeeded = results.filter(r => r.status === "fulfilled").length;
     const failed = results.filter(r => r.status === "rejected").length;
-    if (failed === 0) toast({ title: `${done} word${done === 1 ? "" : "s"} imported` });
-    else toast({ title: `${done} of ${wordRows.length} words imported`, description: `${failed} failed`, variant: "destructive" });
+    if (failed === 0) toast({ title: `${succeeded} word${succeeded === 1 ? "" : "s"} imported` });
+    else toast({ title: `${succeeded} of ${total} words imported`, description: `${failed} failed`, variant: "destructive" });
   }
 
   function parseQuickAddWords(raw: string): string[] {
@@ -261,7 +270,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         }
         if (rows) {
           setNewWordTop("");
-          void handleImportWords(rows);
+          void handleImportWords(rows, () => {});
           return;
         }
       } catch {

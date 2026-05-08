@@ -1,14 +1,22 @@
 import { useRef, useState } from "react";
-import { Upload, Clipboard, Loader2 } from "lucide-react";
+import { Upload, Clipboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+interface ImportProgress {
+  done: number;
+  total: number;
+}
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
   headline: string;
   body: string;
   children?: React.ReactNode;
-  onJsonImport?: (rows: Record<string, unknown>[]) => Promise<void>;
+  onJsonImport?: (
+    rows: Record<string, unknown>[],
+    onProgress: (done: number, total: number) => void
+  ) => Promise<void>;
   jsonLabel?: string;
 }
 
@@ -21,9 +29,11 @@ export function EmptyState({
   jsonLabel = "item",
 }: EmptyStateProps) {
   const [dragOver, setDragOver] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<ImportProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const importing = progress !== null;
 
   function parseRows(data: unknown): Record<string, unknown>[] | null {
     if (Array.isArray(data)) return data as Record<string, unknown>[];
@@ -41,11 +51,13 @@ export function EmptyState({
       toast({ title: "No data found", description: "The JSON doesn't contain any items.", variant: "destructive" });
       return;
     }
-    setImporting(true);
+    setProgress({ done: 0, total: rows.length });
     try {
-      await onJsonImport(rows);
+      await onJsonImport(rows, (done, total) => {
+        setProgress({ done, total });
+      });
     } finally {
-      setImporting(false);
+      setProgress(null);
     }
   }
 
@@ -85,6 +97,10 @@ export function EmptyState({
     const file = e.dataTransfer.files[0];
     if (file) void importFile(file);
   }
+
+  const pct = progress && progress.total > 0
+    ? Math.round((progress.done / progress.total) * 100)
+    : 0;
 
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
@@ -126,9 +142,23 @@ export function EmptyState({
           />
 
           {importing ? (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="font-mono text-xs tracking-wide">Importing…</span>
+            <div className="flex flex-col items-center gap-3">
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+                Importing {progress.done} / {progress.total} {jsonLabel}{progress.total === 1 ? "" : "s"}&hellip;
+              </p>
+              <div
+                className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuenow={progress.done}
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-label={`Importing ${jsonLabel}s`}
+              >
+                <div
+                  className="h-full bg-primary transition-all duration-150 ease-out rounded-full"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
           ) : (
             <>

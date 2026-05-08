@@ -135,26 +135,37 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     }
   }, [newBoard.open]);
 
-  async function handleImportBoards(rows: Record<string, unknown>[]) {
+  async function handleImportBoards(
+    rows: Record<string, unknown>[],
+    onProgress: (done: number, total: number) => void
+  ) {
     const boardRows = rows.filter(r => typeof r.name === "string" && String(r.name).trim());
     if (boardRows.length === 0) {
       toast({ title: "No boards found", description: "Each entry needs a 'name' field.", variant: "destructive" });
       return;
     }
+    const total = boardRows.length;
+    let done = 0;
+    onProgress(0, total);
     const results = await Promise.allSettled(
-      boardRows.map(row => createBoard({
-        name: String(row.name).trim(),
-        description: typeof row.description === "string" ? row.description : undefined,
-        status: (["active", "draft", "concept"] as string[]).includes(String(row.status))
-          ? (row.status as Board["status"])
-          : "draft",
-      }))
+      boardRows.map(row =>
+        createBoard({
+          name: String(row.name).trim(),
+          description: typeof row.description === "string" ? row.description : undefined,
+          status: (["active", "draft", "concept"] as string[]).includes(String(row.status))
+            ? (row.status as Board["status"])
+            : "draft",
+        }).then(
+          (r) => { onProgress(++done, total); return r; },
+          (e) => { onProgress(++done, total); throw e; }
+        )
+      )
     );
     qc.invalidateQueries({ queryKey: ["boards"] });
-    const done = results.filter(r => r.status === "fulfilled").length;
+    const succeeded = results.filter(r => r.status === "fulfilled").length;
     const failed = results.filter(r => r.status === "rejected").length;
-    if (failed === 0) toast({ title: `${done} board${done === 1 ? "" : "s"} imported` });
-    else toast({ title: `${done} of ${boardRows.length} boards imported`, description: `${failed} failed`, variant: "destructive" });
+    if (failed === 0) toast({ title: `${succeeded} board${succeeded === 1 ? "" : "s"} imported` });
+    else toast({ title: `${succeeded} of ${total} boards imported`, description: `${failed} failed`, variant: "destructive" });
   }
 
   const boards = data?.boards ?? [];
