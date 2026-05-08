@@ -112,8 +112,16 @@ export function loadTheme(): ThemeValue {
 
 // ── Apply ─────────────────────────────────────────────────────────────────────
 
-export function applyTheme(t: ThemeValue): void {
+export function applyTheme(t: ThemeValue, skin?: SkinName): void {
   const root = document.documentElement;
+  const activeSkin = skin ?? getActiveSkin();
+
+  // Drive global Atelier CSS overrides (fonts, shadow-zeroing, etc.)
+  if (activeSkin === "custom") {
+    root.setAttribute("data-skin", "custom");
+  } else {
+    root.removeAttribute("data-skin");
+  }
 
   if (t.darkMode) {
     root.classList.add("dark");

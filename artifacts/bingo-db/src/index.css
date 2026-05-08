@@ -182,6 +182,24 @@
   --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0,0.5);
 }
 
+/* ── My Theme / Atelier skin — global overrides when [data-skin="custom"] ── */
+/* This block is what makes the skin system work site-wide. When Basic is     */
+/* active, data-skin is absent and none of these overrides apply. When My     */
+/* Theme is active, applyTheme() stamps data-skin="custom" on <html> and      */
+/* these vars cascade to every component on every tab.                        */
+[data-skin="custom"] {
+  --shadow-2xs: none;
+  --shadow-xs:  none;
+  --shadow-sm:  none;
+  --shadow:     none;
+  --shadow-md:  none;
+  --shadow-lg:  none;
+  --shadow-xl:  none;
+  --shadow-2xl: none;
+  --app-font-sans: 'Geist Variable', 'Geist', sans-serif;
+  --app-font-mono: 'Geist Mono Variable', 'Geist Mono', monospace;
+}
+
 @layer base {
   * {
     @apply border-border;
