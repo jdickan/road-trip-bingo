@@ -98,12 +98,9 @@ export function getTagColor(type: TagType, value: string): TagColor {
 }
 
 /**
- * Returns a ready-to-use CSS color string for Analysis bar fills.
- * "All" and "Unknown" render as the border color so they stay subdued.
- * All other values use a 60% lightness suitable for horizontal bar fills.
+ * Returns true for placeholder values that should render as subdued/muted
+ * in both tag badges and Analysis bar fills.
  */
-export function getBarColor(type: TagType, value: string): string {
-  if (value === "Unknown" || value === "All") return "hsl(var(--border))";
-  const { h, s } = getTagColor(type, value);
-  return `hsl(${h} ${s} 60%)`;
+export function isSubduedValue(value: string): boolean {
+  return value === "Unknown" || value === "All";
 }

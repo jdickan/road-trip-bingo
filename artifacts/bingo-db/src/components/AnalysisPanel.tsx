@@ -2,7 +2,7 @@ import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-
 import { keepPreviousData } from "@tanstack/react-query";
 import { Loader2, BarChart2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
-import { getBarColor } from "@/lib/tagColors";
+import { getTagColor, isSubduedValue, type TagType } from "@/lib/tagColors";
 
 const DAY_NIGHT_ORDER    = ["Day only", "Night only", "Day + Night", "Unknown"];
 const AGE_ORDER          = ["Young", "Kid", "Tween", "Unknown"];
@@ -11,29 +11,42 @@ const SEASON_ORDER       = ["All", "Spring", "Summer", "Fall", "Winter"];
 const REGION_ORDER       = ["All", "NE", "SE", "N Cent", "S Cent", "NW + AK", "SW + HI"];
 const SURROUNDINGS_ORDER = ["All", "Rural / Xurban", "Suburban / Town", "Urban / City", "Highway", "Coast"];
 
-/** Thin flat bar — no rounded ends, track is a hairline. */
-function Bar({ value, max, color }: { value: number; max: number; color: string }) {
+/** Thin flat bar — no rounded ends, track is a hairline.
+ *  tagColor drives --_bar-h / --_bar-s CSS vars consumed by .analysis-bar-fill
+ *  in index.css, keeping Atelier skin monochrome override working. */
+function Bar({ value, max, tagColor }: { value: number; max: number; tagColor: { h: number; s: string } | null }) {
   const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
+  const fillStyle: React.CSSProperties = {
+    width: `${pct}%`,
+    ...(tagColor ? { "--_bar-h": String(tagColor.h), "--_bar-s": tagColor.s } as React.CSSProperties : {}),
+  };
   return (
     <div className="flex-1 h-1.5 bg-border/30 overflow-hidden min-w-0">
-      <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      <div
+        className={`h-full transition-all duration-500 analysis-bar-fill${tagColor === null ? " analysis-bar-subdued" : ""}`}
+        style={fillStyle}
+      />
     </div>
   );
 }
 
 /** A single stat row: label · bar · number */
-function StatRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+function StatRow({ label, value, max, tagColor }: { label: string; value: number; max: number; tagColor: { h: number; s: string } | null }) {
   return (
     <div className="flex items-center gap-2.5 min-w-0">
       <span className="font-mono text-[10.5px] text-muted-foreground truncate" style={{ minWidth: "7rem", maxWidth: "7rem" }}>
         {label}
       </span>
-      <Bar value={value} max={max} color={color} />
+      <Bar value={value} max={max} tagColor={tagColor} />
       <span className="font-mono text-xs font-semibold tabular-nums w-8 text-right shrink-0 text-foreground">
         {value}
       </span>
     </div>
   );
+}
+
+function tagColor(type: TagType, value: string): { h: number; s: string } | null {
+  return isSubduedValue(value) ? null : getTagColor(type, value);
 }
 
 /** Flat section — no card chrome, eyebrow heading + hairline, then children. */
@@ -191,7 +204,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Day / Night">
               {DAY_NIGHT_ORDER.map(k => (
-                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} color={getBarColor("dayNight", k)} />
+                <StatRow key={k} label={k} value={dn[k] ?? 0} max={dnMax} tagColor={tagColor("dayNight", k)} />
               ))}
             </Section>
           </div>
@@ -200,7 +213,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Age Group">
               {AGE_ORDER.map(k => (
-                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} color={getBarColor("age", k)} />
+                <StatRow key={k} label={k} value={age[k] ?? 0} max={ageMax} tagColor={tagColor("age", k)} />
               ))}
             </Section>
           </div>
@@ -209,7 +222,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Findability">
               {FINDABILITY_ORDER.map(k => (
-                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} color={getBarColor("findability", k)} />
+                <StatRow key={k} label={k} value={fi[k] ?? 0} max={fiMax} tagColor={tagColor("findability", k)} />
               ))}
             </Section>
           </div>
@@ -222,7 +235,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="Seasons">
               {SEASON_ORDER.map(k => (
-                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} color={getBarColor("season", k)} />
+                <StatRow key={k} label={k} value={sea[k] ?? 0} max={seaMax} tagColor={tagColor("season", k)} />
               ))}
             </Section>
           </div>
@@ -231,7 +244,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <div className="p-4">
             <Section title="US Regions">
               {REGION_ORDER.map(k => (
-                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} color={getBarColor("region", k)} />
+                <StatRow key={k} label={k} value={reg[k] ?? 0} max={regMax} tagColor={tagColor("region", k)} />
               ))}
             </Section>
           </div>
@@ -241,7 +254,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
             <Section title="Surroundings">
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                 {SURROUNDINGS_ORDER.map(k => (
-                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} color={getBarColor("surroundings", k)} />
+                  <StatRow key={k} label={k} value={sur[k] ?? 0} max={surMax} tagColor={tagColor("surroundings", k)} />
                 ))}
               </div>
             </Section>
@@ -253,7 +266,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
           <Section title="Boards">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1.5">
               {sortedBoards.map(([name, count]) => (
-                <StatRow key={name} label={name} value={count} max={brdMax} color={getBarColor("board", name)} />
+                <StatRow key={name} label={name} value={count} max={brdMax} tagColor={tagColor("board", name)} />
               ))}
             </div>
           </Section>

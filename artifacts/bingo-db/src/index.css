@@ -456,3 +456,28 @@ html[data-colored-tags] .dark .tag-badge {
   border-color:     hsl(var(--_h) var(--_s) 38% / 0.4);
   color:            hsl(var(--_h) var(--_s) 72%);
 }
+
+/* ── Analysis bar fills ──────────────────────────────────────────────────────
+   Horizontal bar fills in the Analysis tab use --_bar-h / --_bar-s CSS vars
+   (set via inline style) so they share the same palette as tag badges but
+   remain overridable by the Atelier skin.
+   Rule order matters for equal-specificity cascade:
+     1. .analysis-bar-fill       (0,1,0) — colored fill via CSS vars
+     2. .analysis-bar-subdued    (0,2,0) — "All" / "Unknown" → border color
+     3. .skin-atelier override   (0,2,0) — collapses ALL bars to monochrome
+   ────────────────────────────────────────────────────────────────────────── */
+.analysis-bar-fill {
+  background-color: hsl(var(--_bar-h) var(--_bar-s) 60%);
+}
+.analysis-bar-fill.analysis-bar-subdued {
+  background-color: hsl(var(--border));
+}
+.skin-atelier .analysis-bar-fill {
+  background-color: hsl(var(--foreground) / 0.12);
+}
+.dark .analysis-bar-fill.analysis-bar-subdued {
+  background-color: hsl(var(--border) / 0.6);
+}
+.dark .analysis-bar-fill {
+  background-color: hsl(var(--_bar-h) var(--_bar-s) 55%);
+}
