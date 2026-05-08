@@ -1,0 +1,69 @@
+/dev/null; echo ===; cat src/pages/home.tsx | head -120\", \"user_facing_description\": \"Survey bingo-db source\"}">
+
+Analysis of `road-trip-bingo` / `artifacts/bingo-db`
+
+Bugs & anti-patterns
+
+1. `ThemePanel.tsx` — dead conditional (lines ~248-249). The "My Theme" `` does `activeSkin === "custom" ? customPrimaryColor : customPrimaryColor` (and same for `bgColor`) — both branches are identical. The intent was to show the *saved* preset when inactive vs. live values when active. Currently the inactive preview always reflects unsaved live state.
+
+2. **`theme.ts` — `applyTheme` doesn't honor the active skin.** It always writes `--primary`, `--ring`, `--radius`, etc. from the slider state regardless of whether Basic is active. Switching to Basic just resets `theme` in React state, but if `loadCustomTheme()` was ever called or sliders moved before the switch, leftover inline styles can shadow Basic's defaults until a hard refresh. The atelier patch I shipped earlier fixes this by gating on `getActiveSkin()`.
+
+3. **`theme.ts` — first-load race.** `loadTheme()` is exported but `home.tsx` never calls it before paint; `ThemePanel`'s `useEffect` only runs after the panel mounts, so users not on the Theme tab never get their saved skin applied. Theme should be applied in an entry-point script (e.g. `main.tsx` before ``) or a top-level `useLayoutEffect` in `home.tsx`.
+
+4. **`theme.ts` — typed token mismatch.** It writes raw `H S% L%` triples to vars consumed by `hsl(var(--…))` in `index.css` — correct — but `--background` is only set in light mode. In dark mode the inline override is *removed*, which falls back to the `:root` value (the cream tint), not `.dark`'s navy. Result: dark + custom + bgHue change leaks back into `:root`'s background value during the next light toggle until the slider is moved.
+
+5. **Stat-bar fixed positioning leaks (`home.tsx`).** The fixed overlay uses a hard-coded `FILTER_BAR_HEIGHT = 49` and `getBoundingClientRect().bottom <= 49`. If the user zooms the browser or changes density the swap glitches. Measure the rendered height instead.
+
+6. **Tab type drift (`home.tsx`).** `Tab` is a string-union but tab buttons use `as const` arrays — fine — but `handleTabChange` accepts `Tab` while the icon-array's `id` has a *narrower* literal type. Adding a tab silently breaks if you only update the array.
+
+7. **`SnapshotsPanel.tsx`, `DefinitionsPanel.tsx`, `AnalysisPanel.tsx`, `AutofillPanel.tsx`, `SuggestWordsModal.tsx`, `not-found.tsx`** — pervasive **hardcoded Tailwind palette classes** (`bg-amber-400`, `text-emerald-600`, `bg-slate-400`, `text-red-500`, `bg-gray-50`, etc.). These bypass *all* theme tokens — neither Basic sliders nor atelier touch them.
+
+8. **`AnalysisPanel.tsx`** — five large color lookup objects (`DN_COLORS`, `AGE_COLORS`, `FIND_COLORS`, `SEASON_COLORS`, `REGION_COLORS`, `URBAN_COLORS`) hard-bound to palette classes. These categorical colors should be tokens (`--chart-1..n`) so the design system can re-skin them.
+
+9. **`ExportModal.tsx`, `WordTable.tsx`, several others** — `shadow-md`, `shadow-sm`, hard `bg-card/95`, `backdrop-blur-sm`. Atelier explicitly removes shadow; my patch nukes them via `[class="shadow-"]` override, but the cleaner fix is a `--shadow` token they reference instead of literals.
+
+10. **`@assets/icon-512_…png`** alias in `home.tsx` — TS path alias only resolved by Vite config. Easy to break under another bundler.
+
+11. **`use-toast.ts` (191 lines)** is the legacy shadcn reducer toast — fine, but `sonner` is also installed and unused. Pick one.
+
+12. **`useEffect(() => { applyTheme(theme); }, [])` runs after mount** → unstyled-flash on the Theme tab. Use `useLayoutEffect` for theme application.
+
+### Theme wiring — does "My Theme" really cover the app?
+
+**Coverage today: ~70%.** What's covered:
+- All shadcn primitives (Button, Card, Dialog, Tabs, Switch, Select, Input, Slider, etc.) read tokens — these reskin perfectly.
+- Header, tab strip, filter bar, sidebar, table chrome — all use `bg-card`, `bg-muted/30`, `text-primary`, `border` — these reskin perfectly.
+
+**Not covered (will look broken under any non-default theme, including atelier):**
+- Every category badge in `DefinitionsPanel` (8 hardcoded color families).
+- Every chart/legend swatch in `AnalysisPanel` (~30 hardcoded `bg--400/500`).
+- All KPI pills (`text-emerald-600`, `text-rose-600`, etc.).
+- "Replace all data" confirm state in `SnapshotsPanel` (`border-orange-400 bg-orange-50`).
+- "Suggest" / "Autofill" icon accents (`text-amber-600`, `text-blue-600`).
+- 404 page (`bg-gray-50 text-gray-900`).
+- Shadows everywhere (`shadow-md`, `shadow-sm`).
+
+To get true app-wide theming you need to either (a) replace those palette classes with token classes (`bg-accent`, `text-primary`, `bg-chart-1`, …) or (b) introduce semantic categorical tokens (`--cat-region`, `--cat-find-high`, etc.) and reference them.
+
+---
+
+### Staging in this Lovable project — honest assessment
+
+I want to flag the cost before doing it, because it's not a copy-paste job:
+
+| Source (`bingo-db`) | This Lovable project |
+|---|---|
+| Vite + React 18 + **Wouter** routing | TanStack Start v1 + **TanStack Router** (file-based) |
+| Single `pages/home.tsx` | `src/routes/index.tsx` |
+| `@workspace/api-client-react` (workspace pkg) | **Missing** — you stripped the postgres/db packages |
+| `@assets/*` alias to `attached_assets/` | Need re-aliased or assets copied into `src/assets/` |
+| `index.css` with `@plugin "@tailwindcss/typography"`, `tw-animate-css` | Tailwind v4 already wired but no typography plugin |
+| `next-themes`, `wouter`, `vaul`, `recharts`, `embla-carousel`, `react-day-picker`, `react-icons`, `react-resizable-panels`, `cmdk`, `input-otp`, `react-hook-form`, `@hookform/resolvers`, `zod`, etc. | Need installed |
+
+**Concrete blocker: every component that reads/writes data imports from `@workspace/api-client-react`** (WordTable, BoardsPanel, AnalysisPanel, DefinitionsPanel, SnapshotsPanel, AutofillPanel, SuggestWordsModal, ThemePanel ✗ — actually ThemePanel doesn't). Without that package or a replacement, those panels won't compile. Options:
+
+- **A. UI-only stage** — copy components, stub `@workspace/api-client-react` with mock hooks returning empty arrays. Theme tab + Boards layout will render; data-driven panels will be empty shells. Good enough to iterate on theming.
+- **B. Full stage with mock in-memory store** — same as A plus a localStorage-backed fake API mirroring `ListWords`, `UpsertWord`, etc. ~half a day of work. Lets every panel render realistic data.
+- C. Full stage with Lovable Cloud — port the postgres schema to Lovable Cloud and wire real CRUD. Largest effort, but matches the original architecture.
+
+Which do you want? My recommendation is A — fastest path to iterate on the atelier theme inside Lovable, then send back the diff. Confirm and I'll start.
