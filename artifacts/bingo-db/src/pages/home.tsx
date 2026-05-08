@@ -31,20 +31,54 @@ export default function Home() {
   const [filterBarFixed, setFilterBarFixed] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const filterBarInlineRef = useRef<HTMLDivElement>(null);
   const aiClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
 
+  // Swap to the fixed overlay once the inline filter bar's bottom edge has
+  // scrolled past the top of the scroll container. The threshold is measured
+  // from the live DOM (offsetTop + offsetHeight) and recomputed via
+  // ResizeObserver, so it stays correct under browser zoom, font-size changes,
+  // tab switches, and dynamic header content (e.g. board pill).
   useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const handleScroll = () => {
-      // Filter bar is below the header (approx 150px)
-      setFilterBarFixed(el.scrollTop > 150);
+    const scrollEl = scrollContainerRef.current;
+    if (!scrollEl) return;
+
+    let threshold = Infinity;
+
+    const recompute = () => {
+      const bar = filterBarInlineRef.current;
+      if (!bar) {
+        threshold = Infinity;
+        return;
+      }
+      threshold = bar.offsetTop + bar.offsetHeight;
+      // Re-evaluate immediately so a zoom change while scrolled doesn't leave
+      // the overlay in a stale state.
+      setFilterBarFixed(scrollEl.scrollTop > threshold);
     };
-    el.addEventListener("scroll", handleScroll);
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, []);
+
+    const handleScroll = () => {
+      setFilterBarFixed(scrollEl.scrollTop > threshold);
+    };
+
+    recompute();
+    scrollEl.addEventListener("scroll", handleScroll, { passive: true });
+
+    const ro = new ResizeObserver(recompute);
+    if (filterBarInlineRef.current) ro.observe(filterBarInlineRef.current);
+    // The container itself can resize when the user zooms or rotates; that
+    // doesn't change offsetTop but may change which threshold value matters.
+    ro.observe(scrollEl);
+    window.addEventListener("resize", recompute);
+
+    return () => {
+      scrollEl.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", recompute);
+      ro.disconnect();
+    };
+  }, [tab]);
 
   function handleAutofillComplete(results: Array<{ id: number }>, fields: string[]) {
     if (aiClearTimer.current) clearTimeout(aiClearTimer.current);
@@ -144,7 +178,7 @@ export default function Home() {
 
           {/* Filter bar — words tab only */}
           {tab === "words" && (
-            <div className="border-t">
+            <div ref={filterBarInlineRef} className="border-t">
               <WordFilterBar
                 filters={filters}
                 setFilters={setFilters}
