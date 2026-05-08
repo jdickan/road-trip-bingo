@@ -2,12 +2,32 @@ import { useApiStatus } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { Loader2, WifiOff, Wifi, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ConnectionBanner() {
   const status = useApiStatus();
   const queryClient = useQueryClient();
   const [isRetrying, setIsRetrying] = useState(false);
+  const [showFailure, setShowFailure] = useState(false);
+  const statusRef = useRef(status);
+  const failureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    statusRef.current = status;
+    if (status !== "offline" && showFailure) {
+      setShowFailure(false);
+      if (failureTimerRef.current) {
+        clearTimeout(failureTimerRef.current);
+        failureTimerRef.current = null;
+      }
+    }
+  }, [status, showFailure]);
+
+  useEffect(() => {
+    return () => {
+      if (failureTimerRef.current) clearTimeout(failureTimerRef.current);
+    };
+  }, []);
 
   if (status === "online") return null;
 
@@ -15,10 +35,22 @@ export default function ConnectionBanner() {
 
   async function handleRetry() {
     setIsRetrying(true);
+    setShowFailure(false);
+    if (failureTimerRef.current) {
+      clearTimeout(failureTimerRef.current);
+      failureTimerRef.current = null;
+    }
     try {
       await queryClient.refetchQueries({ type: "active" });
     } finally {
       setIsRetrying(false);
+      if (statusRef.current === "offline") {
+        setShowFailure(true);
+        failureTimerRef.current = setTimeout(() => {
+          setShowFailure(false);
+          failureTimerRef.current = null;
+        }, 2000);
+      }
     }
   }
 
@@ -55,6 +87,14 @@ export default function ConnectionBanner() {
             <RefreshCw className={cn("h-3 w-3", isRetrying && "animate-spin")} />
             {isRetrying ? "Retrying…" : "Retry now"}
           </button>
+          {showFailure && (
+            <span
+              className="ml-1 text-xs font-semibold text-amber-950/80 transition-opacity duration-200"
+              role="alert"
+            >
+              Still unreachable
+            </span>
+          )}
         </>
       )}
     </div>
