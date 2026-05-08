@@ -7,6 +7,7 @@ import ThemePanel from "@/components/ThemePanel";
 import DefinitionsPanel from "@/components/DefinitionsPanel";
 import SnapshotsPanel from "@/components/SnapshotsPanel";
 import AnalysisPanel from "@/components/AnalysisPanel";
+import ConnectionBanner from "@/components/ConnectionBanner";
 import { cn } from "@/lib/utils";
 import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2 } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
@@ -77,6 +78,9 @@ export default function Home() {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
+
+      {/* ── Connection status banner — shown when API server is unreachable ── */}
+      <ConnectionBanner />
 
       {/* ── Fixed filter overlay — only rendered when filter row is off-screen ── */}
       {tab === "words" && filterBarFixed && (

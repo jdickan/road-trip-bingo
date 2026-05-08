@@ -2,6 +2,31 @@ export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
 
+// ---------------------------------------------------------------------------
+// Global fetch-status event bus
+// ---------------------------------------------------------------------------
+
+export type FetchStatus = "ok" | "error";
+export type FetchStatusListener = (status: FetchStatus) => void;
+
+const _statusListeners = new Set<FetchStatusListener>();
+
+/**
+ * Subscribe to global fetch status events.
+ * Returns an unsubscribe function.
+ *
+ * "error" fires when a request fails with a network error or a 5xx response.
+ * "ok" fires when any request completes successfully.
+ */
+export function onFetchStatus(listener: FetchStatusListener): () => void {
+  _statusListeners.add(listener);
+  return () => _statusListeners.delete(listener);
+}
+
+function notifyFetchStatus(status: FetchStatus): void {
+  _statusListeners.forEach((l) => l(status));
+}
+
 export type ErrorType<T = unknown> = ApiError<T>;
 
 export type BodyType<T> = T;
@@ -360,12 +385,22 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers });
+  } catch (networkError) {
+    notifyFetchStatus("error");
+    throw networkError;
+  }
 
   if (!response.ok) {
+    if (response.status >= 500) {
+      notifyFetchStatus("error");
+    }
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
 
+  notifyFetchStatus("ok");
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
 }
