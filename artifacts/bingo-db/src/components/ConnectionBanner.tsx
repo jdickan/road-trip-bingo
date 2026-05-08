@@ -12,7 +12,7 @@ export default function ConnectionBanner() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-300",
+        "fixed bottom-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-300",
         isRecovering
           ? "bg-emerald-600 text-white"
           : "bg-amber-500 text-amber-950",
