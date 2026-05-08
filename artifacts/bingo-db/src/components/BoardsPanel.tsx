@@ -5,6 +5,7 @@ import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "./EmptyState";
+import { getTagColor } from "@/lib/tagColors";
 
 interface Board {
   id: number;
@@ -413,6 +414,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         const isSelected = selectedBoard === board.name;
         const isEditing = editingId === board.id;
         const isConfirmingDelete = confirmDeleteId === board.id;
+        const boardColor = getTagColor("board", board.name);
 
         return (
           <div
@@ -441,8 +443,18 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
 
             {/* Main column */}
             <div className="flex-1 min-w-0">
-              {/* Eyebrow: status + selected indicator */}
-              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
+              {/* Eyebrow: color dot + status + selected indicator */}
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2 flex items-center gap-2">
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: `hsl(${boardColor.h} ${boardColor.s} 60%)`,
+                    flexShrink: 0,
+                  }}
+                />
                 {board.status}
                 {isSelected && <span className="ml-3 text-foreground/70">· selected</span>}
               </p>
