@@ -391,7 +391,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
             >
               <Plus className="h-3 w-3" />
-              Create first board
+              Create your first board
             </button>
           </EmptyState>
         )

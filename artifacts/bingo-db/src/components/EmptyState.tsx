@@ -103,7 +103,7 @@ export function EmptyState({
         <div
           className={cn(
             "w-full max-w-md border-2 border-dashed px-6 py-8 transition-colors",
-            dragOver ? "border-primary bg-primary/5" : "border-border/40 hover:border-border/70"
+            dragOver ? "border-primary bg-primary/5 cursor-copy" : "border-border/40 hover:border-border/70"
           )}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}

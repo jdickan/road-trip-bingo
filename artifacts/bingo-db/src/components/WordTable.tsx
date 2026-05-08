@@ -423,7 +423,8 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         </TableHeader>
 
         <TableBody className="text-sm">
-          {/* Quick-add row — top */}
+          {/* Quick-add row — top (hidden when database is truly empty so the empty state card is the sole content) */}
+          {!(data?.total === 0 && !hasActiveFilters) && (
           <TableRow className="hover:bg-muted/10 border-b border-border/50">
             <TableCell colSpan={12} className="p-2">
               <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
@@ -448,6 +449,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               </form>
             </TableCell>
           </TableRow>
+          )}
 
           {isLoading && !data ? (
             <TableRow>
