@@ -1,5 +1,4 @@
 import { useGetWordStats } from "@workspace/api-client-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface StatsSidebarProps {
   onClick?: () => void;
@@ -10,9 +9,15 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
 
   if (isLoading) {
     return (
-      <div className="hidden md:flex items-center gap-4" data-testid="stats-loading">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-8 w-24" />
+      <div className="hidden md:flex items-center gap-5" data-testid="stats-loading">
+        <div className="text-right">
+          <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Total</div>
+          <div className="h-7 w-12 bg-muted/40 rounded animate-pulse" />
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">Incomplete</div>
+          <div className="h-7 w-10 bg-muted/40 rounded animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -22,19 +27,25 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
   return (
     <button
       onClick={onClick}
-      className={`hidden md:flex items-center gap-4 text-sm rounded-lg px-2 py-1 -mx-2 -my-1 transition-colors ${onClick ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+      className={`hidden md:flex items-end gap-5 transition-opacity ${onClick ? "hover:opacity-70 cursor-pointer" : "cursor-default"}`}
       data-testid="stats-container"
     >
-      <div className="flex flex-col items-end">
-        <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Total</span>
-        <span className="font-mono font-bold">{stats.total}</span>
+      <div className="text-right">
+        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
+          Total
+        </div>
+        <div className="font-mono text-3xl font-bold tabular-nums leading-none text-foreground">
+          {stats.total}
+        </div>
       </div>
 
-      <div className="h-8 w-px bg-border" />
-
-      <div className="flex flex-col items-end">
-        <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Incomplete</span>
-        <span className="font-mono font-bold text-destructive">{stats.incomplete}</span>
+      <div className="text-right">
+        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mb-1">
+          Incomplete
+        </div>
+        <div className="font-mono text-3xl font-bold tabular-nums leading-none text-rose-600 dark:text-rose-400">
+          {stats.incomplete}
+        </div>
       </div>
     </button>
   );
