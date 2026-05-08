@@ -129,7 +129,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const [notesWidth, setNotesWidth] = useState(160);
 
   const queryParams = { ...filters, limit, offset };
-  const { data, isLoading } = useListWords(queryParams, {
+  const { data, isLoading, isError } = useListWords(queryParams, {
     query: { queryKey: getListWordsQueryKey(queryParams), placeholderData: keepPreviousData },
   });
 
@@ -338,6 +338,12 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
   return (
     <div className="border border-border">
+      {isError && data && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/50 text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500/70 shrink-0" />
+          <span className="font-mono text-[10.5px] tracking-wide">Server offline — showing last known data</span>
+        </div>
+      )}
       <Table>
         <TableHeader
           className="bg-background z-10"

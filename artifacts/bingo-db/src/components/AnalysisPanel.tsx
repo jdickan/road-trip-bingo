@@ -1,4 +1,5 @@
 import { useGetWordStats } from "@workspace/api-client-react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
 // Bar fill colors — CSS custom property references so they re-skin with the
@@ -135,9 +136,11 @@ function KpiStat({ label, value, color }: { label: string; value: number | strin
 }
 
 export default function AnalysisPanel() {
-  const { data: stats, isLoading } = useGetWordStats();
+  const { data: stats, isLoading, isError } = useGetWordStats({
+    query: { placeholderData: keepPreviousData },
+  });
 
-  if (isLoading) {
+  if (isLoading && !stats) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -171,6 +174,12 @@ export default function AnalysisPanel() {
 
   return (
     <div className="space-y-5">
+      {isError && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border border-border/50 text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500/70 shrink-0" />
+          <span className="font-mono text-[10.5px] tracking-wide">Server offline — showing last known data</span>
+        </div>
+      )}
 
       {/* ── Main section grid ── */}
       <div className="border border-border">

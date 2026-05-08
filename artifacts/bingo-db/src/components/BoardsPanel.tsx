@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
@@ -97,6 +97,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
   const { data, isLoading, isError } = useQuery<BoardsResponse>({
     queryKey: ["boards"],
     queryFn: fetchBoards,
+    placeholderData: keepPreviousData,
   });
 
   const { toast } = useToast();
@@ -245,8 +246,8 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         </div>
       </div>
 
-      {/* ── Loading skeletons ── */}
-      {isLoading && (
+      {/* ── Loading skeletons — only when no cached data is available ── */}
+      {isLoading && !data && (
         <div>
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-start gap-6 md:gap-10 py-8 border-b border-border animate-pulse">
@@ -264,8 +265,16 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         </div>
       )}
 
-      {/* ── Error ── */}
-      {isError && (
+      {/* ── Offline banner — shown when server is down but previous data is visible ── */}
+      {isError && data && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border border-border/50 text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500/70 shrink-0" />
+          <span className="font-mono text-[10.5px] tracking-wide">Server offline — showing last known data</span>
+        </div>
+      )}
+
+      {/* ── Error (no cached data) ── */}
+      {isError && !data && (
         <div className="py-24 text-center">
           <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">Error</p>
           <p className="text-sm text-muted-foreground">Failed to load boards.</p>
@@ -333,7 +342,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       )}
 
       {/* ── Empty state ── */}
-      {!isLoading && !isError && filtered.length === 0 && (
+      {data && !isLoading && filtered.length === 0 && (
         <div className="py-32 text-center">
           <p className="text-3xl font-editorial italic text-muted-foreground mb-3">
             No boards found.
@@ -351,7 +360,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       )}
 
       {/* ── Board rows ── */}
-      {!isLoading && !isError && filtered.map((board, index) => {
+      {data && filtered.map((board, index) => {
         const isSelected = selectedBoard === board.name;
         const isEditing = editingId === board.id;
         const isConfirmingDelete = confirmDeleteId === board.id;
