@@ -98,10 +98,11 @@ export default function Home() {
         {/* Header flows naturally with content */}
         <header className="bg-card border-b">
 
-          {/* Brand row */}
-          <div className="px-4 py-3 flex items-center">
+          {/* Brand + tabs row — logo left, tabs right-aligned and bottom-anchored */}
+          <div className="flex items-end justify-between pl-4">
+            {/* Logo */}
             <button
-              className="flex items-center gap-3 hover:opacity-75 transition-opacity"
+              className="flex items-center gap-3 pb-3 hover:opacity-75 transition-opacity"
               title="Reset to home"
               onClick={resetHome}
             >
@@ -113,31 +114,31 @@ export default function Home() {
                 <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mt-0.5">Data Cockpit</p>
               </div>
             </button>
-          </div>
 
-          {/* Tab row */}
-          <div className="flex items-center px-4 border-t">
-            {TABS.map(({ id, icon: Icon, label }) => (
-              <button
-                key={id}
-                onClick={() => handleTabChange(id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 font-mono text-[10.5px] tracking-[0.06em] uppercase border-b-2 transition-colors",
-                  tab === id
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                )}
-                data-testid={`tab-${id}`}
-              >
-                <Icon className="h-3 w-3" />
-                {label}
-                {id === "words" && selectedBoard && (
-                  <span className="ml-1 px-1.5 py-px font-mono text-[9px] tracking-[0.04em] border border-primary/30 text-primary bg-primary/10">
-                    {selectedBoard}
-                  </span>
-                )}
-              </button>
-            ))}
+            {/* Tabs — right-aligned, bottom border acts as active indicator */}
+            <div className="flex items-end">
+              {TABS.map(({ id, icon: Icon, label }) => (
+                <button
+                  key={id}
+                  onClick={() => handleTabChange(id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2.5 font-mono text-[10.5px] tracking-[0.06em] uppercase border-b-2 transition-colors",
+                    tab === id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  )}
+                  data-testid={`tab-${id}`}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                  {id === "words" && selectedBoard && (
+                    <span className="ml-1 px-1.5 py-px font-mono text-[9px] tracking-[0.04em] border border-primary/30 text-primary bg-primary/10">
+                      {selectedBoard}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Filter bar — words tab only */}
