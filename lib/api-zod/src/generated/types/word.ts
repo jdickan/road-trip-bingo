@@ -43,4 +43,6 @@ export interface Word {
   emoji: string | null;
   createdAt: Date;
   updatedAt: Date;
+  /** @nullable */
+  deletedAt: Date | null;
 }

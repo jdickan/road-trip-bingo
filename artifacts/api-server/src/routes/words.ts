@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, sql, and, or } from "drizzle-orm";
+import { eq, ilike, sql, and, or, isNull, isNotNull } from "drizzle-orm";
 import { db, wordsTable } from "@workspace/db";
 import {
   ListWordsQueryParams,
@@ -14,6 +14,9 @@ import {
   ExportWordsQueryParams,
   ExportWordsResponse,
   GetWordStatsResponse,
+  ListDeletedWordsResponse,
+  RestoreWordParams,
+  RestoreWordResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -121,6 +124,7 @@ function mapWordRow(row: typeof wordsTable.$inferSelect) {
     emoji: row.emoji ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
   };
 }
 
@@ -134,7 +138,8 @@ router.get("/words", async (req, res): Promise<void> => {
 
   const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete, limit = 1000, offset = 0 } = parsed.data;
 
-  const where = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
+  const userFilters = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
+  const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
   const [words, countResult] = await Promise.all([
     db
@@ -157,6 +162,29 @@ router.get("/words", async (req, res): Promise<void> => {
   res.json(response);
 });
 
+// GET /words/deleted — MUST be before /words/:id
+router.get("/words/deleted", async (_req, res): Promise<void> => {
+  const words = await db
+    .select()
+    .from(wordsTable)
+    .where(isNotNull(wordsTable.deletedAt))
+    .orderBy(wordsTable.deletedAt);
+
+  const response = ListDeletedWordsResponse.parse({
+    words: words.map(mapWordRow),
+    total: words.length,
+  });
+  res.json(response);
+});
+
+// DELETE /words/purge — MUST be before /words/:id
+router.delete("/words/purge", async (_req, res): Promise<void> => {
+  await db
+    .delete(wordsTable)
+    .where(isNotNull(wordsTable.deletedAt));
+  res.sendStatus(204);
+});
+
 // GET /words/export — MUST be before /words/:id
 router.get("/words/export", async (req, res): Promise<void> => {
   const parsed = ExportWordsQueryParams.safeParse(req.query);
@@ -165,8 +193,9 @@ router.get("/words/export", async (req, res): Promise<void> => {
     return;
   }
 
-  const { board, season, region, age, findability } = parsed.data;
-  const where = buildFilters({ region, age, findability, season, board });
+  const { board, season, region, surroundings, age, findability } = parsed.data;
+  const userFilters = buildFilters({ region, surroundings, age, findability, season, board });
+  const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
   const words = await db
     .select()
@@ -183,7 +212,10 @@ router.get("/words/export", async (req, res): Promise<void> => {
 
 // GET /words/stats — MUST be before /words/:id
 router.get("/words/stats", async (_req, res): Promise<void> => {
-  const allWords = await db.select().from(wordsTable);
+  const allWords = await db
+    .select()
+    .from(wordsTable)
+    .where(isNull(wordsTable.deletedAt));
 
   const byFindability: Record<string, number> = {};
   const byAge: Record<string, number> = {};
@@ -274,6 +306,28 @@ router.post("/words", async (req, res): Promise<void> => {
   res.status(201).json(GetWordResponse.parse(mapWordRow(word)));
 });
 
+// POST /words/:id/restore — MUST be before /words/:id
+router.post("/words/:id/restore", async (req, res): Promise<void> => {
+  const params = RestoreWordParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [word] = await db
+    .update(wordsTable)
+    .set({ deletedAt: null })
+    .where(and(eq(wordsTable.id, params.data.id), isNotNull(wordsTable.deletedAt)))
+    .returning();
+
+  if (!word) {
+    res.status(404).json({ error: "Deleted word not found" });
+    return;
+  }
+
+  res.json(RestoreWordResponse.parse(mapWordRow(word)));
+});
+
 // GET /words/:id
 router.get("/words/:id", async (req, res): Promise<void> => {
   const params = GetWordParams.safeParse(req.params);
@@ -285,7 +339,7 @@ router.get("/words/:id", async (req, res): Promise<void> => {
   const [word] = await db
     .select()
     .from(wordsTable)
-    .where(eq(wordsTable.id, params.data.id));
+    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)));
 
   if (!word) {
     res.status(404).json({ error: "Word not found" });
@@ -325,7 +379,7 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
   const [word] = await db
     .update(wordsTable)
     .set(updateData)
-    .where(eq(wordsTable.id, params.data.id))
+    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
     .returning();
 
   if (!word) {
@@ -336,7 +390,7 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
   res.json(UpdateWordResponse.parse(mapWordRow(word)));
 });
 
-// DELETE /words/:id
+// DELETE /words/:id — soft-delete
 router.delete("/words/:id", async (req, res): Promise<void> => {
   const params = DeleteWordParams.safeParse(req.params);
   if (!params.success) {
@@ -345,8 +399,9 @@ router.delete("/words/:id", async (req, res): Promise<void> => {
   }
 
   const [word] = await db
-    .delete(wordsTable)
-    .where(eq(wordsTable.id, params.data.id))
+    .update(wordsTable)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
     .returning();
 
   if (!word) {

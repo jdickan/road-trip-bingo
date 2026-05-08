@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ListWordsParams } from "@workspace/api-client-react";
+import { ListWordsParams, useListDeletedWords, getListDeletedWordsQueryKey } from "@workspace/api-client-react";
 import WordTable from "@/components/WordTable";
 import WordFilterBar from "@/components/WordFilterBar";
 import BoardsPanel from "@/components/BoardsPanel";
@@ -7,12 +7,13 @@ import ThemePanel from "@/components/ThemePanel";
 import DefinitionsPanel from "@/components/DefinitionsPanel";
 import SnapshotsPanel from "@/components/SnapshotsPanel";
 import AnalysisPanel from "@/components/AnalysisPanel";
+import DeletedWordsPanel from "@/components/DeletedWordsPanel";
 import ConnectionBanner from "@/components/ConnectionBanner";
 import { cn } from "@/lib/utils";
-import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2 } from "lucide-react";
+import { TableIcon, LayoutGrid, Palette, BookOpen, DatabaseZap, BarChart2, Trash2 } from "lucide-react";
 import appIcon from "@assets/icon-512_1775010520611.png";
 
-const TABS = [
+const STATIC_TABS = [
   { id: "words",       icon: TableIcon,    label: "Words" },
   { id: "analysis",    icon: BarChart2,    label: "Stats" },
   { id: "boards",      icon: LayoutGrid,   label: "Boards" },
@@ -21,7 +22,10 @@ const TABS = [
   { id: "snapshots",   icon: DatabaseZap,  label: "Snapshots" },
 ] as const;
 
-type Tab = typeof TABS[number]["id"];
+const TRASH_TAB = { id: "trash", icon: Trash2, label: "Trash" } as const;
+
+type StaticTab = typeof STATIC_TABS[number]["id"];
+type Tab = StaticTab | "trash";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
@@ -34,13 +38,20 @@ export default function Home() {
   const filterBarInlineRef = useRef<HTMLDivElement>(null);
   const aiClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const { data: deletedData } = useListDeletedWords({
+    query: { queryKey: getListDeletedWordsQueryKey(), staleTime: 10_000 },
+  });
+  const deletedTotal = deletedData?.total ?? 0;
+
+  // If trash tab is active but trash is now empty, bounce back to words
+  useEffect(() => {
+    if (tab === "trash" && deletedData && deletedTotal === 0) {
+      setTab("words");
+    }
+  }, [tab, deletedData, deletedTotal]);
+
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
 
-  // Swap to the fixed overlay once the inline filter bar's bottom edge has
-  // scrolled past the top of the scroll container. The threshold is measured
-  // from the live DOM (offsetTop + offsetHeight) and recomputed via
-  // ResizeObserver, so it stays correct under browser zoom, font-size changes,
-  // tab switches, and dynamic header content (e.g. board pill).
   useEffect(() => {
     const scrollEl = scrollContainerRef.current;
     if (!scrollEl) return;
@@ -54,8 +65,6 @@ export default function Home() {
         return;
       }
       threshold = bar.offsetTop + bar.offsetHeight;
-      // Re-evaluate immediately so a zoom change while scrolled doesn't leave
-      // the overlay in a stale state.
       setFilterBarFixed(scrollEl.scrollTop > threshold);
     };
 
@@ -68,8 +77,6 @@ export default function Home() {
 
     const ro = new ResizeObserver(recompute);
     if (filterBarInlineRef.current) ro.observe(filterBarInlineRef.current);
-    // The container itself can resize when the user zooms or rotates; that
-    // doesn't change offsetTop but may change which threshold value matters.
     ro.observe(scrollEl);
     window.addEventListener("resize", recompute);
 
@@ -113,10 +120,10 @@ export default function Home() {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
 
-      {/* ── Connection status banner — shown when API server is unreachable ── */}
+      {/* ── Connection status banner ── */}
       <ConnectionBanner />
 
-      {/* ── Fixed filter overlay — only rendered when filter row is off-screen ── */}
+      {/* ── Fixed filter overlay ── */}
       {tab === "words" && filterBarFixed && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-b">
           <WordFilterBar
@@ -128,15 +135,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Single scrollable container — header + content scroll together ── */}
+      {/* ── Single scrollable container ── */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto"
       >
-        {/* Header flows naturally with content */}
+        {/* Header */}
         <header className="bg-card border-b">
 
-          {/* Brand + tabs row — logo left, tabs right-aligned and bottom-anchored */}
+          {/* Brand + tabs row */}
           <div className="flex items-end justify-between pl-4">
             {/* Logo */}
             <button
@@ -150,9 +157,9 @@ export default function Home() {
               <h1 className="font-mono text-[10.5px] tracking-[0.06em] uppercase text-foreground leading-none">Road Trip Bingo Data</h1>
             </button>
 
-            {/* Tabs — right-aligned, bottom border acts as active indicator */}
+            {/* Tabs */}
             <div className="flex items-end">
-              {TABS.map(({ id, icon: Icon, label }) => (
+              {STATIC_TABS.map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
                   onClick={() => handleTabChange(id)}
@@ -168,6 +175,24 @@ export default function Home() {
                   {label}
                 </button>
               ))}
+
+              {/* Trash tab — only when deleted words exist */}
+              {deletedTotal > 0 && (
+                <button
+                  onClick={() => handleTabChange("trash")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2.5 font-mono text-[10.5px] tracking-[0.06em] uppercase border-b-2 transition-colors",
+                    tab === "trash"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground/60 hover:text-foreground hover:border-border"
+                  )}
+                  data-testid="tab-trash"
+                >
+                  <TRASH_TAB.icon className="h-3 w-3" />
+                  {TRASH_TAB.label}
+                  <span className="ml-0.5 tabular-nums opacity-60">{deletedTotal}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -200,6 +225,8 @@ export default function Home() {
             <DefinitionsPanel />
           ) : tab === "snapshots" ? (
             <SnapshotsPanel />
+          ) : tab === "trash" ? (
+            <DeletedWordsPanel onEmpty={() => handleTabChange("words")} />
           ) : (
             <ThemePanel />
           )}

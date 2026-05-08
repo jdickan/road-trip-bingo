@@ -298,6 +298,90 @@ export const useCreateWord = <
 };
 
 /**
+ * @summary Restore a soft-deleted word
+ */
+export const getRestoreWordUrl = (id: number) => {
+  return `/api/words/${id}/restore`;
+};
+
+export const restoreWord = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Word> => {
+  return customFetch<Word>(getRestoreWordUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRestoreWordMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreWord>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreWord>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["restoreWord"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreWord>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return restoreWord(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreWordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreWord>>
+>;
+
+export type RestoreWordMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Restore a soft-deleted word
+ */
+export const useRestoreWord = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreWord>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof restoreWord>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRestoreWordMutationOptions(options));
+};
+
+/**
  * @summary Get a single bingo word
  */
 export const getGetWordUrl = (id: number) => {
@@ -713,6 +797,162 @@ export function useGetWordStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List soft-deleted words
+ */
+export const getListDeletedWordsUrl = () => {
+  return `/api/words/deleted`;
+};
+
+export const listDeletedWords = async (
+  options?: RequestInit,
+): Promise<WordList> => {
+  return customFetch<WordList>(getListDeletedWordsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDeletedWordsQueryKey = () => {
+  return [`/api/words/deleted`] as const;
+};
+
+export const getListDeletedWordsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDeletedWords>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDeletedWords>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDeletedWordsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDeletedWords>>
+  > = ({ signal }) => listDeletedWords({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDeletedWords>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDeletedWordsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDeletedWords>>
+>;
+export type ListDeletedWordsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List soft-deleted words
+ */
+
+export function useListDeletedWords<
+  TData = Awaited<ReturnType<typeof listDeletedWords>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDeletedWords>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDeletedWordsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Permanently delete all soft-deleted words
+ */
+export const getPurgeDeletedWordsUrl = () => {
+  return `/api/words/purge`;
+};
+
+export const purgeDeletedWords = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getPurgeDeletedWordsUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getPurgeDeletedWordsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof purgeDeletedWords>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof purgeDeletedWords>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["purgeDeletedWords"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof purgeDeletedWords>>,
+    void
+  > = () => {
+    return purgeDeletedWords(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PurgeDeletedWordsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof purgeDeletedWords>>
+>;
+
+export type PurgeDeletedWordsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Permanently delete all soft-deleted words
+ */
+export const usePurgeDeletedWords = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof purgeDeletedWords>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof purgeDeletedWords>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getPurgeDeletedWordsMutationOptions(options));
+};
 
 /**
  * @summary Use AI to autofill missing tags for words

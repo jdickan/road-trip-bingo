@@ -50,6 +50,8 @@ export interface Word {
   emoji: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  deletedAt: string | null;
 }
 
 export interface WordList {

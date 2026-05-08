@@ -17,8 +17,9 @@ export const wordsTable = pgTable("bingo_words", {
   emoji: text("emoji"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertWordSchema = createInsertSchema(wordsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWordSchema = createInsertSchema(wordsTable).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type InsertWord = z.infer<typeof insertWordSchema>;
 export type Word = typeof wordsTable.$inferSelect;

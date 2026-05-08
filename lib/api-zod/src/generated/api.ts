@@ -63,6 +63,7 @@ export const ListWordsResponse = zod.object({
         .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
+      deletedAt: zod.coerce.date().nullable(),
     }),
   ),
   total: zod.number(),
@@ -99,6 +100,39 @@ export const CreateWordBody = zod.object({
 });
 
 /**
+ * @summary Restore a soft-deleted word
+ */
+export const RestoreWordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RestoreWordResponse = zod.object({
+  id: zod.number(),
+  word: zod.string(),
+  regions: zod
+    .array(zod.string())
+    .describe("e.g. All, NE, SE, N Cent, S Cent, NW, SW, HI, AK"),
+  surroundings: zod
+    .array(zod.string())
+    .describe("e.g. All, Rural\/Xurban, Suburban\/Town, Urban\/City, Highway"),
+  dayNight: zod.array(zod.string()).describe("e.g. Day, Night"),
+  age: zod.string().nullable().describe("e.g. Young, Kid, Tween"),
+  findability: zod.string().nullable().describe("e.g. High, Medium, Low"),
+  seasons: zod
+    .array(zod.string())
+    .describe("e.g. All, Spring, Summer, Fall, Winter"),
+  boards: zod
+    .array(zod.string())
+    .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+  notes: zod.string().nullable(),
+  spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+  emoji: zod.string().nullable().describe("System emoji representing the word"),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  deletedAt: zod.coerce.date().nullable(),
+});
+
+/**
  * @summary Get a single bingo word
  */
 export const GetWordParams = zod.object({
@@ -128,6 +162,7 @@ export const GetWordResponse = zod.object({
   emoji: zod.string().nullable().describe("System emoji representing the word"),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  deletedAt: zod.coerce.date().nullable(),
 });
 
 /**
@@ -174,6 +209,7 @@ export const UpdateWordResponse = zod.object({
   emoji: zod.string().nullable().describe("System emoji representing the word"),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  deletedAt: zod.coerce.date().nullable(),
 });
 
 /**
@@ -225,6 +261,7 @@ export const ExportWordsResponse = zod.object({
         .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
+      deletedAt: zod.coerce.date().nullable(),
     }),
   ),
   total: zod.number(),
@@ -243,6 +280,45 @@ export const GetWordStatsResponse = zod.object({
   byRegion: zod.record(zod.string(), zod.number()),
   bySurroundings: zod.record(zod.string(), zod.number()),
   byDayNight: zod.record(zod.string(), zod.number()),
+});
+
+/**
+ * @summary List soft-deleted words
+ */
+export const ListDeletedWordsResponse = zod.object({
+  words: zod.array(
+    zod.object({
+      id: zod.number(),
+      word: zod.string(),
+      regions: zod
+        .array(zod.string())
+        .describe("e.g. All, NE, SE, N Cent, S Cent, NW, SW, HI, AK"),
+      surroundings: zod
+        .array(zod.string())
+        .describe(
+          "e.g. All, Rural\/Xurban, Suburban\/Town, Urban\/City, Highway",
+        ),
+      dayNight: zod.array(zod.string()).describe("e.g. Day, Night"),
+      age: zod.string().nullable().describe("e.g. Young, Kid, Tween"),
+      findability: zod.string().nullable().describe("e.g. High, Medium, Low"),
+      seasons: zod
+        .array(zod.string())
+        .describe("e.g. All, Spring, Summer, Fall, Winter"),
+      boards: zod
+        .array(zod.string())
+        .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+      notes: zod.string().nullable(),
+      spanish: zod.string().nullable().describe("Mexican Spanish translation"),
+      emoji: zod
+        .string()
+        .nullable()
+        .describe("System emoji representing the word"),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+      deletedAt: zod.coerce.date().nullable(),
+    }),
+  ),
+  total: zod.number(),
 });
 
 /**
@@ -293,6 +369,7 @@ export const AutofillWordsResponse = zod.object({
         .describe("System emoji representing the word"),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
+      deletedAt: zod.coerce.date().nullable(),
     }),
   ),
 });

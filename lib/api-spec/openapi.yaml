@@ -114,6 +114,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /words/{id}/restore:
+    post:
+      operationId: restoreWord
+      tags: [words]
+      summary: Restore a soft-deleted word
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Restored word
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Word"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /words/{id}:
     get:
       operationId: getWord
@@ -240,6 +265,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/WordStats"
 
+  /words/deleted:
+    get:
+      operationId: listDeletedWords
+      tags: [words]
+      summary: List soft-deleted words
+      responses:
+        "200":
+          description: List of soft-deleted words
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WordList"
+
+  /words/purge:
+    delete:
+      operationId: purgeDeletedWords
+      tags: [words]
+      summary: Permanently delete all soft-deleted words
+      responses:
+        "204":
+          description: All soft-deleted words purged
+
   /ai/autofill:
     post:
       operationId: autofillWords
@@ -354,6 +401,9 @@ components:
         updatedAt:
           type: string
           format: date-time
+        deletedAt:
+          type: ["string", "null"]
+          format: date-time
       required:
         - id
         - word
@@ -369,6 +419,7 @@ components:
         - emoji
         - createdAt
         - updatedAt
+        - deletedAt
 
     WordList:
       type: object
