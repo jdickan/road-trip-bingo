@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { ListWordsParams, useGetWordStats } from "@workspace/api-client-react";
 import { Search, X, LayoutGrid } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
+import BulkAddModal from "./BulkAddModal";
+import VoiceAddModal from "./VoiceAddModal";
 import AutofillPanel from "./AutofillPanel";
 import ExportModal from "./ExportModal";
 import { cn } from "@/lib/utils";
@@ -151,8 +153,10 @@ export default function WordFilterBar({
         </div>
       )}
 
-      {/* Right: 3 action buttons */}
+      {/* Right: action buttons */}
       <div className="ml-auto flex items-center gap-3 px-4">
+        <VoiceAddModal />
+        <BulkAddModal />
         <SuggestWordsModal />
         <AutofillPanel onComplete={onAutofillComplete} />
         <ExportModal filters={filters} />

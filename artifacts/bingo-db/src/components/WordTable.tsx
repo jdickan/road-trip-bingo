@@ -139,21 +139,54 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const { toast } = useToast();
   const [newWordTop, setNewWordTop] = useState("");
 
+  function parseQuickAddWords(raw: string): string[] {
+    return raw
+      .split(/[,\t]+/)
+      .map((w) => w.trim())
+      .filter((w) => w.length > 0)
+      .filter((w, i, arr) => arr.indexOf(w) === i);
+  }
+
   const handleAddWordTop = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWordTop.trim()) return;
-    createMutation.mutate(
-      { data: { word: newWordTop.trim() } },
-      {
-        onSuccess: () => {
-          setNewWordTop("");
-          queryClient.invalidateQueries({ queryKey: ["/api/words"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
-          toast({ title: "Word added" });
-        },
-        onError: () => toast({ title: "Couldn't add word", description: "Try again in a moment.", variant: "destructive" }),
+    const words = parseQuickAddWords(newWordTop);
+    if (words.length === 0) return;
+
+    if (words.length === 1) {
+      createMutation.mutate(
+        { data: { word: words[0] } },
+        {
+          onSuccess: () => {
+            setNewWordTop("");
+            queryClient.invalidateQueries({ queryKey: ["/api/words"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+            toast({ title: "Word added" });
+          },
+          onError: () => toast({ title: "Couldn't add word", description: "Try again in a moment.", variant: "destructive" }),
+        }
+      );
+    } else {
+      // Bulk: fire all in parallel, then invalidate once
+      setNewWordTop("");
+      let done = 0;
+      let failed = 0;
+      const total = words.length;
+      const finish = () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/words"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+        if (failed === 0) toast({ title: `${total} words added` });
+        else toast({ title: `${done} of ${total} words added`, description: `${failed} failed`, variant: "destructive" });
+      };
+      for (const word of words) {
+        createMutation.mutate(
+          { data: { word } },
+          {
+            onSuccess: () => { done++; if (done + failed === total) finish(); },
+            onError: () => { failed++; if (done + failed === total) finish(); },
+          }
+        );
       }
-    );
+    }
   };
 
   const handleDelete = (id: number) => {
@@ -347,7 +380,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
                 <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                 <Input
-                  placeholder="Quick add new word…"
+                  placeholder="Quick add — separate multiple with commas…"
                   value={newWordTop}
                   onChange={(e) => setNewWordTop(e.target.value)}
                   className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
@@ -441,7 +474,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                 <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
                   <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                   <Input
-                    placeholder="Quick add new word…"
+                    placeholder="Quick add — separate multiple with commas…"
                     value={newWordTop}
                     onChange={(e) => setNewWordTop(e.target.value)}
                     className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
