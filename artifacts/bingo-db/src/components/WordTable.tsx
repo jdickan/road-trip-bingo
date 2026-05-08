@@ -333,6 +333,32 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             })
           )}
 
+          {/* Quick-add row — bottom (shown when page has ≥50 words) */}
+          {(data?.words.length ?? 0) >= 50 && (
+            <TableRow className="hover:bg-muted/10 border-t border-border/50">
+              <TableCell colSpan={12} className="p-2">
+                <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
+                  <Plus className="h-3.5 w-3.5 text-muted-foreground/40 ml-2 shrink-0" />
+                  <Input
+                    placeholder="Quick add new word…"
+                    value={newWordTop}
+                    onChange={(e) => setNewWordTop(e.target.value)}
+                    className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
+                  />
+                  {newWordTop.trim() && (
+                    <button
+                      type="submit"
+                      className="h-7 px-3 text-xs font-mono border border-border hover:bg-muted/40 transition-colors disabled:opacity-40"
+                      disabled={createMutation.isPending}
+                    >
+                      {createMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                    </button>
+                  )}
+                </form>
+              </TableCell>
+            </TableRow>
+          )}
+
         </TableBody>
       </Table>
 

@@ -102,17 +102,14 @@ export default function Home() {
           <div className="flex items-end justify-between pl-4">
             {/* Logo */}
             <button
-              className="flex items-center gap-3 pb-3 hover:opacity-75 transition-opacity"
+              className="flex items-center gap-2 pb-[11px] hover:opacity-75 transition-opacity"
               title="Reset to home"
               onClick={resetHome}
             >
-              <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0">
+              <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
                 <img src={appIcon} alt="Road Trip Bingo" className="w-full h-full object-cover" />
               </div>
-              <div className="text-left">
-                <h1 className="font-semibold text-[17px] leading-tight tracking-[-0.025em]">Road Trip Bingo</h1>
-                <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground leading-none mt-0.5">Data Cockpit</p>
-              </div>
+              <h1 className="font-mono text-[10.5px] tracking-[0.06em] uppercase text-foreground leading-none">Road Trip Bingo</h1>
             </button>
 
             {/* Tabs — right-aligned, bottom border acts as active indicator */}
