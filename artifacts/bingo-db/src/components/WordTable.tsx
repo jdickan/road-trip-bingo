@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -197,31 +198,101 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         </TableHead>
       );
     }
+
+    const isOpen = activeFilter === label;
     const isActive = filters[col.filterKey] !== undefined && filters[col.filterKey] !== null;
+    const opts = col.options;
+
     return (
-      <TableHead
-        className={cn(
-          thBase,
-          "cursor-pointer transition-colors duration-150",
-          isActive ? "text-foreground" : "hover:text-foreground/70",
-          className
-        )}
-        style={combinedStyle}
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveFilter(activeFilter === label ? null : label);
-        }}
+      <Popover
+        open={isOpen}
+        onOpenChange={(open) => open ? setActiveFilter(label) : applyDraft()}
       >
-        <span className="flex items-center gap-1">
-          {label}
-          <ChevronDown className={cn(
-            "h-2.5 w-2.5 shrink-0 transition-transform duration-150",
-            activeFilter === label ? "rotate-180 text-foreground/70" : "text-muted-foreground/35"
-          )} />
-          {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0 ml-0.5" />}
-        </span>
-        {setWidth && <ResizeHandle onMouseDown={(e) => { e.stopPropagation(); startResize(e, width!, setWidth, minWidth); }} />}
-      </TableHead>
+        <PopoverTrigger asChild>
+          <TableHead
+            className={cn(
+              thBase,
+              "cursor-pointer transition-colors duration-150",
+              isActive ? "text-foreground" : "hover:text-foreground/70",
+              className
+            )}
+            style={combinedStyle}
+          >
+            <span className="flex items-center gap-1">
+              {label}
+              <ChevronDown className={cn(
+                "h-2.5 w-2.5 shrink-0 transition-transform duration-150",
+                isOpen ? "rotate-180 text-foreground/70" : "text-muted-foreground/35"
+              )} />
+              {isActive && <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 shrink-0 ml-0.5" />}
+            </span>
+            {setWidth && <ResizeHandle onMouseDown={(e) => { e.stopPropagation(); startResize(e, width!, setWidth, minWidth); }} />}
+          </TableHead>
+        </PopoverTrigger>
+
+        <PopoverContent
+          className="w-64 p-0 shadow-[0_8px_40px_rgba(0,0,0,0.13),0_2px_8px_rgba(0,0,0,0.06)]"
+          align="start"
+          sideOffset={2}
+        >
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+            <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+              {label}
+            </p>
+            <button
+              onClick={() => applyDraft()}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Options */}
+          <div className="py-1 max-h-[52vh] overflow-y-auto">
+            {opts.map((opt) => {
+              const selected = draftSelections.has(opt);
+              return (
+                <button
+                  key={opt}
+                  onClick={() => toggleDraft(opt)}
+                  className={cn(
+                    "w-full text-left px-4 py-2 flex items-center gap-3 transition-colors",
+                    selected
+                      ? "bg-muted/40 text-foreground"
+                      : "text-foreground/60 hover:bg-muted/20 hover:text-foreground"
+                  )}
+                >
+                  <div className={cn(
+                    "h-[14px] w-[14px] border flex-none flex items-center justify-center transition-colors",
+                    selected ? "bg-foreground border-foreground" : "border-border bg-background"
+                  )}>
+                    {selected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                  </div>
+                  <span className={cn("text-xs", selected && "font-medium")}>{opt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 py-2.5 border-t border-border flex items-center justify-between shrink-0">
+            <button
+              onClick={clearDraft}
+              disabled={draftSelections.size === 0}
+              className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              onClick={applyDraft}
+              className="font-mono text-[10px] tracking-[0.18em] uppercase bg-foreground text-background px-3 py-1.5 hover:opacity-80 transition-opacity"
+            >
+              Apply{draftSelections.size > 0 ? ` (${draftSelections.size})` : ""}
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
     );
   }
 
@@ -415,76 +486,6 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         </div>
       )}
 
-      {/* ── Column filter overlay — multi-select ── */}
-      {activeFilter && setFilters && activeFiltCol && (
-        <>
-          {/* Click-outside catcher */}
-          <div className="fixed inset-0 z-40" onClick={applyDraft} />
-
-          {/* Filter panel */}
-          <div className="fixed top-[28vh] left-1/2 -translate-x-1/2 z-50 bg-card border border-border w-72 shadow-[0_8px_40px_rgba(0,0,0,0.13),0_2px_8px_rgba(0,0,0,0.06)] flex flex-col">
-            {/* Header */}
-            <div className="px-5 py-3.5 border-b border-border flex items-center justify-between shrink-0">
-              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
-                {activeFilter}
-              </p>
-              <button
-                onClick={() => { applyDraft(); }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Options — checkboxes */}
-            <div className="py-1.5 max-h-[52vh] overflow-y-auto">
-              {activeFiltOpts.map((opt) => {
-                const selected = draftSelections.has(opt);
-                return (
-                  <button
-                    key={opt}
-                    onClick={() => toggleDraft(opt)}
-                    className={cn(
-                      "w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors",
-                      selected
-                        ? "bg-muted/40 text-foreground"
-                        : "text-foreground/60 hover:bg-muted/20 hover:text-foreground"
-                    )}
-                  >
-                    {/* Checkbox */}
-                    <div className={cn(
-                      "h-[15px] w-[15px] border flex-none flex items-center justify-center transition-colors",
-                      selected
-                        ? "bg-foreground border-foreground"
-                        : "border-border bg-background"
-                    )}>
-                      {selected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
-                    </div>
-                    <span className={cn("text-sm", selected && "font-medium")}>{opt}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Footer — clear + apply */}
-            <div className="px-4 py-3 border-t border-border flex items-center justify-between shrink-0">
-              <button
-                onClick={clearDraft}
-                disabled={draftSelections.size === 0}
-                className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
-              >
-                Clear
-              </button>
-              <button
-                onClick={applyDraft}
-                className="font-mono text-[10.5px] tracking-[0.18em] uppercase bg-foreground text-background px-4 py-1.5 hover:opacity-80 transition-opacity"
-              >
-                Apply{draftSelections.size > 0 ? ` (${draftSelections.size})` : ""}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
