@@ -27,6 +27,18 @@ export const BASIC_THEME: ThemeValue = {
 // Backward-compat alias
 export const DEFAULTS = BASIC_THEME;
 
+// ── Atelier theme — editorial monochrome baseline for "My Theme" ──────────────
+export const ATELIER_THEME: ThemeValue = {
+  primaryHue: 0,
+  primarySat: 0,
+  primaryLight: 7,
+  bgHue: 0,
+  bgSat: 0,
+  radius: 0.375,
+  darkMode: false,
+  rowDividerOpacity: 0.10,
+};
+
 export type SkinName = "basic" | "custom";
 
 // ── Skin helpers ──────────────────────────────────────────────────────────────
@@ -61,16 +73,16 @@ function loadSavedDarkMode(): boolean {
   return getSystemDark();
 }
 
-/** Load the saved "My Theme" custom values (falls back to BASIC_THEME). */
+/** Load the saved "My Theme" custom values (falls back to ATELIER_THEME). */
 export function loadCustomTheme(): ThemeValue {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...BASIC_THEME, ...parsed };
+      return { ...ATELIER_THEME, ...parsed };
     }
   } catch {}
-  return { ...BASIC_THEME };
+  return { ...ATELIER_THEME };
 }
 
 /** Save the "My Theme" custom values (+ darkMode) to STORAGE_KEY. */
@@ -109,6 +121,24 @@ export function applyTheme(t: ThemeValue): void {
     root.classList.remove("dark");
   }
 
+  // ── Atelier skin flag ─────────────────────────────────────────────────────
+  const isAtelier = getActiveSkin() === "custom";
+  root.classList.toggle("skin-atelier", isAtelier);
+
+  if (isAtelier) {
+    // Atelier owns every token via .skin-atelier in index.css.
+    // Strip any inline overrides left by Basic so they don't leak through.
+    root.style.removeProperty("--primary");
+    root.style.removeProperty("--ring");
+    root.style.removeProperty("--sidebar-primary");
+    root.style.removeProperty("--sidebar-ring");
+    root.style.removeProperty("--background");
+    root.style.removeProperty("--radius");
+    root.style.removeProperty("--row-divider");
+    return;
+  }
+
+  // ── Basic skin: original slider-driven behaviour ──────────────────────────
   root.style.setProperty("--primary",          `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
   root.style.setProperty("--ring",             `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);
   root.style.setProperty("--sidebar-primary",  `${t.primaryHue} ${t.primarySat}% ${t.primaryLight}%`);

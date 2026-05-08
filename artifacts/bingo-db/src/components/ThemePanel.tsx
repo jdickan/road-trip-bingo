@@ -9,6 +9,7 @@ import {
   type ThemeValue,
   type SkinName,
   BASIC_THEME,
+  ATELIER_THEME,
   getActiveSkin,
   setActiveSkin,
   loadCustomTheme,
@@ -211,7 +212,7 @@ export default function ThemePanel() {
   );
 
   const resetCustom = () => {
-    setTheme({ ...BASIC_THEME, darkMode: theme.darkMode });
+    setTheme({ ...ATELIER_THEME, darkMode: theme.darkMode });
   };
 
   const basicPrimaryColor = `hsl(${BASIC_THEME.primaryHue}, ${BASIC_THEME.primarySat}%, ${BASIC_THEME.primaryLight}%)`;
@@ -245,11 +246,11 @@ export default function ThemePanel() {
             active={activeSkin === "custom"}
             onClick={() => switchToSkin("custom")}
             label="My Theme"
-            subtitle="Your custom look"
-            primaryColor={activeSkin === "custom" ? customPrimaryColor : customPrimaryColor}
-            bgColor={activeSkin === "custom" ? customBgColor : customBgColor}
-            radius={activeSkin === "custom" ? theme.radius : loadCustomTheme().radius}
-            badge="Custom"
+            subtitle="Atelier · editorial monochrome"
+            primaryColor="hsl(0, 0%, 7%)"
+            bgColor="hsl(0, 0%, 99%)"
+            radius={0.375}
+            badge="Atelier"
           />
         </div>
       </div>
@@ -284,214 +285,49 @@ export default function ThemePanel() {
         </div>
       )}
 
-      {/* ── Custom fine-tune controls ── */}
+      {/* ── Atelier notice (My Theme active) ── */}
       {activeSkin === "custom" && (
         <>
-          {/* Primary color */}
-          <div className="space-y-4 p-4 rounded-lg border bg-card">
-            <div className="flex items-center gap-3">
-              <Swatch hue={theme.primaryHue} sat={theme.primarySat} light={theme.primaryLight} />
-              <div>
-                <Label className="text-sm font-medium">Primary Color</Label>
-                <p className="text-xs text-muted-foreground">Used for buttons, tabs, badges, and highlights</p>
-              </div>
+          <div className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">My Theme · Atelier</strong> — a fixed editorial
+              design system: monochrome canvas, hairline borders, electric cobalt accent, and Geist
+              typography. Color, radius, and divider sliders are disabled to keep the look
+              consistent. Toggle <strong className="text-foreground">Dark Mode</strong> above to
+              flip the canvas between paper-white and near-black.
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((p) => (
-                <button
-                  key={p.label}
-                  title={p.label}
-                  onClick={() => update({ primaryHue: p.hue, primarySat: p.sat, primaryLight: p.light })}
-                  className="flex flex-col items-center gap-1 group"
-                >
-                  <div
-                    className="w-7 h-7 rounded-full border-2 transition-all group-hover:scale-110"
-                    style={{
-                      background: `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`,
-                      borderColor:
-                        theme.primaryHue === p.hue && theme.primarySat === p.sat
-                          ? `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`
-                          : "transparent",
-                      boxShadow:
-                        theme.primaryHue === p.hue && theme.primarySat === p.sat
-                          ? `0 0 0 2px white, 0 0 0 4px hsl(${p.hue}, ${p.sat}%, ${p.light}%)`
-                          : undefined,
-                    }}
-                  />
-                  <span className="text-[10px] text-muted-foreground">{p.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Hue</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{theme.primaryHue}°</span>
-                </div>
-                <Slider min={0} max={360} step={1} value={[theme.primaryHue]}
-                  onValueChange={([v]) => update({ primaryHue: v })}
-                  className="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4" />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Saturation</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{theme.primarySat}%</span>
-                </div>
-                <Slider min={20} max={100} step={1} value={[theme.primarySat]}
-                  onValueChange={([v]) => update({ primarySat: v })} />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Lightness</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{theme.primaryLight}%</span>
-                </div>
-                <Slider min={25} max={75} step={1} value={[theme.primaryLight]}
-                  onValueChange={([v]) => update({ primaryLight: v })} />
-              </div>
-            </div>
-          </div>
-
-          {/* Background tint */}
-          <div className="space-y-4 p-4 rounded-lg border bg-card">
-            <div>
-              <Label className="text-sm font-medium">Background Tint</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Subtle hue applied to the page background (light mode only)</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_BG.map((p) => (
-                <button
-                  key={p.label}
-                  title={p.label}
-                  onClick={() => update({ bgHue: p.hue, bgSat: p.sat })}
-                  className="flex flex-col items-center gap-1 group"
-                >
-                  <div
-                    className="w-7 h-7 rounded-full border-2 transition-all group-hover:scale-110"
-                    style={{
-                      background: `hsl(${p.hue}, ${p.sat}%, 96%)`,
-                      borderColor:
-                        theme.bgHue === p.hue && theme.bgSat === p.sat
-                          ? `hsl(${p.hue}, 60%, 50%)`
-                          : "transparent",
-                      boxShadow:
-                        theme.bgHue === p.hue && theme.bgSat === p.sat
-                          ? `0 0 0 2px white, 0 0 0 4px hsl(${p.hue}, 60%, 50%)`
-                          : undefined,
-                    }}
-                  />
-                  <span className="text-[10px] text-muted-foreground">{p.label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Hue</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{theme.bgHue}°</span>
-                </div>
-                <Slider min={0} max={360} step={1} value={[theme.bgHue]}
-                  onValueChange={([v]) => update({ bgHue: v })} />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Saturation</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{theme.bgSat}%</span>
-                </div>
-                <Slider min={0} max={60} step={1} value={[theme.bgSat]}
-                  onValueChange={([v]) => update({ bgSat: v })} />
-              </div>
-            </div>
-          </div>
-
-          {/* Row divider */}
-          <div className="space-y-3 p-4 rounded-lg border bg-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">Row Divider Line</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Strength of the separator line between rows
-                </p>
-              </div>
-              <div
-                className="w-16 h-6 rounded shrink-0 border border-border overflow-hidden"
-                style={{ background: theme.darkMode ? "#1a1a1a" : "#f5f5f5" }}
-              >
-                <div
-                  className="w-full"
-                  style={{
-                    height: "1px",
-                    marginTop: "11px",
-                    background: theme.darkMode
-                      ? `rgba(255,255,255,${theme.rowDividerOpacity})`
-                      : `rgba(0,0,0,${theme.rowDividerOpacity})`,
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-12">Subtle</span>
-              <Slider min={0} max={0.6} step={0.01} value={[theme.rowDividerOpacity]}
-                onValueChange={([v]) => update({ rowDividerOpacity: v })} className="flex-1" />
-              <span className="text-xs text-muted-foreground w-12 text-right">Strong</span>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              {Math.round(theme.rowDividerOpacity * 100)}% opacity ·{" "}
-              {theme.darkMode ? "near-white on dark" : "near-black on light"}
-            </p>
-          </div>
-
-          {/* Corner radius */}
-          <div className="space-y-3 p-4 rounded-lg border bg-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">Corner Radius</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Rounding applied to cards, buttons, and inputs</p>
-              </div>
-              <div
-                className="w-10 h-10 border-2 border-primary bg-primary/10 shrink-0"
-                style={{ borderRadius: `${theme.radius}rem` }}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-12">Square</span>
-              <Slider min={0} max={1.5} step={0.05} value={[theme.radius]}
-                onValueChange={([v]) => update({ radius: v })} className="flex-1" />
-              <span className="text-xs text-muted-foreground w-12 text-right">Rounded</span>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">{theme.radius.toFixed(2)}rem</p>
           </div>
 
           {/* Live preview */}
           <div className="space-y-3 p-4 rounded-lg border bg-card">
             <Label className="text-sm font-medium">Live Preview</Label>
             <div className="flex flex-wrap gap-2 items-center">
-              <Button size="sm" style={{ borderRadius: `${theme.radius * 0.875}rem` }}>Primary Button</Button>
-              <Button size="sm" variant="outline" style={{ borderRadius: `${theme.radius * 0.875}rem` }}>Outline</Button>
-              <Button size="sm" variant="ghost" style={{ borderRadius: `${theme.radius * 0.875}rem` }}>Ghost</Button>
+              <Button size="sm">Primary Button</Button>
+              <Button size="sm" variant="outline">Outline</Button>
+              <Button size="sm" variant="ghost">Ghost</Button>
               <span
-                className="px-2 py-0.5 text-xs font-medium text-primary-foreground"
-                style={{
-                  background: customPrimaryColor,
-                  borderRadius: `${theme.radius * 0.5}rem`,
-                }}
+                className="px-2 py-0.5 text-xs font-medium rounded"
+                style={{ background: "hsl(230,100%,56%)", color: "#fff" }}
               >
-                Badge
+                Accent
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">Changes apply instantly — no need to save.</p>
+            <p className="text-xs text-muted-foreground">
+              The whole app repainted — sidebar, cards, popovers, dialogs, charts.
+            </p>
           </div>
 
           {/* Reset */}
           <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
             <div>
               <p className="text-sm font-medium">Reset My Theme</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Restore all custom values back to the Basic defaults</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Restore Atelier defaults (dark mode preference is kept)
+              </p>
             </div>
             <Button variant="outline" size="sm" onClick={resetCustom} className="gap-1.5 text-xs h-8 shrink-0">
               <RotateCcw className="h-3 w-3" />
-              Reset to Basic
+              Reset
             </Button>
           </div>
         </>
