@@ -180,72 +180,55 @@ export default function DefinitionsPanel() {
         <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
           Reference · Used by AI Autofill
         </p>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
-              Tag Definitions
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
-              These definitions describe each tag value and guide how words are categorized.
-              They are referenced by the AI when suggesting new words or filling in missing tags.
-              Click any tag or definition to edit it inline.
-            </p>
-          </div>
-          <button
-            onClick={resetToDefaults}
-            className="shrink-0 font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border"
-          >
-            Reset defaults
-          </button>
-        </div>
+        <h2 className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
+          Tag Definitions
+        </h2>
       </div>
 
       {/* ── Column groups ── */}
       {groups.map((group, gi) => (
         <section key={group.column} className="border-b border-border">
 
-          {/* Group heading row */}
-          <div className="flex items-start gap-6 md:gap-10 py-8">
-            {/* Left: plate-style index */}
-            <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
-              <span className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/25">
-                {String(gi + 1).padStart(2, "0")}
+          {/* Group eyebrow header */}
+          <div className="pt-8 pb-5">
+            <div className="flex items-baseline gap-3 mb-1.5">
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+                {group.emoji} {group.column}
+              </p>
+              <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-muted-foreground/50">
+                · {group.definitions[0]?.type ?? "Multiselect"}
               </span>
             </div>
-
-            {/* Column heading + meta */}
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-1.5">
-                {group.definitions[0]?.type ?? "Multiselect"}
-              </p>
-              <h3 className="text-2xl md:text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
-                {group.column}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
-                {group.description}
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground max-w-[65ch] leading-relaxed">
+              {group.description}
+            </p>
           </div>
 
-          {/* Definitions list */}
-          <div className="ml-16 md:ml-26 pb-2">
+          {/* Tag definitions list */}
+          <div className="pb-2">
             {group.definitions.map((def, di) => {
               const isEditingTag = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "tag";
               const isEditingDef = editing?.groupIdx === gi && editing.defIdx === di && editing.field === "definition";
+              const plateNum = String(di + 1).padStart(2, "0");
 
               return (
                 <div
                   key={di}
-                  className="group/row flex items-start gap-4 md:gap-8 py-4 border-t border-border/50 hover:bg-muted/20 transition-colors -mx-4 px-4"
+                  className="group/row flex items-start gap-5 py-5 border-t border-border/50 hover:bg-muted/20 transition-colors -mx-4 px-4"
                 >
-                  {/* Tag column */}
-                  <div className="w-28 md:w-36 shrink-0 pt-0.5">
+                  {/* Plate number */}
+                  <span className="text-xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
+                    {plateNum}
+                  </span>
+
+                  {/* Tag name */}
+                  <div className="w-36 md:w-44 shrink-0">
                     {isEditingTag ? (
                       <div className="flex items-center gap-1.5">
                         <input
                           autoFocus
                           type="text"
-                          className="bg-transparent border-0 border-b border-foreground font-mono text-sm font-semibold text-foreground outline-none py-0.5 w-20"
+                          className="bg-transparent border-0 border-b border-foreground [font-family:'Instrument_Serif',Georgia,serif] italic text-2xl text-foreground outline-none py-0 w-32"
                           value={editing.value}
                           onChange={(e) => setEditing({ ...editing, value: e.target.value })}
                           onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit(); }}
@@ -261,18 +244,18 @@ export default function DefinitionsPanel() {
                       <button
                         onClick={() => startEdit(gi, di, "tag")}
                         title="Click to edit tag name"
-                        className="group/tag flex items-center gap-1.5 text-left"
+                        className="group/tag flex items-center gap-2 text-left"
                       >
-                        <span className="font-mono text-sm font-semibold text-foreground">
+                        <span className="text-2xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground leading-tight">
                           {def.tag}
                         </span>
-                        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover/tag:opacity-60 transition-opacity" />
+                        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover/tag:opacity-50 transition-opacity shrink-0" />
                       </button>
                     )}
                   </div>
 
-                  {/* Definition column */}
-                  <div className="flex-1 min-w-0">
+                  {/* Definition text */}
+                  <div className="flex-1 min-w-0 pt-1">
                     {isEditingDef ? (
                       <div className="flex flex-col gap-2">
                         <Textarea
@@ -296,13 +279,13 @@ export default function DefinitionsPanel() {
                         <span className="text-sm text-muted-foreground leading-relaxed hover:text-foreground transition-colors">
                           {def.definition}
                         </span>
-                        <Pencil className="h-3 w-3 shrink-0 mt-1 text-muted-foreground opacity-0 group-hover/def:opacity-60 transition-opacity" />
+                        <Pencil className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground opacity-0 group-hover/def:opacity-50 transition-opacity" />
                       </button>
                     )}
                   </div>
 
                   {/* Delete */}
-                  <div className="shrink-0 pt-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                  <div className="shrink-0 pt-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
                     <button
                       onClick={() => {
                         if (confirm(`Delete the "${def.tag}" definition?`)) deleteDef(gi, di);
@@ -319,18 +302,21 @@ export default function DefinitionsPanel() {
 
             {/* Add row */}
             {adding?.groupIdx === gi ? (
-              <div className="flex items-start gap-4 md:gap-8 py-4 border-t border-border/50 -mx-4 px-4 bg-muted/20">
-                <div className="w-28 md:w-36 shrink-0">
+              <div className="flex items-start gap-5 py-5 border-t border-border/50 -mx-4 px-4 bg-muted/20">
+                <span className="text-xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none text-muted-foreground/25 shrink-0 pt-1 w-6 text-right">
+                  {String(group.definitions.length + 1).padStart(2, "0")}
+                </span>
+                <div className="w-36 md:w-44 shrink-0">
                   <input
                     autoFocus
                     type="text"
                     placeholder="Tag name"
-                    className="bg-transparent border-0 border-b border-foreground font-mono text-sm font-semibold text-foreground placeholder:text-muted-foreground/40 outline-none py-0.5 w-full"
+                    className="bg-transparent border-0 border-b border-foreground [font-family:'Instrument_Serif',Georgia,serif] italic text-2xl text-foreground placeholder:text-muted-foreground/30 outline-none py-0 w-full"
                     value={adding.tag}
                     onChange={(e) => setAdding({ ...adding, tag: e.target.value })}
                   />
                 </div>
-                <div className="flex-1 flex flex-col gap-2">
+                <div className="flex-1 flex flex-col gap-2 pt-1">
                   <Textarea
                     placeholder="Definition text…"
                     className="text-sm min-h-[70px] resize-y bg-transparent border-border/50 rounded-none focus-visible:border-foreground focus-visible:ring-0 placeholder:text-muted-foreground/40"
@@ -368,10 +354,26 @@ export default function DefinitionsPanel() {
         </section>
       ))}
 
-      {/* Footer note */}
-      <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground/50 text-center py-8">
-        Changes are saved automatically in your browser.
-      </p>
+      {/* ── Bottom info + reset box ── */}
+      <div className="mt-10 border border-border p-5 space-y-4">
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          These definitions describe each tag value and guide how words are categorized.
+          They are referenced by the AI when suggesting new words or filling in missing tags.
+          Click any tag or definition to edit it inline.
+        </p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="font-mono text-[9.5px] tracking-[0.16em] uppercase text-muted-foreground/50">
+            Changes saved automatically in your browser.
+          </p>
+          <button
+            onClick={resetToDefaults}
+            className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border shrink-0"
+          >
+            Reset Defaults
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 }

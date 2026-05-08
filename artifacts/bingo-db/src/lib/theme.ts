@@ -44,10 +44,7 @@ export type SkinName = "basic" | "custom";
 // ── Skin helpers ──────────────────────────────────────────────────────────────
 
 export function getActiveSkin(): SkinName {
-  try {
-    if (localStorage.getItem(ACTIVE_SKIN_KEY) === "custom") return "custom";
-  } catch {}
-  return "basic";
+  return "custom";
 }
 
 export function setActiveSkin(skin: SkinName): void {
@@ -104,9 +101,6 @@ export function saveDarkModePref(dark: boolean): void {
 /** Load the theme to apply on app startup. */
 export function loadTheme(): ThemeValue {
   const darkMode = loadSavedDarkMode();
-  if (getActiveSkin() === "basic") {
-    return { ...BASIC_THEME, darkMode };
-  }
   return { ...loadCustomTheme(), darkMode };
 }
 

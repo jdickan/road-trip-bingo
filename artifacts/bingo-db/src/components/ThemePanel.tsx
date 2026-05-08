@@ -3,168 +3,16 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Lock } from "lucide-react";
 import {
   type ThemeValue,
-  type SkinName,
-  BASIC_THEME,
-  getActiveSkin,
-  setActiveSkin,
+  ATELIER_THEME,
   loadCustomTheme,
   saveCustomTheme,
-  saveDarkModePref,
   getSystemDark,
   applyTheme,
 } from "@/lib/theme";
 
-// ── Mini app preview thumbnail inside a skin card ─────────────────────────────
-
-function SkinPreview({
-  primaryColor,
-  bgColor,
-  radius,
-}: {
-  primaryColor: string;
-  bgColor: string;
-  radius: number;
-}) {
-  const r = `${radius * 0.6}rem`;
-  return (
-    <div
-      className="w-full h-[68px] rounded overflow-hidden border border-border"
-      style={{ background: bgColor }}
-    >
-      <div className="h-5 border-b border-border flex items-center px-2 gap-1.5" style={{ background: bgColor }}>
-        <div className="w-2.5 h-2.5 rounded-full" style={{ background: primaryColor }} />
-        <div className="flex-1 h-1 rounded-full bg-current opacity-10" />
-        <div className="w-8 h-1.5 rounded-full" style={{ background: primaryColor, opacity: 0.5, borderRadius: r }} />
-      </div>
-      <div className="p-1.5 space-y-1">
-        {[0.9, 0.7, 0.5].map((op, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <div className="w-3 h-2 rounded-sm bg-current opacity-10" />
-            <div className="flex-1 h-2 rounded-sm bg-current opacity-[0.07]" />
-            <div className="w-6 h-2 rounded" style={{ background: primaryColor, opacity: op, borderRadius: r }} />
-            <div className="w-4 h-2 rounded" style={{ background: primaryColor, opacity: op * 0.5, borderRadius: r }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Basic-mode skin card (rounded, traditional) ───────────────────────────────
-// Shown when Basic skin is active — uses shadow-md/rounded-xl so it looks like
-// the original design. Shadows are real here because [data-skin="custom"] is
-// NOT on <html> when Basic is selected.
-
-function BasicSkinCard({
-  active,
-  onClick,
-  label,
-  subtitle,
-  primaryColor,
-  bgColor,
-  radius,
-  badge,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  subtitle: string;
-  primaryColor: string;
-  bgColor: string;
-  radius: number;
-  badge?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "relative flex flex-col gap-3 p-3 rounded-xl text-left transition-all border-2",
-        active
-          ? "bg-background shadow-md border-primary"
-          : "bg-background/50 border-transparent hover:border-border hover:bg-background/80"
-      )}
-    >
-      <SkinPreview primaryColor={primaryColor} bgColor={bgColor} radius={radius} />
-      <div className="flex items-end justify-between gap-1">
-        <div>
-          <p className="text-sm font-semibold leading-tight">{label}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>
-        </div>
-        {badge && (
-          <span className="text-[9px] font-bold uppercase tracking-widest text-primary border border-primary/40 rounded px-1.5 py-0.5 shrink-0">
-            {badge}
-          </span>
-        )}
-      </div>
-      {active && (
-        <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary" />
-      )}
-    </button>
-  );
-}
-
-// ── Atelier-mode skin button (flat, hairline) ─────────────────────────────────
-// Shown when My Theme skin is active — uses flat hairline borders.
-// The whole app is already flat at this point via [data-skin="custom"] CSS.
-
-function AtelierSkinButton({
-  active,
-  onClick,
-  label,
-  subtitle,
-  primaryColor,
-  bgColor,
-  radius,
-  badge,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  subtitle: string;
-  primaryColor: string;
-  bgColor: string;
-  radius: number;
-  badge?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "relative flex flex-col gap-3 p-3 rounded-[6px] text-left transition-colors border",
-        active
-          ? "border-primary bg-background"
-          : "border-border bg-background hover:border-foreground/30"
-      )}
-    >
-      <SkinPreview primaryColor={primaryColor} bgColor={bgColor} radius={radius} />
-      <div className="flex items-end justify-between gap-1">
-        <div>
-          <p className="text-[13px] font-medium leading-tight">{label}</p>
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
-            {subtitle}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {badge && (
-            <span className="border border-border text-[9px] font-mono uppercase tracking-widest text-muted-foreground px-1.5 py-0.5 rounded-sm">
-              {badge}
-            </span>
-          )}
-          {active && (
-            <span className="border border-foreground text-[9px] font-mono uppercase tracking-widest text-foreground px-1.5 py-0.5 rounded-sm">
-              Active
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ── Atelier eyebrow label ─────────────────────────────────────────────────────
+// ── Eyebrow label ─────────────────────────────────────────────────────────────
 
 function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -172,12 +20,6 @@ function Eyebrow({ children, className }: { children: React.ReactNode; className
       {children}
     </p>
   );
-}
-
-// ── Hairline divider ──────────────────────────────────────────────────────────
-
-function Hairline({ className }: { className?: string }) {
-  return <div className={cn("border-t border-border", className)} />;
 }
 
 // ── Color presets ─────────────────────────────────────────────────────────────
@@ -255,7 +97,7 @@ function SliderRow({
 }) {
   return (
     <div>
-      {divider && <Hairline />}
+      {divider && <div className="border-t border-border" />}
       <div className="pt-3 pb-3 space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm">{label}</Label>
@@ -277,10 +119,7 @@ function SliderRow({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ThemePanel() {
-  const [activeSkin, setActiveSkinState] = useState<SkinName>(getActiveSkin);
-
   const [theme, setTheme] = useState<ThemeValue>(() => {
-    const skin = getActiveSkin();
     const darkMode = (() => {
       try {
         const raw = localStorage.getItem("bingo-theme-v1");
@@ -291,27 +130,18 @@ export default function ThemePanel() {
       } catch {}
       return getSystemDark();
     })();
-    if (skin === "basic") return { ...BASIC_THEME, darkMode };
     return { ...loadCustomTheme(), darkMode };
   });
 
-  // Apply theme + skin on every change, passing activeSkin so applyTheme()
-  // knows whether to stamp or remove [data-skin="custom"] on <html>.
   useEffect(() => {
-    applyTheme(theme, activeSkin);
-    if (activeSkin === "custom") {
-      saveCustomTheme(theme);
-    } else {
-      saveDarkModePref(theme.darkMode);
-    }
-  }, [theme, activeSkin]);
+    applyTheme(theme, "custom");
+    saveCustomTheme(theme);
+  }, [theme]);
 
-  // Also apply on first mount (handles page reload with correct skin)
   useEffect(() => {
-    applyTheme(theme, activeSkin);
+    applyTheme(theme, "custom");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Follow system dark-mode if user hasn't saved a preference
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => {
@@ -327,156 +157,17 @@ export default function ThemePanel() {
     setTheme((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  const switchToSkin = useCallback(
-    (skin: SkinName) => {
-      setActiveSkin(skin);
-      setActiveSkinState(skin);
-      if (skin === "basic") {
-        setTheme({ ...BASIC_THEME, darkMode: theme.darkMode });
-      } else {
-        const saved = loadCustomTheme();
-        setTheme({ ...saved, darkMode: theme.darkMode });
-      }
-    },
-    [theme.darkMode]
-  );
-
-  const resetCustom = () => {
-    setTheme({ ...BASIC_THEME, darkMode: theme.darkMode });
+  const resetToDefaults = () => {
+    setTheme((prev) => ({ ...ATELIER_THEME, darkMode: prev.darkMode }));
   };
 
-  // Colors for the Basic skin card thumbnail
-  const basicPrimaryColor = `hsl(${BASIC_THEME.primaryHue}, ${BASIC_THEME.primarySat}%, ${BASIC_THEME.primaryLight}%)`;
-  const basicBgColor      = `hsl(${BASIC_THEME.bgHue}, ${BASIC_THEME.bgSat}%, 97%)`;
-
-  // For the custom card thumbnail: use the saved custom values when Basic is
-  // active (theme state holds BASIC_THEME in that case), or live values when
-  // My Theme is active.
-  const savedCustom = loadCustomTheme();
-  const customCardPrimary = activeSkin === "custom"
-    ? `hsl(${theme.primaryHue}, ${theme.primarySat}%, ${theme.primaryLight}%)`
-    : `hsl(${savedCustom.primaryHue}, ${savedCustom.primarySat}%, ${savedCustom.primaryLight}%)`;
-  const customCardBg     = activeSkin === "custom"
-    ? `hsl(${theme.bgHue}, ${theme.bgSat}%, 97%)`
-    : `hsl(${savedCustom.bgHue}, ${savedCustom.bgSat}%, 97%)`;
-  const customCardRadius = activeSkin === "custom" ? theme.radius : savedCustom.radius;
-
-  // Live primary color used in the custom controls
   const customPrimaryColor = `hsl(${theme.primaryHue}, ${theme.primarySat}%, ${theme.primaryLight}%)`;
-
-  // ── Basic skin is active ─────────────────────────────────────────────────────
-  // The ENTIRE ThemePanel — including its own chrome — looks like the original
-  // Basic design here: rounded cards, real shadows, Inter font.
-  // None of the Atelier CSS is in effect (data-skin is absent from <html>).
-
-  if (activeSkin === "basic") {
-    return (
-      <div className="max-w-2xl py-2 space-y-4">
-
-        {/* Skin selector */}
-        <div>
-          <h2 className="text-base font-semibold">Look &amp; Feel</h2>
-          <p className="text-xs text-muted-foreground mt-0.5 mb-4">
-            Choose between the stable original design or build your own
-          </p>
-          <div className="grid grid-cols-2 gap-3 p-2 rounded-xl bg-muted/40 border">
-            <BasicSkinCard
-              active={true}
-              onClick={() => switchToSkin("basic")}
-              label="Basic"
-              subtitle="Original design · read-only"
-              primaryColor={basicPrimaryColor}
-              bgColor={basicBgColor}
-              radius={BASIC_THEME.radius}
-              badge="Stable"
-            />
-            <BasicSkinCard
-              active={false}
-              onClick={() => switchToSkin("custom")}
-              label="My Theme"
-              subtitle="Atelier editorial skin"
-              primaryColor={customCardPrimary}
-              bgColor={customCardBg}
-              radius={customCardRadius}
-              badge="Custom"
-            />
-          </div>
-        </div>
-
-        {/* Dark mode */}
-        <div className="flex items-center justify-between gap-4 p-4 rounded-lg border bg-card">
-          <div>
-            <Label className="text-sm font-medium">Dark Mode</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Switch between light and dark appearance
-            </p>
-          </div>
-          <Switch
-            checked={theme.darkMode}
-            onCheckedChange={(v) => update({ darkMode: v })}
-            data-testid="switch-dark-mode"
-          />
-        </div>
-
-        {/* Locked notice */}
-        <div className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
-          <Lock className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Basic</strong> is the original design — colors,
-            typography, and layout are fixed and cannot be changed. Switch to{" "}
-            <button
-              className="font-semibold text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
-              onClick={() => switchToSkin("custom")}
-            >
-              My Theme
-            </button>{" "}
-            to unlock the Atelier editorial skin with full customization.
-          </p>
-        </div>
-
-      </div>
-    );
-  }
-
-  // ── My Theme (Atelier) skin is active ────────────────────────────────────────
-  // [data-skin="custom"] is now on <html>, so:
-  //   • All shadow-* utilities resolve to none — site-wide
-  //   • font-sans / font-mono switch to Geist / Geist Mono — site-wide
-  //   • This ThemePanel renders the flat editorial layout naturally
-  // No inline font styles needed here — the global CSS handles it.
 
   return (
     <div className="max-w-2xl py-2 space-y-0">
 
-      {/* ── Skin selector ──────────────────────────────────────────────────── */}
-      <div className="border border-border rounded-[6px] p-4 space-y-3">
-        <Eyebrow>Appearance · Skin</Eyebrow>
-        <div className="grid grid-cols-2 gap-3">
-          <AtelierSkinButton
-            active={false}
-            onClick={() => switchToSkin("basic")}
-            label="Basic"
-            subtitle="Original design · read-only"
-            primaryColor={basicPrimaryColor}
-            bgColor={basicBgColor}
-            radius={BASIC_THEME.radius}
-            badge="Stable"
-          />
-          <AtelierSkinButton
-            active={true}
-            onClick={() => switchToSkin("custom")}
-            label="My Theme"
-            subtitle="Your custom look"
-            primaryColor={customCardPrimary}
-            bgColor={customCardBg}
-            radius={theme.radius}
-            badge="Custom"
-          />
-        </div>
-      </div>
-
       {/* ── Dark mode ───────────────────────────────────────────────────────── */}
-      <div className="border-x border-b border-border px-4 py-3 flex items-center justify-between gap-4">
+      <div className="border border-border px-4 py-3 flex items-center justify-between gap-4">
         <div>
           <Eyebrow className="mb-1">Dark Mode</Eyebrow>
           <p className="text-[13px] text-muted-foreground">Switch between light and dark appearance</p>
@@ -679,10 +370,10 @@ export default function ThemePanel() {
       <div className="border-x border-b border-border px-4 py-3 flex items-center justify-between gap-4">
         <Eyebrow>Reset</Eyebrow>
         <button
-          onClick={resetCustom}
+          onClick={resetToDefaults}
           className="text-sm text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
         >
-          Reset to Basic defaults
+          Reset to defaults
         </button>
       </div>
 

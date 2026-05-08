@@ -110,7 +110,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
               <Input
                 type="search"
                 placeholder="Search words..."
-                className="pl-9 bg-background w-full"
+                className="pl-9 bg-background w-full font-mono text-sm placeholder:font-mono placeholder:text-xs"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search"
