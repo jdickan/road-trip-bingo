@@ -1,0 +1,59 @@
+Here's a paste-ready instruction block you can hand to the other LLM. It's specific enough to act on without seeing your repo, and it pins the atelier system you already gave them.
+
+---
+
+Prompt to paste:
+
+> Rebuild the Boards tab using the editorial layout language from the "How it works" page in the `ai-headshot-wizard` project (atelier system). I'll attach a screenshot for reference.
+>
+> Replace the current multi-column card grid with a single-column stack of full-width rows. Keep all existing filtering, sorting, search, and selection behavior wired exactly as it is — only the presentation layer changes.
+>
+> ### Layout
+> - One vertical stack, max-width container (`max-w-5xl mx-auto px-6`), rows are 100% width of that container.
+> - Each board = one row, separated by a 1px hairline divider (`border-b border-border`), no card chrome, no shadow, no rounded corner, no background fill. The divider is the separation.
+> - Generous vertical rhythm: `py-8` per row minimum. Whitespace is the design.
+> - Rows are not clickable cards — the board title is the link/affordance.
+>
+> ### Row anatomy (left → right, single line on desktop, stacks on mobile)
+> 1. Left rail (fixed ~64px col): a numeric index or step marker in `Instrument Serif`, large (`text-3xl`), muted (`text-muted-foreground`), tabular-nums. Mirrors the "01 / 02 / 03" treatment on the How it works page.
+> 2. Main column (flex-1):
+>    - Eyebrow: tiny uppercase label (category / status), `text-xs tracking-[0.18em] uppercase text-muted-foreground`.
+>    - Title: `Instrument Serif`, `text-2xl md:text-3xl`, `text-foreground`, tight leading.
+>    - One-line description / metadata: `Geist`, `text-sm text-muted-foreground`, truncated.
+>    - Meta strip beneath: small inline pills for word count, last edited, owner — flat, no background, separated by `·` middots, never colored badges.
+> 3. Right rail: secondary actions as ghost icon buttons only (open, duplicate, delete). No primary-color buttons in the row. A single right-pointing arrow (`ArrowUpRight` from lucide) on hover indicates the row is navigable.
+>
+> ### Interaction
+> - Hover state on the entire row: background goes to `bg-muted/40`, title underlines with `decoration-1 underline-offset-4`, arrow icon translates `translate-x-0.5 -translate-y-0.5`. Transition `duration-200`.
+> - Focus-visible: 1px ring using `ring-ring`, no offset.
+>
+> ### Filter bar (keep functionality, restyle)
+> - Sits above the stack, sticky under the page header.
+> - Single horizontal row of text-only filter chips (not pill buttons): each filter is a label + count, separated by hairline dividers (`divide-x divide-border`). Active filter = `text-foreground` + thin underline; inactive = `text-muted-foreground`.
+> - Search input: borderless, just a bottom hairline, `Geist`, placeholder in `text-muted-foreground`. No box.
+> - Sort: a `Select` styled to match — flat, hairline-bottom only, chevron in muted color.
+>
+> ### Tokens (do not hardcode colors)
+> Everything reads from `.skin-atelier` tokens already defined: `--background`, `--foreground`, `--muted-foreground`, `--border`, `--ring`. Fonts: titles → `Instrument Serif`, body/UI → `Geist`. No shadows, `--radius: 0` on row elements (override locally).
+>
+> ### Empty / loading
+> - Empty state: centered, `Instrument Serif` headline + one `Geist` line + a single ghost button. No illustration.
+> - Loading: 5 skeleton rows matching the row anatomy (left index block, title bar, meta bar), `bg-muted/50`, no pulse on atelier — fade only.
+>
+> ### Do not
+> - Do not use `Card`, `CardHeader`, `CardContent` — replace with semantic `` rows inside a ``.
+> - Do not introduce columns, grids, or masonry.
+> - Do not add color accents to status — use type weight and muted/foreground contrast only.
+> - Do not change any data fetching, filter state, or query logic.
+>
+> Reference the How it works page for the exact rhythm, type scale, and use of the serif numerals.
+
+---
+
+Attach the screenshot and that's it — the LLM has enough to execute without guessing.
+
+Add skeleton board rows
+Restyle filter chips
+Make row interactions consistent
+Ensure empty state matches
+Add mobile stacking rules

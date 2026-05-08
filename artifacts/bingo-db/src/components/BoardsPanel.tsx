@@ -1,12 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  Search, X, LayoutGrid, CheckCircle2, FileText, Lightbulb,
-  Plus, Pencil, Trash2, ChevronDown, Save, Ban
-} from "lucide-react";
+import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 interface Board {
@@ -65,49 +60,8 @@ function nextStatus(current: Board["status"]): Board["status"] {
   return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
 }
 
-function getStatusBadge(status: Board["status"], compact = false) {
-  const cls = compact ? "text-[10px] px-1.5 py-0" : "";
-  switch (status) {
-    case "active":
-      return (
-        <Badge className={cn("bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800 font-medium flex items-center gap-1", cls)}>
-          <CheckCircle2 className="h-3 w-3" />
-          Active
-        </Badge>
-      );
-    case "draft":
-      return (
-        <Badge className={cn("bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 font-medium flex items-center gap-1", cls)}>
-          <FileText className="h-3 w-3" />
-          Draft
-        </Badge>
-      );
-    case "concept":
-      return (
-        <Badge className={cn("bg-sky-100 text-sky-800 border-sky-100 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-800 font-medium flex items-center gap-1", cls)}>
-          <Lightbulb className="h-3 w-3" />
-          Concept
-        </Badge>
-      );
-  }
-}
-
-function getDifficultyColor(difficulty: string | null) {
-  switch (difficulty?.toLowerCase()) {
-    case "easy": return "text-emerald-600 dark:text-emerald-400";
-    case "medium": return "text-amber-600 dark:text-amber-400";
-    case "hard": return "text-red-600 dark:text-red-400";
-    default: return "text-muted-foreground";
-  }
-}
-
-function getAgeLevelColor(level: string) {
-  switch (level.toLowerCase()) {
-    case "young": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300 border-lime-200 dark:border-lime-800";
-    case "kid": return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800";
-    case "tween": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
-    default: return "bg-secondary text-secondary-foreground";
-  }
+function plateNumber(n: number): string {
+  return String(n).padStart(2, "0");
 }
 
 type StatusFilter = "all" | "active" | "draft" | "concept";
@@ -195,9 +149,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     setConfirmDeleteId(null);
   }
 
-  function cancelEdit() {
-    setEditingId(null);
-  }
+  function cancelEdit() { setEditingId(null); }
 
   function saveEdit(board: Board) {
     const name = editState.name.trim();
@@ -223,348 +175,359 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     createMutation.mutate({ name, description: newBoard.description || undefined, status: newBoard.status });
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-        Loading boards…
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center py-16 text-destructive text-sm">
-        Failed to load boards.
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex items-center w-full max-w-xs">
-          <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search boards…"
-            className="pl-9 h-8 text-sm bg-background"
+    <div className="max-w-5xl mx-auto pb-16">
+
+      {/* ── Filter bar ── */}
+      <div className="flex items-stretch border-b border-border mb-0">
+        {/* Borderless search — bottom hairline only */}
+        <div className="relative flex items-center py-3 pr-6 border-r border-border shrink-0">
+          <Search className="h-3.5 w-3.5 text-muted-foreground mr-2.5 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search boards"
+            className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none border-none w-44"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
+            <button onClick={() => setSearch("")} className="ml-2 text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* Status chips — mono uppercase, separated by hairlines */}
+        <div className="flex items-stretch divide-x divide-border">
           {(["all", "active", "draft", "concept"] as StatusFilter[]).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                "px-5 py-3 font-mono text-[10.5px] tracking-[0.18em] uppercase transition-colors duration-150",
                 statusFilter === s
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                  ? "text-foreground relative after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-px after:bg-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {s.charAt(0).toUpperCase() + s.slice(1)}{" "}
-              <span className="opacity-70">{activeCounts[s]}</span>
+              {s}
+              <span className="ml-1.5 opacity-50 tabular-nums">{activeCounts[s]}</span>
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        {/* Right actions */}
+        <div className="ml-auto flex items-center gap-4 pl-6">
           {selectedBoard && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            <button
               onClick={() => onSelectBoard(null)}
+              className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
             >
-              <X className="h-3 w-3 mr-1" />
-              Clear filter
-            </Button>
+              <X className="h-3 w-3" />
+              Clear
+            </button>
           )}
-          <Button
-            size="sm"
-            className="h-8 text-xs gap-1.5"
+          <button
             onClick={() => setNewBoard((p) => ({ ...p, open: !p.open }))}
+            className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
           >
             <Plus className="h-3.5 w-3.5" />
-            New Board
-          </Button>
+            New board
+          </button>
         </div>
       </div>
 
-      {/* New Board inline form */}
+      {/* ── Loading skeletons ── */}
+      {isLoading && (
+        <div>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-start gap-6 md:gap-10 py-8 border-b border-border animate-pulse">
+              <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
+                <div className="h-10 w-10 bg-muted/50 rounded-sm" />
+              </div>
+              <div className="flex-1 space-y-2.5">
+                <div className="h-2.5 w-16 bg-muted/50 rounded-sm" />
+                <div className="h-7 w-72 bg-muted/50 rounded-sm" />
+                <div className="h-3 w-96 bg-muted/50 rounded-sm" />
+                <div className="h-2.5 w-48 bg-muted/40 rounded-sm mt-4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {isError && (
+        <div className="py-24 text-center">
+          <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">Error</p>
+          <p className="text-sm text-muted-foreground">Failed to load boards.</p>
+        </div>
+      )}
+
+      {/* ── New board inline form ── */}
       {newBoard.open && (
-        <div className="border border-primary/40 rounded-lg bg-card p-4 flex flex-col gap-3 shadow-sm">
-          <h3 className="text-sm font-semibold">New Board</h3>
-          <div className="flex flex-wrap gap-3">
-            <Input
+        <div className="flex items-start gap-6 md:gap-10 py-8 border-b border-border">
+          <div className="w-10 md:w-16 shrink-0 flex justify-end pt-2">
+            <span className="text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none text-muted-foreground/30 leading-none">
+              +
+            </span>
+          </div>
+          <div className="flex-1 flex flex-col gap-3">
+            <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">New board</p>
+            <input
               ref={newBoardNameRef}
-              placeholder="Board name…"
-              className="h-8 text-sm flex-1 min-w-[180px]"
+              type="text"
+              placeholder="Board name"
+              className="bg-transparent border-0 border-b border-border text-2xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground transition-colors py-1 w-full"
               value={newBoard.name}
               onChange={(e) => setNewBoard((p) => ({ ...p, name: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") submitNewBoard(); if (e.key === "Escape") setNewBoard((p) => ({ ...p, open: false })); }}
             />
-            <Input
-              placeholder="Description (optional)…"
-              className="h-8 text-sm flex-1 min-w-[200px]"
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border transition-colors py-1 w-full"
               value={newBoard.description}
               onChange={(e) => setNewBoard((p) => ({ ...p, description: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") submitNewBoard(); if (e.key === "Escape") setNewBoard((p) => ({ ...p, open: false })); }}
             />
-            {/* Status picker */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-5 mt-1">
               {STATUS_CYCLE.map((s) => (
                 <button
                   key={s}
                   onClick={() => setNewBoard((p) => ({ ...p, status: s }))}
                   className={cn(
-                    "text-[11px] px-2 py-1 rounded border font-medium transition-colors",
-                    newBoard.status === s
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                    "font-mono text-[10.5px] tracking-[0.18em] uppercase transition-colors",
+                    newBoard.status === s ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {s}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className="h-7 text-xs gap-1.5"
-              onClick={submitNewBoard}
-              disabled={!newBoard.name.trim() || createMutation.isPending}
-            >
-              <Save className="h-3 w-3" />
-              {createMutation.isPending ? "Saving…" : "Create Board"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 text-xs"
-              onClick={() => setNewBoard((p) => ({ ...p, open: false, name: "", description: "" }))}
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-4 mt-1">
+              <button
+                onClick={submitNewBoard}
+                disabled={!newBoard.name.trim() || createMutation.isPending}
+                className="text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors disabled:opacity-40"
+              >
+                {createMutation.isPending ? "Saving…" : "Create board"}
+              </button>
+              <button
+                onClick={() => setNewBoard((p) => ({ ...p, open: false, name: "", description: "" }))}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Cards grid */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-sm gap-2">
-          <LayoutGrid className="h-8 w-8 opacity-30" />
-          <span>No boards match your search.</span>
+      {/* ── Empty state ── */}
+      {!isLoading && !isError && filtered.length === 0 && (
+        <div className="py-32 text-center">
+          <p className="text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-muted-foreground mb-3">
+            No boards found.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            {search ? "No boards match your search." : "Create your first board to begin."}
+          </p>
+          <button
+            onClick={() => setNewBoard((p) => ({ ...p, open: true }))}
+            className="text-xs text-foreground border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+          >
+            New board
+          </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map((board) => {
-            const isSelected = selectedBoard === board.name;
-            const isEditing = editingId === board.id;
-            const isConfirmingDelete = confirmDeleteId === board.id;
+      )}
 
-            return (
-              <div
-                key={board.id}
-                onClick={() => !isEditing && onSelectBoard(isSelected ? null : board.name)}
+      {/* ── Board rows ── */}
+      {!isLoading && !isError && filtered.map((board, index) => {
+        const isSelected = selectedBoard === board.name;
+        const isEditing = editingId === board.id;
+        const isConfirmingDelete = confirmDeleteId === board.id;
+
+        return (
+          <div
+            key={board.id}
+            className={cn(
+              "group relative flex items-start gap-6 md:gap-10 py-8 border-b border-border transition-colors duration-200",
+              !isEditing && "hover:bg-muted/40",
+              board.status === "concept" && !isEditing && !isSelected && "opacity-40"
+            )}
+            data-testid={`board-card-${board.id}`}
+          >
+            {/* Left rail: serif plate number */}
+            <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
+              <span
                 className={cn(
-                  "group relative flex flex-col gap-2.5 rounded-lg border bg-card p-4 transition-all duration-150",
-                  isEditing
-                    ? "border-primary ring-1 ring-primary shadow-sm cursor-default"
-                    : isSelected
-                      ? "border-primary ring-1 ring-primary shadow-sm cursor-pointer"
-                      : "border-border hover:border-primary/40 hover:shadow-sm cursor-pointer",
-                  board.status === "concept" && !isEditing && !isSelected && "opacity-50 grayscale-[60%]"
+                  "text-3xl md:text-4xl [font-family:'Instrument_Serif',Georgia,serif] italic select-none tabular-nums leading-none transition-colors duration-200",
+                  isSelected
+                    ? "text-foreground/60"
+                    : "text-muted-foreground/30 group-hover:text-muted-foreground/50"
                 )}
-                data-testid={`board-card-${board.id}`}
               >
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-2">
-                  {isEditing ? (
-                    <Input
-                      autoFocus
-                      value={editState.name}
-                      onChange={(e) => setEditState((p) => ({ ...p, name: e.target.value }))}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { e.stopPropagation(); saveEdit(board); }
-                        if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-7 text-sm font-semibold flex-1 px-2"
-                    />
-                  ) : (
-                    <h3 className="font-semibold text-sm leading-snug flex-1">{board.name}</h3>
-                  )}
+                {plateNumber(index + 1)}
+              </span>
+            </div>
 
-                  {/* Status badge — clickable to cycle */}
+            {/* Main column */}
+            <div className="flex-1 min-w-0">
+              {/* Eyebrow: status + selected indicator */}
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">
+                {board.status}
+                {isSelected && <span className="ml-3 text-foreground/70">· selected</span>}
+              </p>
+
+              {/* Title — editing vs. display */}
+              {isEditing ? (
+                <input
+                  autoFocus
+                  type="text"
+                  value={editState.name}
+                  onChange={(e) => setEditState((p) => ({ ...p, name: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.stopPropagation(); saveEdit(board); }
+                    if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-0 border-b border-foreground text-2xl md:text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic text-foreground outline-none py-1 w-full"
+                />
+              ) : (
+                <button
+                  onClick={() => onSelectBoard(isSelected ? null : board.name)}
+                  className={cn(
+                    "text-left text-2xl md:text-3xl [font-family:'Instrument_Serif',Georgia,serif] italic leading-tight transition-all duration-200 text-foreground block",
+                    isSelected
+                      ? "underline decoration-1 underline-offset-4"
+                      : "group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4"
+                  )}
+                >
+                  {board.name}
+                </button>
+              )}
+
+              {/* Description */}
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editState.description}
+                  placeholder="Description (optional)"
+                  onChange={(e) => setEditState((p) => ({ ...p, description: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.stopPropagation(); saveEdit(board); }
+                    if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none py-1 w-full mt-2"
+                />
+              ) : board.description ? (
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                  {board.description}
+                </p>
+              ) : null}
+
+              {/* Meta strip: middot-separated, mono */}
+              {!isEditing && (
+                <p className="flex flex-wrap items-center mt-3 font-mono text-xs text-muted-foreground gap-0">
+                  <span className="tabular-nums">{board.wordCount}&thinsp;{board.wordCount === 1 ? "word" : "words"}</span>
+                  {board.ageLevels.length > 0 && (
+                    <><span className="mx-2">·</span><span>{board.ageLevels.join(", ")}</span></>
+                  )}
+                  {board.difficulty && (
+                    <><span className="mx-2">·</span><span>{board.difficulty}</span></>
+                  )}
+                  {board.timeOfYear && (
+                    <><span className="mx-2">·</span><span>{board.timeOfYear}</span></>
+                  )}
+                  {board.availability && (
+                    <><span className="mx-2">·</span><span>{board.availability}</span></>
+                  )}
+                </p>
+              )}
+
+              {/* Edit save / cancel */}
+              {isEditing && (
+                <div className="flex items-center gap-4 mt-4" onClick={(e) => e.stopPropagation()}>
                   <button
-                    title={`Status: ${board.status} — click to cycle`}
-                    onClick={(e) => { e.stopPropagation(); cycleStatus(board, e); }}
-                    className="shrink-0 hover:scale-105 transition-transform"
+                    onClick={(e) => { e.stopPropagation(); saveEdit(board); }}
+                    disabled={patchMutation.isPending}
+                    className="text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors disabled:opacity-40"
                   >
-                    {getStatusBadge(board.status, true)}
+                    Save
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
                   </button>
                 </div>
+              )}
 
-                {/* Description */}
-                {isEditing ? (
-                  <Input
-                    value={editState.description}
-                    placeholder="Description (optional)…"
-                    onChange={(e) => setEditState((p) => ({ ...p, description: e.target.value }))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.stopPropagation(); saveEdit(board); }
-                      if (e.key === "Escape") { e.stopPropagation(); cancelEdit(); }
+              {/* Delete confirmation */}
+              {isConfirmingDelete && (
+                <div className="flex items-center gap-4 mt-4" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-xs text-muted-foreground">Delete "{board.name}"?</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(board.id); }}
+                    disabled={deleteMutation.isPending}
+                    className="text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted hover:text-destructive hover:border-destructive/40 transition-colors disabled:opacity-40"
+                  >
+                    {deleteMutation.isPending ? "Deleting…" : "Confirm delete"}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right rail: ghost icon buttons + arrow */}
+            {!isEditing && !isConfirmingDelete && (
+              <div className="shrink-0 flex items-center gap-0.5 pt-1">
+                <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    title="Edit board"
+                    onClick={(e) => { e.stopPropagation(); startEdit(board); }}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    title={board.status === "concept" ? "Enable board" : "Disable board"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      patchMutation.mutate({ id: board.id, patch: { status: board.status === "concept" ? "active" : "concept" } });
                     }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-7 text-xs px-2"
-                  />
-                ) : board.description ? (
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                    {board.description}
-                  </p>
-                ) : null}
-
-                {/* Meta row */}
-                <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                  {board.ageLevels.map((lvl) => (
-                    <Badge
-                      key={lvl}
-                      variant="outline"
-                      className={cn("text-[10px] px-1.5 py-0 font-medium", getAgeLevelColor(lvl))}
-                    >
-                      {lvl}
-                    </Badge>
-                  ))}
-                  {board.difficulty && (
-                    <span className={cn("text-[11px] font-semibold ml-auto", getDifficultyColor(board.difficulty))}>
-                      {board.difficulty}
-                    </span>
-                  )}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    title="Delete board"
+                    onClick={(e) => confirmDelete(board.id, e)}
+                    className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-
-                {/* Footer row: word count + inline action buttons */}
-                <div
-                  className="flex items-center justify-between gap-2 pt-2 border-t border-border/60"
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  onClick={() => onSelectBoard(isSelected ? null : board.name)}
+                  title="Filter words to this board"
+                  className="p-1.5 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground"
                 >
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    {board.timeOfYear && <span className="truncate max-w-[100px]">{board.timeOfYear}</span>}
-                    {board.availability && (
-                      <>
-                        {board.timeOfYear && <span>·</span>}
-                        <span>{board.availability}</span>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {/* Word count — always visible */}
-                    <span className="text-[11px] font-medium text-primary shrink-0 mr-1">
-                      {board.wordCount} {board.wordCount === 1 ? "word" : "words"}
-                    </span>
-
-                    {/* Action buttons — show on hover, or always when in edit/delete mode */}
-                    {isEditing ? (
-                      <>
-                        <Button
-                          size="sm"
-                          className="h-6 text-[11px] px-2 gap-1"
-                          onClick={(e) => { e.stopPropagation(); saveEdit(board); }}
-                          disabled={patchMutation.isPending}
-                        >
-                          <Save className="h-3 w-3" />
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[11px] px-2"
-                          onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : !isConfirmingDelete ? (
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          title="Edit board"
-                          onClick={(e) => { e.stopPropagation(); startEdit(board); }}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          title={board.status === "concept" ? "Enable board (set to active)" : "Disable board (set to concept)"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            patchMutation.mutate({ id: board.id, patch: { status: board.status === "concept" ? "active" : "concept" } });
-                          }}
-                          className={cn(
-                            "p-1 rounded hover:bg-muted transition-colors",
-                            board.status === "concept"
-                              ? "text-emerald-600 hover:text-emerald-700"
-                              : "text-muted-foreground hover:text-amber-600"
-                          )}
-                        >
-                          <Ban className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          title="Delete board"
-                          onClick={(e) => confirmDelete(board.id, e)}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* Confirm delete bar */}
-                {isConfirmingDelete && (
-                  <div className="flex items-center gap-2 pt-2 border-t border-destructive/30" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-xs text-destructive flex-1">Delete "{board.name}"?</span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-6 text-[11px] px-2"
-                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(board.id); }}
-                      disabled={deleteMutation.isPending}
-                    >
-                      {deleteMutation.isPending ? "Deleting…" : "Delete"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-[11px] px-2"
-                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-
-                {isSelected && !isEditing && (
-                  <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-primary" />
-                )}
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
