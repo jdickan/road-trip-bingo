@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown, Sparkles, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
 import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
@@ -42,6 +42,40 @@ const FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: r
   "Season":       { filterKey: "season",       options: SEASONS.filter(s => s !== "All") },
   "Boards":       { filterKey: "board",        options: BOARDS },
 };
+
+const COL_WIDTHS_KEY = "bingo-column-widths-v1";
+
+const DEFAULT_COL_WIDTHS = {
+  word: 220,
+  spanish: 180,
+  region: 100,
+  surroundings: 150,
+  dayNight: 96,
+  age: 78,
+  findability: 100,
+  season: 128,
+  boards: 155,
+  notes: 160,
+} as const;
+
+type ColWidths = { [K in keyof typeof DEFAULT_COL_WIDTHS]: number };
+
+function loadColWidths(): ColWidths {
+  try {
+    const raw = localStorage.getItem(COL_WIDTHS_KEY);
+    if (!raw) return { ...DEFAULT_COL_WIDTHS };
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const result = { ...DEFAULT_COL_WIDTHS } as Record<keyof ColWidths, number>;
+    for (const key of Object.keys(DEFAULT_COL_WIDTHS) as (keyof ColWidths)[]) {
+      if (typeof parsed[key] === "number" && (parsed[key] as number) > 0) {
+        result[key] = parsed[key] as number;
+      }
+    }
+    return result;
+  } catch {
+    return { ...DEFAULT_COL_WIDTHS };
+  }
+}
 
 /** Start a column resize drag. Captures startX + startW so closure is correct. */
 function startResize(
@@ -118,17 +152,37 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const limit = filters.limit || 100;
   const offset = page * limit;
 
-  // Resizable column widths (px)
-  const [wordWidth, setWordWidth] = useState(220);
-  const [spanishWidth, setSpanishWidth] = useState(180);
-  const [regionWidth, setRegionWidth] = useState(100);
-  const [surroundingsWidth, setSurroundingsWidth] = useState(150);
-  const [dayNightWidth, setDayNightWidth] = useState(96);
-  const [ageWidth, setAgeWidth] = useState(78);
-  const [findabilityWidth, setFindabilityWidth] = useState(100);
-  const [seasonWidth, setSeasonWidth] = useState(128);
-  const [boardsWidth, setBoardsWidth] = useState(155);
-  const [notesWidth, setNotesWidth] = useState(160);
+  // Resizable column widths (px) — persisted to localStorage
+  const [colWidths, setColWidths] = useState<ColWidths>(loadColWidths);
+
+  const { word: wordWidth, spanish: spanishWidth, region: regionWidth, surroundings: surroundingsWidth, dayNight: dayNightWidth, age: ageWidth, findability: findabilityWidth, season: seasonWidth, boards: boardsWidth, notes: notesWidth } = colWidths;
+
+  const setWordWidth       = (w: number) => setColWidths(p => ({ ...p, word: w }));
+  const setSpanishWidth    = (w: number) => setColWidths(p => ({ ...p, spanish: w }));
+  const setRegionWidth     = (w: number) => setColWidths(p => ({ ...p, region: w }));
+  const setSurroundingsWidth = (w: number) => setColWidths(p => ({ ...p, surroundings: w }));
+  const setDayNightWidth   = (w: number) => setColWidths(p => ({ ...p, dayNight: w }));
+  const setAgeWidth        = (w: number) => setColWidths(p => ({ ...p, age: w }));
+  const setFindabilityWidth = (w: number) => setColWidths(p => ({ ...p, findability: w }));
+  const setSeasonWidth     = (w: number) => setColWidths(p => ({ ...p, season: w }));
+  const setBoardsWidth     = (w: number) => setColWidths(p => ({ ...p, boards: w }));
+  const setNotesWidth      = (w: number) => setColWidths(p => ({ ...p, notes: w }));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COL_WIDTHS_KEY, JSON.stringify(colWidths));
+    } catch {
+      // Storage may be unavailable in restricted browser environments
+    }
+  }, [colWidths]);
+
+  const hasCustomWidths = (Object.keys(DEFAULT_COL_WIDTHS) as (keyof ColWidths)[]).some(
+    k => colWidths[k] !== DEFAULT_COL_WIDTHS[k]
+  );
+
+  function resetColWidths() {
+    setColWidths({ ...DEFAULT_COL_WIDTHS });
+  }
 
   const queryParams = { ...filters, limit, offset };
   const { data, isLoading, isError } = useListWords(queryParams, {
@@ -441,7 +495,17 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               Notes
               <ResizeHandle onMouseDown={(e) => startResize(e, notesWidth, setNotesWidth, 80)} />
             </TableHead>
-            <TableHead className="w-[40px]" />
+            <TableHead className="w-[40px] text-right">
+              {hasCustomWidths && (
+                <button
+                  onClick={resetColWidths}
+                  title="Reset column widths"
+                  className="inline-flex items-center justify-center h-5 w-5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </button>
+              )}
+            </TableHead>
           </TableRow>
         </TableHeader>
 
