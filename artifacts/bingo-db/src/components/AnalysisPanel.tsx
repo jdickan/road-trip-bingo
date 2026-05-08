@@ -172,21 +172,6 @@ export default function AnalysisPanel() {
   return (
     <div className="space-y-5">
 
-      {/* ── KPI metrics strip ── */}
-      <div className="border border-border flex flex-wrap divide-x divide-border">
-        <KpiStat label="Total"       value={total} />
-        <KpiStat label="Complete"    value={complete}         color="hsl(var(--chart-2))" />
-        <KpiStat label="Incomplete"  value={stats.incomplete} color="hsl(var(--chart-5))" />
-        <div className="border-l border-border/50 mx-0" />
-        <KpiStat label="Day Only"    value={dn["Day only"]    ?? 0} color="hsl(var(--chart-8))" />
-        <KpiStat label="Night Only"  value={dn["Night only"]  ?? 0} color="hsl(var(--chart-6))" />
-        <KpiStat label="Day + Night" value={dn["Day + Night"] ?? 0} color="hsl(var(--chart-4))" />
-        <div className="border-l border-border/50 mx-0" />
-        <KpiStat label="High Find."  value={fi["High"]   ?? 0} color="hsl(var(--chart-1))" />
-        <KpiStat label="Med Find."   value={fi["Medium"] ?? 0} color="hsl(var(--chart-1) / 0.75)" />
-        <KpiStat label="Low Find."   value={fi["Low"]    ?? 0} color="hsl(var(--chart-1) / 0.55)" />
-      </div>
-
       {/* ── Main section grid ── */}
       <div className="border border-border">
 

@@ -201,36 +201,30 @@ export default function SnapshotsPanel() {
                 {isConfirming ? (
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-mono text-[10.5px] tracking-[0.04em] uppercase text-destructive">Replace all data?</span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-7 px-3 text-xs rounded-none"
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-destructive-foreground bg-destructive border border-destructive px-3 py-1.5 hover:opacity-90 transition-opacity duration-150 disabled:opacity-50"
                       disabled={isRestoring}
                       onClick={() => restoreMutation.mutate(s.id)}
                     >
-                      {isRestoring ? <Loader2 className="h-3 w-3 animate-spin" /> : "Yes, restore"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-3 text-xs rounded-none"
+                      {isRestoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes, restore"}
+                    </button>
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
                       onClick={() => setConfirmRestoreId(null)}
                     >
                       Cancel
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2.5 text-xs gap-1 rounded-none"
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
                       onClick={() => setConfirmRestoreId(s.id)}
                       title="Restore this snapshot"
                     >
-                      <RotateCcw className="h-3 w-3" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                       Restore
-                    </Button>
+                    </button>
                     <a
                       href={`${API_BASE}/snapshots/${s.id}/download`}
                       download

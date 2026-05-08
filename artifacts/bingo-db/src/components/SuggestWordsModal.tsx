@@ -41,10 +41,10 @@ export default function SuggestWordsModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm" className="h-9 gap-2" data-testid="btn-suggest-dialog">
-          <Sparkles className="h-4 w-4 text-primary" />
+        <button className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150" data-testid="btn-suggest-dialog">
+          <Sparkles className="h-3.5 w-3.5" />
           Suggest Words
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
         <DialogHeader>
