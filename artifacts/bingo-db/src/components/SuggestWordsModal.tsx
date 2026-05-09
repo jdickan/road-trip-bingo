@@ -81,14 +81,14 @@ export default function SuggestWordsModal({ open: openProp, onOpenChange }: Sugg
           </Button>
         </form>
 
-        <div className="flex-1 min-h-[300px] mt-4 border border-border overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 mt-4 border border-border overflow-hidden flex flex-col">
           {suggestMutation.isPending ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
               <p>Brainstorming clever road trip items...</p>
             </div>
           ) : suggestMutation.data?.suggestions && suggestMutation.data.suggestions.length > 0 ? (
-            <ScrollArea className="flex-1">
+            <ScrollArea className="h-full">
               <div className="divide-y divide-border">
                 {suggestMutation.data.suggestions.map((s, i) => {
                   const isAdded = addedWords.has(s.word);
