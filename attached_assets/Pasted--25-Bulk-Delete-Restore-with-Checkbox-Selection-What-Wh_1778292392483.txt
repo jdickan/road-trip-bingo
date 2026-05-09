@@ -1,0 +1,41 @@
+#25 - Bulk Delete & Restore with Checkbox Selection
+
+What & Why
+
+Editors need to delete or restore many words at once without clicking one row at a time. The existing per-row delete (soft-delete to Trash) and the Trash tab's per-row restore are already in place; this task adds checkbox-based multi-select and bulk actions to both surfaces.
+
+Done looks like
+
+A SELECT utility link (styled like existing Reset links: font-mono text-[10.5px] tracking-[0.18em] uppercase underline) sits below the Words table at the bottom left
+Clicking it enters select mode: checkboxes appear to the left of each emoji column, the link changes to CANCEL, and a floating action strip appears below the table showing "N selected · Delete selected" (Delete button styled as a destructive action)
+A header checkbox in the checkbox column selects / deselects all rows on the current page
+Selections persist across pagination (selected IDs held in state, not just the visible page)
+Hitting Delete selected sends a bulk soft-delete request, exits select mode, refreshes the word list, and shows a brief toast "X words moved to Trash"
+The Trash tab (DeletedWordsPanel) gains the same SELECT link at bottom left
+Select mode in Trash shows "N selected · Restore selected" in the floating strip
+Hitting Restore selected sends a bulk restore request, exits select mode, refreshes the Trash list, and shows a toast "X words restored"
+Existing per-row delete and per-row restore buttons are hidden while select mode is active to reduce clutter
+Select mode is exited automatically on tab change
+Out of scope
+
+Selecting across all pages at once ("select all N matching words") — current-page only
+Permanent bulk purge from the Trash tab
+Bulk delete driven by the active filter set (filter-based approach from old scope)
+Steps
+
+API: bulk soft-delete endpoint — Add POST /api/words/bulk-delete accepting { ids: string[] }. Soft-deletes each word by setting deletedAt. Add the route to the OpenAPI spec and run codegen.
+API: bulk restore endpoint — Add POST /api/words/bulk-restore accepting { ids: string[] }. Clears deletedAt on each matched word. Add to the OpenAPI spec and run codegen.
+Words table — select mode UI — Add a selectMode boolean to WordTable state. When active, prepend a checkbox cell to every row (including a "select all on page" header checkbox). Store selected IDs in a Set<string>. Keep the set additive across page changes (merge, don't replace).
+Words table — SELECT link and floating action strip — Below the table (bottom-left), render the SELECT / CANCEL link. While selectMode is true and at least one row is checked, show a floating strip (fixed/sticky, above the pagination row) with the selected count and a Delete selected button. On confirm, call the bulk-delete mutation, clear selection, exit select mode.
+Trash tab — select mode UI — Mirror the same pattern inside DeletedWordsPanel: SELECT / CANCEL link at bottom-left, checkbox column per row, header select-all, set of selected IDs.
+Trash tab — floating action strip — Show "N selected · Restore selected" strip while items are checked. On confirm, call the bulk-restore mutation, clear selection, exit select mode.
+Polish — Hide per-row delete/restore icon buttons while select mode is active. Auto-exit select mode on tab navigation. Add brief toast messages on success for both actions.
+Relevant files
+
+artifacts/api-server/src/routes/words.ts
+lib/api-spec/openapi.yaml
+lib/api-client-react/src/generated/
+lib/api-zod/src/generated/
+artifacts/bingo-db/src/components/WordTable.tsx
+artifacts/bingo-db/src/components/DeletedWordsPanel.tsx
+artifacts/bingo-db/src/components/ThemePanel.tsx

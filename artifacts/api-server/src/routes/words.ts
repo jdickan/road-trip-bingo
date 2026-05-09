@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, sql, and, or, isNull, isNotNull } from "drizzle-orm";
+import { eq, ilike, sql, and, or, isNull, isNotNull, inArray } from "drizzle-orm";
 import { db, wordsTable } from "@workspace/db";
 import {
   ListWordsQueryParams,
@@ -17,6 +17,10 @@ import {
   ListDeletedWordsResponse,
   RestoreWordParams,
   RestoreWordResponse,
+  BulkDeleteWordsBody,
+  BulkDeleteWordsResponse,
+  BulkRestoreWordsBody,
+  BulkRestoreWordsResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -304,6 +308,46 @@ router.post("/words", async (req, res): Promise<void> => {
     .returning();
 
   res.status(201).json(GetWordResponse.parse(mapWordRow(word)));
+});
+
+// POST /words/bulk-delete — MUST be before /words/:id
+router.post("/words/bulk-delete", async (req, res): Promise<void> => {
+  const parsed = BulkDeleteWordsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { ids } = parsed.data;
+  if (ids.length === 0) {
+    res.json(BulkDeleteWordsResponse.parse({ count: 0 }));
+    return;
+  }
+  const rows = await db
+    .update(wordsTable)
+    .set({ deletedAt: new Date() })
+    .where(and(inArray(wordsTable.id, ids), isNull(wordsTable.deletedAt)))
+    .returning({ id: wordsTable.id });
+  res.json(BulkDeleteWordsResponse.parse({ count: rows.length }));
+});
+
+// POST /words/bulk-restore — MUST be before /words/:id
+router.post("/words/bulk-restore", async (req, res): Promise<void> => {
+  const parsed = BulkRestoreWordsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { ids } = parsed.data;
+  if (ids.length === 0) {
+    res.json(BulkRestoreWordsResponse.parse({ count: 0 }));
+    return;
+  }
+  const rows = await db
+    .update(wordsTable)
+    .set({ deletedAt: null })
+    .where(and(inArray(wordsTable.id, ids), isNotNull(wordsTable.deletedAt)))
+    .returning({ id: wordsTable.id });
+  res.json(BulkRestoreWordsResponse.parse({ count: rows.length }));
 });
 
 // POST /words/:id/restore — MUST be before /words/:id

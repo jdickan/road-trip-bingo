@@ -19,6 +19,8 @@ import type {
 import type {
   AutofillRequest,
   AutofillResponse,
+  BulkActionResponse,
+  BulkWordIdsBody,
   CreateTodoBody,
   CreateWordBody,
   ErrorResponse,
@@ -621,6 +623,178 @@ export const useCreateWord = <
   TContext
 > => {
   return useMutation(getCreateWordMutationOptions(options));
+};
+
+/**
+ * @summary Bulk soft-delete words by ID
+ */
+export const getBulkDeleteWordsUrl = () => {
+  return `/api/words/bulk-delete`;
+};
+
+export const bulkDeleteWords = async (
+  bulkWordIdsBody: BulkWordIdsBody,
+  options?: RequestInit,
+): Promise<BulkActionResponse> => {
+  return customFetch<BulkActionResponse>(getBulkDeleteWordsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkWordIdsBody),
+  });
+};
+
+export const getBulkDeleteWordsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkDeleteWords>>,
+    TError,
+    { data: BodyType<BulkWordIdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bulkDeleteWords>>,
+  TError,
+  { data: BodyType<BulkWordIdsBody> },
+  TContext
+> => {
+  const mutationKey = ["bulkDeleteWords"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bulkDeleteWords>>,
+    { data: BodyType<BulkWordIdsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return bulkDeleteWords(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BulkDeleteWordsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bulkDeleteWords>>
+>;
+export type BulkDeleteWordsMutationBody = BodyType<BulkWordIdsBody>;
+export type BulkDeleteWordsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk soft-delete words by ID
+ */
+export const useBulkDeleteWords = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkDeleteWords>>,
+    TError,
+    { data: BodyType<BulkWordIdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bulkDeleteWords>>,
+  TError,
+  { data: BodyType<BulkWordIdsBody> },
+  TContext
+> => {
+  return useMutation(getBulkDeleteWordsMutationOptions(options));
+};
+
+/**
+ * @summary Bulk restore soft-deleted words by ID
+ */
+export const getBulkRestoreWordsUrl = () => {
+  return `/api/words/bulk-restore`;
+};
+
+export const bulkRestoreWords = async (
+  bulkWordIdsBody: BulkWordIdsBody,
+  options?: RequestInit,
+): Promise<BulkActionResponse> => {
+  return customFetch<BulkActionResponse>(getBulkRestoreWordsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkWordIdsBody),
+  });
+};
+
+export const getBulkRestoreWordsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkRestoreWords>>,
+    TError,
+    { data: BodyType<BulkWordIdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bulkRestoreWords>>,
+  TError,
+  { data: BodyType<BulkWordIdsBody> },
+  TContext
+> => {
+  const mutationKey = ["bulkRestoreWords"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bulkRestoreWords>>,
+    { data: BodyType<BulkWordIdsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return bulkRestoreWords(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BulkRestoreWordsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bulkRestoreWords>>
+>;
+export type BulkRestoreWordsMutationBody = BodyType<BulkWordIdsBody>;
+export type BulkRestoreWordsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk restore soft-deleted words by ID
+ */
+export const useBulkRestoreWords = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkRestoreWords>>,
+    TError,
+    { data: BodyType<BulkWordIdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bulkRestoreWords>>,
+  TError,
+  { data: BodyType<BulkWordIdsBody> },
+  TContext
+> => {
+  return useMutation(getBulkRestoreWordsMutationOptions(options));
 };
 
 /**

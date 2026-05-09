@@ -190,6 +190,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /words/bulk-delete:
+    post:
+      operationId: bulkDeleteWords
+      tags: [words]
+      summary: Bulk soft-delete words by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkWordIdsBody"
+      responses:
+        "200":
+          description: Number of words deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResponse"
+
+  /words/bulk-restore:
+    post:
+      operationId: bulkRestoreWords
+      tags: [words]
+      summary: Bulk restore soft-deleted words by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkWordIdsBody"
+      responses:
+        "200":
+          description: Number of words restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkActionResponse"
+
   /words/{id}/restore:
     post:
       operationId: restoreWord
@@ -639,6 +677,24 @@ components:
         - byRegion
         - bySurroundings
         - byDayNight
+
+    BulkWordIdsBody:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+      required:
+        - ids
+
+    BulkActionResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+      required:
+        - count
 
     AutofillRequest:
       type: object

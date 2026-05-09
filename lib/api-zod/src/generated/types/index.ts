@@ -8,6 +8,8 @@
 
 export * from "./autofillRequest";
 export * from "./autofillResponse";
+export * from "./bulkActionResponse";
+export * from "./bulkWordIdsBody";
 export * from "./createTodoBody";
 export * from "./createTodoBodyPriority";
 export * from "./createTodoBodySeverity";

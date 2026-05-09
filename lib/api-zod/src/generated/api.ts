@@ -207,6 +207,28 @@ export const CreateWordBody = zod.object({
 });
 
 /**
+ * @summary Bulk soft-delete words by ID
+ */
+export const BulkDeleteWordsBody = zod.object({
+  ids: zod.array(zod.number()),
+});
+
+export const BulkDeleteWordsResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
+ * @summary Bulk restore soft-deleted words by ID
+ */
+export const BulkRestoreWordsBody = zod.object({
+  ids: zod.array(zod.number()),
+});
+
+export const BulkRestoreWordsResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
  * @summary Restore a soft-deleted word
  */
 export const RestoreWordParams = zod.object({

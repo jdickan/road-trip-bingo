@@ -5,7 +5,9 @@ import {
   useListWords,
   useCreateWord,
   useDeleteWord,
+  useBulkDeleteWords,
   getListWordsQueryKey,
+  getListDeletedWordsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
@@ -191,10 +193,50 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
   const createMutation = useCreateWord();
   const deleteMutation = useDeleteWord();
+  const bulkDeleteMutation = useBulkDeleteWords();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWordTop, setNewWordTop] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
+
+  // ── Select mode ─────────────────────────────────────────────────────────────
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const colCount = selectMode ? 13 : 12;
+  const pageIds = data?.words.map(w => w.id) ?? [];
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
+
+  function toggleSelectAll() {
+    if (allOnPageSelected) {
+      setSelectedIds(prev => { const n = new Set(prev); pageIds.forEach(id => n.delete(id)); return n; });
+    } else {
+      setSelectedIds(prev => { const n = new Set(prev); pageIds.forEach(id => n.add(id)); return n; });
+    }
+  }
+
+  function toggleRowSelect(id: number) {
+    setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    bulkDeleteMutation.mutate(
+      { data: { ids } },
+      {
+        onSuccess: (result) => {
+          queryClient.invalidateQueries({ queryKey: getListWordsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+          queryClient.invalidateQueries({ queryKey: getListDeletedWordsQueryKey() });
+          toast({ title: `${result.count} word${result.count === 1 ? "" : "s"} moved to Trash` });
+          setSelectedIds(new Set());
+          setSelectMode(false);
+        },
+        onError: () => toast({ title: "Couldn't delete words", variant: "destructive" }),
+      }
+    );
+  }
 
   const hasActiveFilters = Boolean(
     filters.search || filters.region || filters.surroundings ||
@@ -479,6 +521,19 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           style={{ position: "sticky", top: stickyTop }}
         >
           <TableRow className="border-b border-border hover:bg-transparent">
+            {selectMode && (
+              <TableHead className="w-[36px] text-center">
+                <div
+                  onClick={toggleSelectAll}
+                  className={cn(
+                    "h-[14px] w-[14px] border flex-none flex items-center justify-center cursor-pointer transition-colors mx-auto",
+                    allOnPageSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
+                  )}
+                >
+                  {allOnPageSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                </div>
+              </TableHead>
+            )}
             <TableHead className={`${thBase} w-[52px]`}>Emoji</TableHead>
 
             {/* English — resizable */}
@@ -522,7 +577,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           {/* Quick-add row — top (hidden when database is truly empty so the empty state card is the sole content) */}
           {!(data?.total === 0 && !hasActiveFilters) && (
           <TableRow className="hover:bg-muted/10 border-b border-border/50">
-            <TableCell colSpan={12} className="p-2">
+            <TableCell colSpan={colCount} className="p-2">
               <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
                 <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                 <Input
@@ -549,7 +604,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
 
           {isLoading && !data ? (
             <TableRow>
-              <TableCell colSpan={12} className="h-24 text-center">
+              <TableCell colSpan={colCount} className="h-24 text-center">
                 <div className="flex items-center justify-center text-muted-foreground gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span className="font-mono text-xs tracking-wide">Loading words…</span>
@@ -559,7 +614,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           ) : data?.total === 0 && !hasActiveFilters ? (
             /* True empty database — big inviting drop zone */
             <TableRow>
-              <TableCell colSpan={12} className="p-0">
+              <TableCell colSpan={colCount} className="p-0">
                 <SuggestWordsModal open={suggestOpen} onOpenChange={setSuggestOpen} />
                 <EmptyState
                   icon="🗺️"
@@ -588,7 +643,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           ) : data?.words.length === 0 ? (
             /* Filtered empty — compact message + clear filters */
             <TableRow>
-              <TableCell colSpan={12} className="py-16 text-center">
+              <TableCell colSpan={colCount} className="py-16 text-center">
                 <p className="font-mono text-xs text-muted-foreground tracking-wide mb-4">No words match your filters.</p>
                 {setFilters && (
                   <button
@@ -603,8 +658,28 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           ) : (
             data?.words.map((word: Word) => {
               const changed = aiChanges?.[word.id];
+              const isRowSelected = selectedIds.has(word.id);
               return (
-                <TableRow key={word.id} className="group border-b border-border/50 hover:bg-muted/20 transition-colors">
+                <TableRow
+                  key={word.id}
+                  className={cn(
+                    "group border-b border-border/50 hover:bg-muted/20 transition-colors",
+                    selectMode && isRowSelected && "bg-muted/30"
+                  )}
+                >
+                  {selectMode && (
+                    <TableCell className="p-1 align-middle text-center w-[36px]">
+                      <div
+                        onClick={() => toggleRowSelect(word.id)}
+                        className={cn(
+                          "h-[14px] w-[14px] border flex-none flex items-center justify-center cursor-pointer transition-colors mx-auto",
+                          isRowSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
+                        )}
+                      >
+                        {isRowSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell className="p-1 align-top text-center">
                     <CellEditor word={word} field="emoji" type="text" placeholder="🚗" className="text-center text-lg font-normal" />
                   </TableCell>
@@ -639,13 +714,15 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                     <CellEditor word={word} field="notes" type="text" />
                   </TableCell>
                   <TableCell className="p-1 align-top text-right">
-                    <button
-                      className="h-7 w-7 inline-flex items-center justify-center text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDelete(word.id)}
-                      data-testid={`btn-delete-word-${word.id}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {!selectMode && (
+                      <button
+                        className="h-7 w-7 inline-flex items-center justify-center text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDelete(word.id)}
+                        data-testid={`btn-delete-word-${word.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -655,7 +732,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           {/* Quick-add row — bottom (shown when page has ≥50 words) */}
           {(data?.words.length ?? 0) >= 50 && (
             <TableRow className="hover:bg-muted/10 border-t border-border/50">
-              <TableCell colSpan={12} className="p-2">
+              <TableCell colSpan={colCount} className="p-2">
                 <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
                   <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                   <Input
@@ -681,31 +758,58 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         </TableBody>
       </Table>
 
-      {/* Pagination */}
-      {data && data.total > limit && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-border">
-          <span className="font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground tabular-nums">
-            {offset + 1}–{Math.min(offset + limit, data.total)} of {data.total}
-          </span>
-          <div className="flex items-center gap-3">
+      {/* ── Footer: SELECT/CANCEL · action strip · pagination ── */}
+      <div className="border-t border-border">
+
+        {/* Action strip — shown when in select mode with ≥1 item checked */}
+        {selectMode && selectedIds.size > 0 && (
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
+            <span className="font-mono text-[10.5px] tracking-[0.1em] text-muted-foreground tabular-nums">
+              {selectedIds.size} selected
+            </span>
             <button
-              className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+              className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-destructive border border-destructive/40 px-3 py-1 hover:bg-destructive/10 transition-colors disabled:opacity-40"
             >
-              <ArrowLeft className="h-3 w-3" /> Prev
-            </button>
-            <button
-              className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={offset + limit >= data.total}
-            >
-              Next <ArrowRight className="h-3 w-3" />
+              {bulkDeleteMutation.isPending ? "Deleting…" : "Delete selected"}
             </button>
           </div>
-        </div>
-      )}
+        )}
 
+        {/* Bottom row: SELECT/CANCEL on left, pagination on right */}
+        <div className="flex items-center justify-between px-4 py-2">
+          <button
+            onClick={() => { setSelectMode(m => !m); setSelectedIds(new Set()); }}
+            className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border"
+          >
+            {selectMode ? "Cancel" : "Select"}
+          </button>
+
+          {data && data.total > limit && (
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground tabular-nums">
+                {offset + 1}–{Math.min(offset + limit, data.total)} of {data.total}
+              </span>
+              <button
+                className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+              >
+                <ArrowLeft className="h-3 w-3" /> Prev
+              </button>
+              <button
+                className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={offset + limit >= data.total}
+              >
+                Next <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

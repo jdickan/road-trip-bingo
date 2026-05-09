@@ -123,6 +123,14 @@ export interface WordStats {
   byDayNight: WordStatsByDayNight;
 }
 
+export interface BulkWordIdsBody {
+  ids: number[];
+}
+
+export interface BulkActionResponse {
+  count: number;
+}
+
 export interface AutofillRequest {
   /** IDs of words to autofill. If empty, autofills all incomplete words. */
   wordIds?: number[];
