@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Plus, X, Trash2, ChevronDown, Loader2, ClipboardList } from "lucide-react";
+import { customFetch } from "@workspace/api-client-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 
@@ -64,11 +65,8 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-async function apiFetch(path: string, init?: RequestInit) {
-  const r = await fetch(`${API_BASE}${path}`, init);
-  if (!r.ok && r.status !== 204) throw new Error(await r.text());
-  if (r.status === 204) return null;
-  return r.json();
+function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  return customFetch<T>(`${API_BASE}${path}`, init);
 }
 
 type StatusFilter = "all" | Status;

@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "./EmptyState";
 import { getTagColor } from "@/lib/tagColors";
+import { customFetch } from "@workspace/api-client-react";
 
 interface Board {
   id: number;
@@ -28,32 +29,27 @@ interface BoardsResponse {
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 
 function fetchBoards(): Promise<BoardsResponse> {
-  return fetch(`${API_BASE}/boards`).then((r) => r.json());
+  return customFetch<BoardsResponse>(`${API_BASE}/boards`);
 }
 
 async function patchBoard(id: number, patch: Partial<Board>): Promise<Board> {
-  const r = await fetch(`${API_BASE}/boards/${id}`, {
+  return customFetch<Board>(`${API_BASE}/boards/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   });
-  if (!r.ok) throw new Error("Failed to update board");
-  return r.json();
 }
 
 async function createBoard(data: { name: string; description?: string; status?: Board["status"] }): Promise<Board> {
-  const r = await fetch(`${API_BASE}/boards`, {
+  return customFetch<Board>(`${API_BASE}/boards`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!r.ok) throw new Error("Failed to create board");
-  return r.json();
 }
 
 async function deleteBoard(id: number): Promise<void> {
-  const r = await fetch(`${API_BASE}/boards/${id}`, { method: "DELETE" });
-  if (!r.ok) throw new Error("Failed to delete board");
+  await customFetch<void>(`${API_BASE}/boards/${id}`, { method: "DELETE" });
 }
 
 const STATUS_CYCLE: Board["status"][] = ["active", "draft", "concept"];

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -51,36 +52,54 @@ app.use(express.json({ limit: "64kb" }));
 app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
 // ---------------------------------------------------------------------------
-// AI route protections
+// Secrets and startup validation
 // ---------------------------------------------------------------------------
 
-const aiSecret = process.env["AI_ROUTE_SECRET"] ?? null;
+// ADMIN_PASSWORD gates all privileged API routes and is used as the HMAC
+// signing key for session tokens.  Must be set in production.
+const adminPassword = process.env["ADMIN_PASSWORD"] ?? null;
 
-if (!aiSecret) {
+if (!adminPassword) {
   if (process.env["NODE_ENV"] === "production") {
     logger.error(
-      "AI_ROUTE_SECRET is not set — AI endpoints are disabled in production. " +
-      "Set AI_ROUTE_SECRET to a long random string.",
+      "ADMIN_PASSWORD is not set — all API routes are unprotected in production. " +
+      "Set ADMIN_PASSWORD to a strong secret.",
     );
   } else {
     logger.warn(
-      "AI_ROUTE_SECRET is not set — AI token auth is disabled in development. " +
-      "Set AI_ROUTE_SECRET for a production-like environment.",
+      "ADMIN_PASSWORD is not set — API auth is disabled in development. " +
+      "Set ADMIN_PASSWORD to enable the login screen locally.",
     );
   }
 }
 
-// 1. Rate limit for the token issuance endpoint: very strict (3 per hour per IP)
-//    to limit token farming without impeding legitimate use.
-const aiTokenRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 3,
+// AI_ROUTE_SECRET is used only for signing/verifying AI-specific tokens.
+// It does NOT fall back to ADMIN_PASSWORD — these are separate secrets with
+// different scopes.  If unset, the AI token endpoint is disabled in production.
+const aiSecret = process.env["AI_ROUTE_SECRET"] ?? null;
+
+if (!aiSecret) {
+  if (process.env["NODE_ENV"] === "production") {
+    logger.warn(
+      "AI_ROUTE_SECRET is not set — POST /api/ai/token is disabled in production.",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rate limits
+// ---------------------------------------------------------------------------
+
+// Login attempts: 10 per 15 minutes per IP to slow brute-force.
+const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many token requests. Please try again later." },
+  message: { error: "Too many login attempts. Please wait and try again." },
 });
 
-// 2. Rate limit for the AI action endpoints: 10 requests per minute per IP.
+// AI action endpoints: 10 requests per minute per IP.
 const aiRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -89,19 +108,145 @@ const aiRateLimit = rateLimit({
   message: { error: "Too many AI requests. Please wait and try again." },
 });
 
-// 3. Token issuance endpoint: POST /api/ai/token
-//    Issues a short-lived HMAC-signed token.  The raw AI_ROUTE_SECRET is
-//    never sent to clients; they only receive the signed token.
+// ---------------------------------------------------------------------------
+// GET /api/auth/status — lightweight auth capability probe (PUBLIC)
+// ---------------------------------------------------------------------------
+// Returns whether the server requires a password for API access.
+// The frontend uses this on startup to decide whether to show the login screen.
+// This endpoint is exempt from apiAuthGuard (it is registered before the guard)
+// and does NOT consume login rate-limit budget.
+app.get("/api/auth/status", (_req: Request, res: Response): void => {
+  res.json({ required: adminPassword !== null });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/token — password-gated session token issuance (PUBLIC)
+// ---------------------------------------------------------------------------
+// The caller must supply the ADMIN_PASSWORD in the request body.  On success
+// the server issues a short-lived HMAC-signed Bearer token; the raw password
+// is never returned and never stored on the client.
+//
+// In development without ADMIN_PASSWORD set the endpoint issues a sentinel
+// token so that the local dev experience is unchanged.
+app.post(
+  "/api/auth/token",
+  loginRateLimit,
+  (req: Request, res: Response): void => {
+    if (!adminPassword) {
+      if (process.env["NODE_ENV"] === "production") {
+        res.status(503).json({ error: "API is not configured." });
+        return;
+      }
+      // Development without ADMIN_PASSWORD: skip password check.
+      res.json({ token: "dev-no-secret", expiresIn: 3600 });
+      return;
+    }
+
+    const { password } = req.body as { password?: string };
+
+    if (typeof password !== "string" || password.length === 0) {
+      res.status(400).json({ error: "password is required." });
+      return;
+    }
+
+    // Timing-safe comparison to prevent timing-based password enumeration.
+    const supplied = Buffer.from(password, "utf8");
+    const expected = Buffer.from(adminPassword, "utf8");
+
+    const match =
+      supplied.length === expected.length &&
+      timingSafeEqual(supplied, expected);
+
+    if (!match) {
+      res.status(401).json({ error: "Incorrect password." });
+      return;
+    }
+
+    const { token, expiresIn } = issueAiToken(adminPassword);
+    res.json({ token, expiresIn });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Middleware: /api/* — general API auth guard
+// ---------------------------------------------------------------------------
+// All /api routes require a valid short-lived Bearer token issued by
+// POST /api/auth/token (password-gated).
+//
+// Public endpoints that must remain unauthenticated:
+//   - POST /api/auth/token  (login — token issuance, handled above)
+//   - GET  /api/healthz     (health check)
+//
+// In development without ADMIN_PASSWORD set the guard is skipped entirely
+// so that the local dev experience is unchanged.
+//
+// The dev sentinel ("dev-no-secret") is ONLY accepted when ADMIN_PASSWORD is
+// not set.  Once ADMIN_PASSWORD is configured, full HMAC validation applies
+// even in development.
+function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
+  if (req.path === "/auth/token" || req.path === "/healthz") {
+    next();
+    return;
+  }
+
+  if (!adminPassword) {
+    if (process.env["NODE_ENV"] === "production") {
+      res.status(503).json({ error: "API is not configured." });
+      return;
+    }
+    // Development without ADMIN_PASSWORD: allow all requests through.
+    next();
+    return;
+  }
+
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const token = authHeader.slice("Bearer ".length);
+
+  if (!verifyAiToken(token, adminPassword)) {
+    res.status(401).json({ error: "Session token is invalid or expired. Please log in again." });
+    return;
+  }
+
+  next();
+}
+
+// Mount BEFORE /api/ai/token and the main router — all requests to /api/*
+// that are not /auth/token or /healthz must pass the auth guard first.
+app.use("/api", apiAuthGuard);
+
+// ---------------------------------------------------------------------------
+// AI rate limit on /api/ai/* — applied after auth guard, before router
+// ---------------------------------------------------------------------------
+app.use("/api/ai", aiRateLimit);
+
+// ---------------------------------------------------------------------------
+// POST /api/ai/token — AI-scoped token (protected by apiAuthGuard above)
+// ---------------------------------------------------------------------------
+// Requires a valid admin Bearer token (i.e. caller must already have logged in
+// via POST /api/auth/token).  Issues a token signed with AI_ROUTE_SECRET for
+// AI-specific routes.  Provided for external tooling / backward compatibility.
+const aiTokenRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many token requests. Please try again later." },
+});
+
 app.post(
   "/api/ai/token",
   aiTokenRateLimit,
   (_req: Request, res: Response): void => {
     if (!aiSecret) {
       if (process.env["NODE_ENV"] === "production") {
-        res.status(503).json({ error: "AI endpoints are not configured." });
+        res.status(503).json({ error: "AI token endpoint is not configured." });
         return;
       }
-      // Development without a secret: issue an unsigned sentinel so the UI works.
       res.json({ token: "dev-no-secret", expiresIn: 3600 });
       return;
     }
@@ -111,42 +256,9 @@ app.post(
   },
 );
 
-// 4. Token verification middleware for all other /api/ai/* routes.
-//    Callers must present a valid short-lived token issued by /api/ai/token,
-//    not the raw AI_ROUTE_SECRET.
-function aiTokenGuard(req: Request, res: Response, next: NextFunction): void {
-  if (!aiSecret) {
-    if (process.env["NODE_ENV"] === "production") {
-      res.status(503).json({ error: "AI endpoints are not configured." });
-      return;
-    }
-    next();
-    return;
-  }
-
-  const authHeader = req.headers["authorization"];
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Missing or invalid Authorization header." });
-    return;
-  }
-
-  const token = authHeader.slice("Bearer ".length);
-
-  // Development sentinel
-  if (process.env["NODE_ENV"] !== "production" && token === "dev-no-secret") {
-    next();
-    return;
-  }
-
-  if (!verifyAiToken(token, aiSecret)) {
-    res.status(401).json({ error: "AI token is invalid or expired. Please retry." });
-    return;
-  }
-
-  next();
-}
-
-app.use("/api/ai", aiRateLimit, aiTokenGuard);
+// ---------------------------------------------------------------------------
+// Main router
+// ---------------------------------------------------------------------------
 
 app.use("/api", router);
 

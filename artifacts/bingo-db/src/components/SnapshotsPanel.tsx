@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, RotateCcw, Trash2, Loader2, DatabaseZap, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { customFetch } from "@workspace/api-client-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 
@@ -17,29 +18,37 @@ interface SnapshotMeta {
 }
 
 async function fetchSnapshots(): Promise<{ snapshots: SnapshotMeta[] }> {
-  const r = await fetch(`${API_BASE}/snapshots`);
-  if (!r.ok) throw new Error("Failed to fetch snapshots");
-  return r.json();
+  return customFetch<{ snapshots: SnapshotMeta[] }>(`${API_BASE}/snapshots`);
 }
 
 async function createSnapshot(label: string): Promise<{ snapshot: SnapshotMeta }> {
-  const r = await fetch(`${API_BASE}/snapshots`, {
+  return customFetch<{ snapshot: SnapshotMeta }>(`${API_BASE}/snapshots`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ label }),
   });
-  if (!r.ok) throw new Error("Failed to create snapshot");
-  return r.json();
 }
 
 async function restoreSnapshot(id: string): Promise<void> {
-  const r = await fetch(`${API_BASE}/snapshots/${id}/restore`, { method: "POST" });
-  if (!r.ok) throw new Error("Failed to restore snapshot");
+  await customFetch<void>(`${API_BASE}/snapshots/${id}/restore`, { method: "POST" });
 }
 
 async function deleteSnapshot(id: string): Promise<void> {
-  const r = await fetch(`${API_BASE}/snapshots/${id}`, { method: "DELETE" });
-  if (!r.ok) throw new Error("Failed to delete snapshot");
+  await customFetch<void>(`${API_BASE}/snapshots/${id}`, { method: "DELETE" });
+}
+
+async function downloadSnapshot(id: string, label: string): Promise<void> {
+  const blob = await customFetch<Blob>(`${API_BASE}/snapshots/${id}/download`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${label.replace(/[^a-z0-9_-]/gi, "_")}.sql`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function formatDate(iso: string) {
@@ -225,20 +234,17 @@ export default function SnapshotsPanel() {
                       <RotateCcw className="h-3.5 w-3.5" />
                       Restore
                     </button>
-                    <a
-                      href={`${API_BASE}/snapshots/${s.id}/download`}
-                      download
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       title="Download SQL dump"
+                      onClick={() => downloadSnapshot(s.id, s.label).catch(() =>
+                        toast({ title: "Download failed", variant: "destructive" })
+                      )}
                     >
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        tabIndex={-1}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                    </a>
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
