@@ -703,11 +703,13 @@ components:
           type: array
           items:
             type: integer
-          description: IDs of words to autofill. If empty, autofills all incomplete words.
+          maxItems: 50
+          description: IDs of words to autofill. If empty, autofills all incomplete words (capped at 50 per batch).
         fields:
           type: array
           items:
             type: string
+          maxItems: 7
           description: "Which fields to autofill: regions, surroundings, dayNight, age, findability, seasons, boards"
       required:
         - fields
@@ -730,9 +732,12 @@ components:
       properties:
         theme:
           type: ["string", "null"]
+          maxLength: 200
         count:
           type: integer
           default: 10
+          minimum: 1
+          maximum: 20
       required: []
 
     SuggestWordsResponse:

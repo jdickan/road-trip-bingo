@@ -7,8 +7,14 @@
  */
 
 export interface AutofillRequest {
-  /** IDs of words to autofill. If empty, autofills all incomplete words. */
+  /**
+   * IDs of words to autofill. If empty, autofills all incomplete words (capped at 50 per batch).
+   * @maxItems 50
+   */
   wordIds?: number[];
-  /** Which fields to autofill: regions, surroundings, dayNight, age, findability, seasons, boards */
+  /**
+   * Which fields to autofill: regions, surroundings, dayNight, age, findability, seasons, boards
+   * @maxItems 7
+   */
   fields: string[];
 }

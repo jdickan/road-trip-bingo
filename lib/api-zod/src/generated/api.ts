@@ -453,15 +453,21 @@ export const ListDeletedWordsResponse = zod.object({
 /**
  * @summary Use AI to autofill missing tags for words
  */
+export const autofillWordsBodyWordIdsMax = 50;
+
+export const autofillWordsBodyFieldsMax = 7;
+
 export const AutofillWordsBody = zod.object({
   wordIds: zod
     .array(zod.number())
+    .max(autofillWordsBodyWordIdsMax)
     .optional()
     .describe(
-      "IDs of words to autofill. If empty, autofills all incomplete words.",
+      "IDs of words to autofill. If empty, autofills all incomplete words (capped at 50 per batch).",
     ),
   fields: zod
     .array(zod.string())
+    .max(autofillWordsBodyFieldsMax)
     .describe(
       "Which fields to autofill: regions, surroundings, dayNight, age, findability, seasons, boards",
     ),
@@ -506,11 +512,18 @@ export const AutofillWordsResponse = zod.object({
 /**
  * @summary Use AI to suggest new words to add to the database
  */
+export const suggestWordsBodyThemeMax = 200;
+
 export const suggestWordsBodyCountDefault = 10;
+export const suggestWordsBodyCountMax = 20;
 
 export const SuggestWordsBody = zod.object({
-  theme: zod.string().nullish(),
-  count: zod.number().default(suggestWordsBodyCountDefault),
+  theme: zod.string().max(suggestWordsBodyThemeMax).nullish(),
+  count: zod
+    .number()
+    .min(1)
+    .max(suggestWordsBodyCountMax)
+    .default(suggestWordsBodyCountDefault),
 });
 
 export const SuggestWordsResponse = zod.object({

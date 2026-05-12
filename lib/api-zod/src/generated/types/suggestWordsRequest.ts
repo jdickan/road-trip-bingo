@@ -7,7 +7,14 @@
  */
 
 export interface SuggestWordsRequest {
-  /** @nullable */
+  /**
+   * @maxLength 200
+   * @nullable
+   */
   theme?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 20
+   */
   count?: number;
 }
