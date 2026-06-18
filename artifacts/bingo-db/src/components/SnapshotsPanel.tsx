@@ -82,7 +82,7 @@ export default function SnapshotsPanel() {
       setNewLabel("");
       toast({ title: "Snapshot saved", description: `"${res.snapshot.label}" — ${res.snapshot.wordCount} words` });
     },
-    onError: () => toast({ title: "Snapshot failed", variant: "destructive" }),
+    onError: () => toast({ title: "Couldn't save snapshot", variant: "destructive" }),
   });
 
   const restoreMutation = useMutation({
@@ -93,7 +93,7 @@ export default function SnapshotsPanel() {
       setConfirmRestoreId(null);
       toast({ title: "Database restored", description: "All word data has been replaced." });
     },
-    onError: () => toast({ title: "Restore failed", variant: "destructive" }),
+    onError: () => toast({ title: "Couldn't restore snapshot", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -102,7 +102,7 @@ export default function SnapshotsPanel() {
       qc.invalidateQueries({ queryKey: ["snapshots"] });
       toast({ title: "Snapshot deleted" });
     },
-    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+    onError: () => toast({ title: "Couldn't delete snapshot", variant: "destructive" }),
   });
 
   const snapshots = data?.snapshots ?? [];
@@ -240,7 +240,7 @@ export default function SnapshotsPanel() {
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       title="Download SQL dump"
                       onClick={() => downloadSnapshot(s.id, s.label).catch(() =>
-                        toast({ title: "Download failed", variant: "destructive" })
+                        toast({ title: "Couldn't download snapshot", variant: "destructive" })
                       )}
                     >
                       <Download className="h-3.5 w-3.5" />

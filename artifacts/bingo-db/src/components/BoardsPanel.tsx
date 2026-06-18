@@ -138,7 +138,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
   ) {
     const boardRows = rows.filter(r => typeof r.name === "string" && String(r.name).trim());
     if (boardRows.length === 0) {
-      toast({ title: "No boards found", description: "Each entry needs a 'name' field.", variant: "destructive" });
+      toast({ title: "Couldn't import", description: "Each entry needs a 'name' field.", variant: "destructive" });
       return;
     }
     const total = boardRows.length;
@@ -162,7 +162,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     const succeeded = results.filter(r => r.status === "fulfilled").length;
     const failed = results.filter(r => r.status === "rejected").length;
     if (failed === 0) toast({ title: `${succeeded} board${succeeded === 1 ? "" : "s"} imported` });
-    else toast({ title: `${succeeded} of ${total} boards imported`, description: `${failed} failed`, variant: "destructive" });
+    else toast({ title: "Couldn't import all boards", description: `${succeeded} of ${total} succeeded, ${failed} failed`, variant: "destructive" });
   }
 
   const boards = data?.boards ?? [];

@@ -70,7 +70,7 @@ export default function SuggestWordsModal({ open: openProp, onOpenChange }: Sugg
             <Label htmlFor="theme" className="sr-only">Theme (Optional)</Label>
             <Input 
               id="theme"
-              placeholder="e.g. Desert highway, Fast food signs, 90s music..." 
+              placeholder="e.g. Desert highway, Fast food signs, 90s music…" 
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
             />
@@ -85,7 +85,7 @@ export default function SuggestWordsModal({ open: openProp, onOpenChange }: Sugg
           {suggestMutation.isPending ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-              <p>Brainstorming clever road trip items...</p>
+              <p>Brainstorming clever road trip items…</p>
             </div>
           ) : suggestMutation.data?.suggestions && suggestMutation.data.suggestions.length > 0 ? (
             <ScrollArea className="h-full">

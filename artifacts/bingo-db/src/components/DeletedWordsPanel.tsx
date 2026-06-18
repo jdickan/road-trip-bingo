@@ -299,7 +299,7 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
                 onClick={() => setConfirmPurge(true)}
                 className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 decoration-border shrink-0"
               >
-                Purge all
+                Purge {total} word{total === 1 ? "" : "s"}
               </button>
             )}
           </div>

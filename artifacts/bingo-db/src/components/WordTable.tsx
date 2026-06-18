@@ -255,7 +255,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   ) {
     const wordRows = rows.filter(r => typeof r.word === "string" && String(r.word).trim());
     if (wordRows.length === 0) {
-      toast({ title: "No words found", description: "Each entry needs a 'word' field.", variant: "destructive" });
+      toast({ title: "Couldn't import", description: "Each entry needs a 'word' field.", variant: "destructive" });
       return;
     }
     const total = wordRows.length;
@@ -284,7 +284,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     const succeeded = results.filter(r => r.status === "fulfilled").length;
     const failed = results.filter(r => r.status === "rejected").length;
     if (failed === 0) toast({ title: `${succeeded} word${succeeded === 1 ? "" : "s"} imported` });
-    else toast({ title: `${succeeded} of ${total} words imported`, description: `${failed} failed`, variant: "destructive" });
+    else toast({ title: "Couldn't import all words", description: `${succeeded} of ${total} succeeded, ${failed} failed`, variant: "destructive" });
   }
 
   function parseQuickAddWords(raw: string): string[] {
@@ -346,7 +346,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         queryClient.invalidateQueries({ queryKey: ["/api/words"] });
         queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
         if (failed === 0) toast({ title: `${total} words added` });
-        else toast({ title: `${done} of ${total} words added`, description: `${failed} failed`, variant: "destructive" });
+        else toast({ title: "Couldn't add all words", description: `${done} of ${total} succeeded, ${failed} failed`, variant: "destructive" });
       };
       for (const word of words) {
         createMutation.mutate(

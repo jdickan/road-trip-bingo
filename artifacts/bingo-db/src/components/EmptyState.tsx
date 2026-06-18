@@ -48,7 +48,7 @@ export function EmptyState({
   async function importRows(rows: Record<string, unknown>[]) {
     if (!onJsonImport) return;
     if (rows.length === 0) {
-      toast({ title: "No data found", description: "The JSON doesn't contain any items.", variant: "destructive" });
+      toast({ title: "Couldn't import", description: "The JSON doesn't contain any items.", variant: "destructive" });
       return;
     }
     setProgress({ done: 0, total: rows.length });
@@ -67,12 +67,12 @@ export function EmptyState({
       const data: unknown = JSON.parse(text);
       const rows = parseRows(data);
       if (!rows) {
-        toast({ title: "Invalid format", description: "Expected a JSON array or an object with a 'words'/'boards' key.", variant: "destructive" });
+        toast({ title: "Couldn't import", description: "Expected a JSON array or an object with a 'words'/'boards' key.", variant: "destructive" });
         return;
       }
       await importRows(rows);
     } catch {
-      toast({ title: "Import failed", description: "Couldn't parse the file as JSON.", variant: "destructive" });
+      toast({ title: "Couldn't import", description: "Couldn't parse the file as JSON.", variant: "destructive" });
     }
   }
 
@@ -82,12 +82,12 @@ export function EmptyState({
       const data: unknown = JSON.parse(text);
       const rows = parseRows(data);
       if (!rows) {
-        toast({ title: "Invalid format", description: "Expected a JSON array or an object with a 'words'/'boards' key.", variant: "destructive" });
+        toast({ title: "Couldn't import", description: "Expected a JSON array or an object with a 'words'/'boards' key.", variant: "destructive" });
         return;
       }
       await importRows(rows);
     } catch {
-      toast({ title: "Import failed", description: "Couldn't parse clipboard content as JSON.", variant: "destructive" });
+      toast({ title: "Couldn't import", description: "Couldn't parse clipboard content as JSON.", variant: "destructive" });
     }
   }
 

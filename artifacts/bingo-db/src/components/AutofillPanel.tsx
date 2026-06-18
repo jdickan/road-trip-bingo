@@ -64,7 +64,7 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
         },
         onError: () => {
           toast({
-            title: "Autofill Failed",
+            title: "Couldn't autofill words",
             description: "There was an error autofilling words. Please try again.",
             variant: "destructive",
           });
@@ -112,7 +112,7 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
             {autofillMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                Processing…
               </>
             ) : (
               <>Autofill All Incomplete</>

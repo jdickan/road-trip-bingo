@@ -88,7 +88,7 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
         onKeyDown={(e) => { if (e.key === "Escape") { setValue(word[field as keyof Word]); (e.target as HTMLInputElement).blur(); } }}
         aria-label={`${String(field)} for ${word.word}`}
         className={`h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0${className ? ` ${className}` : ""}`}
-        placeholder={placeholder ?? `Add ${field}...`}
+        placeholder={placeholder ?? `Add ${field}…`}
       />
     );
   }
