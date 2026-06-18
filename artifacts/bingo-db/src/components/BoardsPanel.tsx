@@ -226,12 +226,13 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
           <input
             type="text"
             placeholder="Search boards"
+            aria-label="Search boards"
             className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none border-none w-44"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           {search && (
-            <button onClick={() => setSearch("")} className="ml-2 text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={() => setSearch("")} aria-label="Clear search" className="ml-2 text-muted-foreground hover:text-foreground transition-colors">
               <X className="h-3 w-3" />
             </button>
           )}
@@ -261,6 +262,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
           {selectedBoard && (
             <button
               onClick={() => onSelectBoard(null)}
+              aria-label="Clear board filter"
               className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-3 w-3" />
@@ -326,6 +328,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               ref={newBoardNameRef}
               type="text"
               placeholder="Board name"
+              aria-label="Board name"
               className="bg-transparent border-0 border-b border-border text-2xl font-editorial italic text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground transition-colors py-1 w-full"
               value={newBoard.name}
               onChange={(e) => setNewBoard((p) => ({ ...p, name: e.target.value }))}
@@ -334,6 +337,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
             <input
               type="text"
               placeholder="Description (optional)"
+              aria-label="Board description"
               className="bg-transparent border-0 border-b border-border/50 text-sm text-muted-foreground placeholder:text-muted-foreground/50 outline-none focus:border-border transition-colors py-1 w-full"
               value={newBoard.description}
               onChange={(e) => setNewBoard((p) => ({ ...p, description: e.target.value }))}
@@ -460,6 +464,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                 <input
                   autoFocus
                   type="text"
+                  aria-label="Edit board name"
                   value={editState.name}
                   onChange={(e) => setEditState((p) => ({ ...p, name: e.target.value }))}
                   onKeyDown={(e) => {
@@ -487,6 +492,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               {isEditing ? (
                 <input
                   type="text"
+                  aria-label="Edit board description"
                   value={editState.description}
                   placeholder="Description (optional)"
                   onChange={(e) => setEditState((p) => ({ ...p, description: e.target.value }))}
@@ -567,14 +573,14 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               <div className="shrink-0 flex items-center gap-0.5 pt-1">
                 <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
-                    title="Edit board"
+                    aria-label={`Edit "${board.name}"`}
                     onClick={(e) => { e.stopPropagation(); startEdit(board); }}
                     className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    title={board.status === "concept" ? "Enable board" : "Disable board"}
+                    aria-label={board.status === "concept" ? `Enable "${board.name}"` : `Disable "${board.name}"`}
                     onClick={(e) => {
                       e.stopPropagation();
                       patchMutation.mutate({ id: board.id, patch: { status: board.status === "concept" ? "active" : "concept" } });
@@ -584,7 +590,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                     <Ban className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    title="Delete board"
+                    aria-label={`Delete "${board.name}"`}
                     onClick={(e) => confirmDelete(board.id, e)}
                     className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                   >
@@ -593,7 +599,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                 </div>
                 <button
                   onClick={() => onSelectBoard(isSelected ? null : board.name)}
-                  title="Filter words to this board"
+                  aria-label={`Filter words to ${board.name}`}
                   className="p-1.5 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground"
                 >
                   <ArrowUpRight className="h-4 w-4" />

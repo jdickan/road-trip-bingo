@@ -448,6 +448,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
             </p>
             <button
               onClick={() => applyDraft()}
+              aria-label={`Close ${label} filter`}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-3.5 w-3.5" />
@@ -523,15 +524,23 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           <TableRow className="border-b border-border hover:bg-transparent">
             {selectMode && (
               <TableHead className="w-[36px] text-center">
-                <div
-                  onClick={toggleSelectAll}
-                  className={cn(
-                    "h-[14px] w-[14px] border flex-none flex items-center justify-center cursor-pointer transition-colors mx-auto",
-                    allOnPageSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
-                  )}
-                >
-                  {allOnPageSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
-                </div>
+                <label className="relative cursor-pointer flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={allOnPageSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all words on this page"
+                    className="sr-only"
+                  />
+                  <div
+                    className={cn(
+                      "h-[14px] w-[14px] border flex-none flex items-center justify-center transition-colors",
+                      allOnPageSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
+                    )}
+                  >
+                    {allOnPageSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                  </div>
+                </label>
               </TableHead>
             )}
             <TableHead className={`${thBase} w-[52px]`}>Emoji</TableHead>
@@ -563,6 +572,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               {hasCustomWidths && (
                 <button
                   onClick={resetColWidths}
+                  aria-label="Reset column widths"
                   title="Reset column widths"
                   className="inline-flex items-center justify-center h-5 w-5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                 >
@@ -584,6 +594,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                   placeholder="Quick add — separate multiple with commas…"
                   value={newWordTop}
                   onChange={(e) => setNewWordTop(e.target.value)}
+                  aria-label="Quick add word"
                   className="h-7 text-xs border-transparent bg-transparent hover:border-border/50 focus:bg-background focus-visible:ring-0 focus-visible:border-border flex-1 max-w-[260px] rounded-none font-mono placeholder:text-muted-foreground/30"
                   data-testid="input-quick-add-top"
                 />
@@ -669,15 +680,23 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                 >
                   {selectMode && (
                     <TableCell className="p-1 align-middle text-center w-[36px]">
-                      <div
-                        onClick={() => toggleRowSelect(word.id)}
-                        className={cn(
-                          "h-[14px] w-[14px] border flex-none flex items-center justify-center cursor-pointer transition-colors mx-auto",
-                          isRowSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
-                        )}
-                      >
-                        {isRowSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
-                      </div>
+                      <label className="relative cursor-pointer flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected}
+                          onChange={() => toggleRowSelect(word.id)}
+                          aria-label={`Select "${word.word}"`}
+                          className="sr-only"
+                        />
+                        <div
+                          className={cn(
+                            "h-[14px] w-[14px] border flex-none flex items-center justify-center transition-colors",
+                            isRowSelected ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
+                          )}
+                        >
+                          {isRowSelected && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                        </div>
+                      </label>
                     </TableCell>
                   )}
                   <TableCell className="p-1 align-top text-center">
@@ -718,6 +737,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                       <button
                         className="h-7 w-7 inline-flex items-center justify-center text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => handleDelete(word.id)}
+                        aria-label={`Delete "${word.word}"`}
                         data-testid={`btn-delete-word-${word.id}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -795,6 +815,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                 className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
+                aria-label="Previous page"
               >
                 <ArrowLeft className="h-3 w-3" /> Prev
               </button>
@@ -802,6 +823,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                 className="flex items-center gap-1 font-mono text-[10.5px] tracking-[0.04em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
                 onClick={() => setPage((p) => p + 1)}
                 disabled={offset + limit >= data.total}
+                aria-label="Next page"
               >
                 Next <ArrowRight className="h-3 w-3" />
               </button>

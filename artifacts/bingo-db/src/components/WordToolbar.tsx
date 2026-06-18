@@ -60,7 +60,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              title={searchOpen ? "Close search" : "Search words"}
+              aria-label={searchOpen ? "Close search" : "Search words"}
               data-testid="btn-toggle-search"
             >
               <Search className="h-3.5 w-3.5" />
@@ -75,6 +75,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search words..."
+                aria-label="Search words"
                 className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:text-xs outline-none border-none w-44 shrink-0"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -87,6 +88,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
               {searchQuery && (
                 <button
                   onClick={() => { setSearchQuery(""); setFilters((prev) => ({ ...prev, search: undefined, offset: 0 })); }}
+                  aria-label="Clear search query"
                   className="ml-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 >
                   <X className="h-3 w-3" />

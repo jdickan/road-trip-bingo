@@ -27,6 +27,7 @@ export default function StatsSidebar({ onClick }: StatsSidebarProps) {
   return (
     <button
       onClick={onClick}
+      aria-label="View analysis"
       className={`hidden md:flex items-end gap-5 transition-opacity ${onClick ? "hover:opacity-70 cursor-pointer" : "cursor-default"}`}
       data-testid="stats-container"
     >

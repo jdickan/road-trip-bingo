@@ -194,6 +194,7 @@ export default function TodoPanel() {
               ))}
               <button
                 onClick={() => { setFormOpen(false); }}
+                aria-label="Close form"
                 className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -204,6 +205,7 @@ export default function TodoPanel() {
             <input
               autoFocus
               type="text"
+              aria-label="Title"
               placeholder={
                 form.type === "bug" ? "Describe the bug…" :
                 form.type === "word-idea" ? "What's the word or idea?" :
@@ -221,6 +223,7 @@ export default function TodoPanel() {
             {form.type === "word-idea" && (
               <input
                 type="text"
+                aria-label="Suggested word"
                 placeholder="Suggested word (optional — we can add it directly from here)"
                 value={form.wordSuggestion}
                 onChange={e => setForm(p => ({ ...p, wordSuggestion: e.target.value }))}
@@ -231,6 +234,7 @@ export default function TodoPanel() {
             {/* Description */}
             <textarea
               placeholder="More detail (optional)…"
+              aria-label="Description"
               rows={2}
               value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
@@ -464,7 +468,7 @@ export default function TodoPanel() {
                       "font-mono text-[10px] tracking-[0.14em] uppercase border px-2.5 py-1 transition-colors hover:bg-muted/40",
                       STATUS_STYLE[todo.status]
                     )}
-                    title="Click to advance status"
+                    aria-label={`Status: ${STATUS_LABEL[todo.status]}. Click to advance.`}
                   >
                     {STATUS_LABEL[todo.status]}
                   </button>
@@ -475,8 +479,8 @@ export default function TodoPanel() {
               <button
                 onClick={() => deleteMutation.mutate(todo.id)}
                 disabled={deleteMutation.isPending && deleteMutation.variables === todo.id}
+                aria-label={`Delete "${todo.title}"`}
                 className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                title="Delete"
               >
                 {deleteMutation.isPending && deleteMutation.variables === todo.id
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

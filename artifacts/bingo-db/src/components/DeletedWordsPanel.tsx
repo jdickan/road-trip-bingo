@@ -161,15 +161,23 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
             >
               {/* Checkbox — visible in select mode */}
               {selectMode && (
-                <div
-                  onClick={() => toggleRowSelect(word.id)}
-                  className={cn(
-                    "h-[14px] w-[14px] border flex-none flex items-center justify-center cursor-pointer transition-colors shrink-0",
-                    selectedIds.has(word.id) ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
-                  )}
-                >
-                  {selectedIds.has(word.id) && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
-                </div>
+                <label className="relative cursor-pointer flex items-center justify-center shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(word.id)}
+                    onChange={() => toggleRowSelect(word.id)}
+                    aria-label={`Select "${word.word}"`}
+                    className="sr-only"
+                  />
+                  <div
+                    className={cn(
+                      "h-[14px] w-[14px] border flex-none flex items-center justify-center transition-colors",
+                      selectedIds.has(word.id) ? "bg-foreground border-foreground" : "border-border bg-background hover:border-foreground/40"
+                    )}
+                  >
+                    {selectedIds.has(word.id) && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+                  </div>
+                </label>
               )}
 
               {/* Emoji */}
@@ -199,8 +207,8 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
                 <button
                   onClick={() => handleRestore(word.id)}
                   disabled={restoringId === word.id}
+                  aria-label={`Restore "${word.word}"`}
                   className="flex items-center gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity px-2.5 py-1.5 font-mono text-[10.5px] tracking-[0.12em] uppercase border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-40 disabled:pointer-events-none"
-                  title="Restore this word"
                 >
                   <RotateCcw className="h-3 w-3" />
                   Restore

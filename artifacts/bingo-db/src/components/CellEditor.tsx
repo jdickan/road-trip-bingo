@@ -85,6 +85,8 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
         value={value || ""}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleTextBlur}
+        onKeyDown={(e) => { if (e.key === "Escape") { setValue(word[field as keyof Word]); (e.target as HTMLInputElement).blur(); } }}
+        aria-label={`${String(field)} for ${word.word}`}
         className={`h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0${className ? ` ${className}` : ""}`}
         placeholder={placeholder ?? `Add ${field}...`}
       />
@@ -96,24 +98,47 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="relative w-full min-h-[1.75rem] flex items-center p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit ${String(field)} for ${word.word}`}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(true); }
+              if (e.key === "Escape") setOpen(false);
+            }}
+            className="relative w-full min-h-[1.75rem] flex items-center p-1 rounded-sm hover:bg-muted/50 cursor-pointer"
+          >
             {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
             <TagBadge type={badgeType as any} value={value} />
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-[180px] p-0" align="start">
-          <div className="flex flex-col py-1">
-            <div 
+        <PopoverContent
+          className="w-[180px] p-0"
+          align="start"
+          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        >
+          <div className="flex flex-col py-1" role="listbox" aria-label={`Select ${String(field)}`}>
+            <div
+              role="option"
+              aria-selected={!value}
+              tabIndex={0}
               className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer text-muted-foreground italic"
               onClick={() => { handleSave(null); setOpen(false); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSave(null); setOpen(false); } }}
             >
               Clear value
             </div>
             {options?.map(opt => (
-              <div 
+              <div
                 key={opt}
+                role="option"
+                aria-selected={value === opt}
+                tabIndex={0}
                 className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer flex items-center justify-between"
                 onClick={() => { handleSave(opt); setOpen(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSave(opt); setOpen(false); } }}
               >
                 <TagBadge type={badgeType as any} value={opt} />
                 {value === opt && <Check className="h-3 w-3" />}
@@ -130,7 +155,18 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="relative w-full min-h-[1.75rem] flex items-center flex-wrap gap-1 p-1 rounded-sm hover:bg-muted/50 cursor-pointer">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit ${String(field)} for ${word.word}`}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(true); }
+              if (e.key === "Escape") setOpen(false);
+            }}
+            className="relative w-full min-h-[1.75rem] flex items-center flex-wrap gap-1 p-1 rounded-sm hover:bg-muted/50 cursor-pointer"
+          >
             {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
             {(!value || value.length === 0) ? (
               <TagBadge type={badgeType as any} value={null} />
@@ -141,7 +177,11 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-2" align="start">
+        <PopoverContent
+          className="w-[200px] p-2"
+          align="start"
+          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        >
           <div className="space-y-2">
             <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
               Select {field}
