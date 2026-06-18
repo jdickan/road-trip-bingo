@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ListWordsParams } from "@workspace/api-client-react";
 import { Search, X } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
@@ -18,6 +18,11 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [searchOpen, setSearchOpen] = useState(!!filters.search);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, []);
 
   function openSearch() {
     setSearchOpen(true);
@@ -27,6 +32,7 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
   function closeSearch() {
     setSearchOpen(false);
     setSearchQuery("");
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     setFilters((prev) => ({ ...prev, search: undefined, offset: 0 }));
   }
 
@@ -78,16 +84,26 @@ export default function WordToolbar({ filters, setFilters, onClearBoard, section
                 aria-label="Search words"
                 className="bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:text-xs outline-none border-none w-44 shrink-0"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                  debounceTimer.current = setTimeout(() => {
+                    setFilters((prev) => ({ ...prev, search: val || undefined, offset: 0 }));
+                  }, 300);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") setFilters((prev) => ({ ...prev, search: searchQuery, offset: 0 }));
+                  if (e.key === "Enter") {
+                    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                    setFilters((prev) => ({ ...prev, search: searchQuery, offset: 0 }));
+                  }
                   if (e.key === "Escape") closeSearch();
                 }}
                 data-testid="input-search"
               />
               {searchQuery && (
                 <button
-                  onClick={() => { setSearchQuery(""); setFilters((prev) => ({ ...prev, search: undefined, offset: 0 })); }}
+                  onClick={() => { setSearchQuery(""); if (debounceTimer.current) clearTimeout(debounceTimer.current); setFilters((prev) => ({ ...prev, search: undefined, offset: 0 })); }}
                   aria-label="Clear search query"
                   className="ml-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 >

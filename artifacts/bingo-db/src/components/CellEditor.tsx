@@ -1,14 +1,16 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Word, UpdateWordBody, useUpdateWord } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { TagBadge } from "./TagBadge";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+type SaveState = "idle" | "saving" | "saved";
 
 interface CellEditorProps {
   word: Word;
@@ -25,6 +27,12 @@ interface CellEditorProps {
 export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className, aiChanged }: CellEditorProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<any>(word[field as keyof Word]);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Draft value for batched multi-select PATCH
+  const [draftValue, setDraftValue] = useState<string[]>([]);
+
   const updateMutation = useUpdateWord();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -33,22 +41,32 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     setValue(word[field as keyof Word]);
   }, [word, field]);
 
-  const handleSave = (newValue: any) => {
+  useEffect(() => {
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, []);
+
+  const handleSave = useCallback((newValue: any) => {
     setValue(newValue);
+    setSaveState("saving");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
     updateMutation.mutate(
       { id: word.id, data: { [field]: newValue } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+          setSaveState("saved");
+          saveTimerRef.current = setTimeout(() => setSaveState("idle"), 1500);
         },
         onError: () => {
           setValue(word[field as keyof Word]);
+          setSaveState("idle");
           toast({ title: "Couldn't save change", description: "Your edit was reverted.", variant: "destructive" });
         },
       }
     );
-  };
+  }, [word, field, updateMutation, queryClient, toast]);
 
   const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (e.target.value !== word[field as keyof Word]) {
@@ -56,44 +74,39 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     }
   };
 
-  const handleMultiSelectToggle = (option: string) => {
-    const currentValues = Array.isArray(value) ? [...value] : [];
-    
-    // "All" logic
-    if (option === "All") {
-      if (currentValues.includes("All")) {
-        handleSave([]);
-      } else {
-        handleSave(["All"]);
-      }
-      return;
-    }
+  const SaveIndicator = saveState === "saving"
+    ? <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground/60 shrink-0" />
+    : saveState === "saved"
+    ? <Check className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+    : null;
 
-    let newValues;
-    if (currentValues.includes(option)) {
-      newValues = currentValues.filter(v => v !== option && v !== "All");
-    } else {
-      newValues = [...currentValues.filter(v => v !== "All"), option];
-    }
-    handleSave(newValues);
-  };
-
-  // Render text input inline
+  // ── Text input ────────────────────────────────────────────────────────────
   if (type === "text") {
     return (
-      <Input
-        value={value || ""}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={handleTextBlur}
-        onKeyDown={(e) => { if (e.key === "Escape") { setValue(word[field as keyof Word]); (e.target as HTMLInputElement).blur(); } }}
-        aria-label={`${String(field)} for ${word.word}`}
-        className={`h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0${className ? ` ${className}` : ""}`}
-        placeholder={placeholder ?? `Add ${field}…`}
-      />
+      <div className="relative flex items-center">
+        <Input
+          value={value || ""}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleTextBlur}
+          onKeyDown={(e) => { if (e.key === "Escape") { setValue(word[field as keyof Word]); (e.target as HTMLInputElement).blur(); } }}
+          aria-label={`${String(field)} for ${word.word}`}
+          className={cn(
+            "h-7 text-xs px-2 py-1 bg-transparent border-transparent hover:border-input focus:bg-background rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0",
+            saveState !== "idle" && "pr-6",
+            className
+          )}
+          placeholder={placeholder ?? `Add ${field}…`}
+        />
+        {SaveIndicator && (
+          <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
+            {SaveIndicator}
+          </span>
+        )}
+      </div>
     );
   }
 
-  // Render single-select as a popover with options
+  // ── Single-select popover ─────────────────────────────────────────────────
   if (type === "single-select") {
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -111,6 +124,9 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
             className="relative w-full min-h-[1.75rem] flex items-center p-1 rounded-sm hover:bg-muted/50 cursor-pointer"
           >
             {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
+            {saveState !== "idle" && !aiChanged && (
+              <span className="absolute top-0.5 right-0.5 z-10">{SaveIndicator}</span>
+            )}
             <TagBadge type={badgeType as any} value={value} />
           </div>
         </PopoverTrigger>
@@ -150,10 +166,37 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     );
   }
 
-  // Render multi-select as a popover with checkboxes
+  // ── Multi-select popover (batched PATCH on close) ─────────────────────────
   if (type === "multi-select") {
+    const handleMultiSelectOpenChange = (o: boolean) => {
+      if (o) {
+        setDraftValue(Array.isArray(value) ? [...value] : []);
+      } else {
+        const current: string[] = Array.isArray(value) ? value : [];
+        const hasChanged =
+          draftValue.length !== current.length ||
+          draftValue.some(v => !current.includes(v));
+        if (hasChanged) {
+          handleSave(draftValue);
+        }
+      }
+      setOpen(o);
+    };
+
+    const handleDraftToggle = (option: string) => {
+      setDraftValue(prev => {
+        if (option === "All") {
+          return prev.includes("All") ? [] : ["All"];
+        }
+        if (prev.includes(option)) {
+          return prev.filter(v => v !== option && v !== "All");
+        }
+        return [...prev.filter(v => v !== "All"), option];
+      });
+    };
+
     return (
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleMultiSelectOpenChange}>
         <PopoverTrigger asChild>
           <div
             role="button"
@@ -168,6 +211,9 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
             className="relative w-full min-h-[1.75rem] flex items-center flex-wrap gap-1 p-1 rounded-sm hover:bg-muted/50 cursor-pointer"
           >
             {aiChanged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-background z-10" />}
+            {saveState !== "idle" && !aiChanged && (
+              <span className="absolute top-0.5 right-0.5 z-10">{SaveIndicator}</span>
+            )}
             {(!value || value.length === 0) ? (
               <TagBadge type={badgeType as any} value={null} />
             ) : (
@@ -188,16 +234,16 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
             </h4>
             <div className="max-h-[200px] overflow-y-auto space-y-1 pr-1">
               {options?.map(opt => {
-                const isChecked = Array.isArray(value) && value.includes(opt);
+                const isChecked = draftValue.includes(opt);
                 return (
                   <div key={opt} className="flex items-center space-x-2 hover:bg-muted/50 p-1 rounded-md">
-                    <Checkbox 
-                      id={`${word.id}-${field}-${opt}`} 
+                    <Checkbox
+                      id={`${word.id}-${field}-${opt}`}
                       checked={isChecked}
-                      onCheckedChange={() => handleMultiSelectToggle(opt)}
+                      onCheckedChange={() => handleDraftToggle(opt)}
                     />
-                    <Label 
-                      htmlFor={`${word.id}-${field}-${opt}`} 
+                    <Label
+                      htmlFor={`${word.id}-${field}-${opt}`}
                       className="text-sm font-normal cursor-pointer flex-1"
                     >
                       <TagBadge type={badgeType as any} value={opt} />

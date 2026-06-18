@@ -9,6 +9,7 @@ import {
   getListWordsQueryKey,
   getListDeletedWordsQueryKey,
 } from "@workspace/api-client-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   Table,
@@ -368,6 +369,10 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
           queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
           toast({ title: "Word deleted" });
+          // Step back to previous page when the last word on a non-first page is deleted
+          if (page > 0 && (data?.words.length ?? 0) <= 1) {
+            setPage(p => Math.max(0, p - 1));
+          }
         },
         onError: () => toast({ title: "Couldn't delete word", description: "Try again in a moment.", variant: "destructive" }),
       }
@@ -730,7 +735,20 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                     <CellEditor word={word} field="boards" type="multi-select" badgeType="board" options={BOARDS} aiChanged={changed?.has("boards")} />
                   </TableCell>
                   <TableCell className="p-1 align-top">
-                    <CellEditor word={word} field="notes" type="text" />
+                    {word.notes ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <CellEditor word={word} field="notes" type="text" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] text-xs whitespace-pre-wrap break-words">
+                          {word.notes}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <CellEditor word={word} field="notes" type="text" />
+                    )}
                   </TableCell>
                   <TableCell className="p-1 align-top text-right">
                     {!selectMode && (
