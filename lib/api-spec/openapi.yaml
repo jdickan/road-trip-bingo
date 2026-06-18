@@ -11,6 +11,10 @@ tags:
     description: Health operations
   - name: words
     description: Bingo word database operations
+  - name: boards
+    description: Bingo board operations
+  - name: snapshots
+    description: Database snapshot operations
   - name: ai
     description: AI-powered operations
 paths:
@@ -89,6 +93,12 @@ paths:
       responses:
         "204":
           description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /healthz:
     get:
@@ -401,6 +411,222 @@ paths:
         "204":
           description: All soft-deleted words purged
 
+  /boards:
+    get:
+      operationId: listBoards
+      tags: [boards]
+      summary: List all bingo boards
+      responses:
+        "200":
+          description: List of boards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardList"
+
+    post:
+      operationId: createBoard
+      tags: [boards]
+      summary: Create a new bingo board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBoardBody"
+      responses:
+        "201":
+          description: Created board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /boards/{id}:
+    get:
+      operationId: getBoard
+      tags: [boards]
+      summary: Get a single bingo board
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Board details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateBoard
+      tags: [boards]
+      summary: Update a bingo board
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBoardBody"
+      responses:
+        "200":
+          description: Updated board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteBoard
+      tags: [boards]
+      summary: Delete a bingo board
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /snapshots:
+    get:
+      operationId: listSnapshots
+      tags: [snapshots]
+      summary: List all database snapshots
+      responses:
+        "200":
+          description: List of snapshots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotList"
+
+    post:
+      operationId: createSnapshot
+      tags: [snapshots]
+      summary: Create a new database snapshot
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSnapshotBody"
+      responses:
+        "200":
+          description: Created snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /snapshots/{id}/restore:
+    post:
+      operationId: restoreSnapshot
+      tags: [snapshots]
+      summary: Restore a database snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Snapshot restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestoreSnapshotResponse"
+        "400":
+          description: Invalid snapshot id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /snapshots/{id}:
+    delete:
+      operationId: deleteSnapshot
+      tags: [snapshots]
+      summary: Delete a database snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Snapshot deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                required:
+                  - deleted
+        "404":
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid snapshot id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /ai/autofill:
     post:
       operationId: autofillWords
@@ -420,7 +646,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/AutofillResponse"
         "400":
-          description: Error
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Another AI request is already in progress
           content:
             application/json:
               schema:
@@ -444,6 +676,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuggestWordsResponse"
+        "429":
+          description: Another AI request is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -757,6 +995,174 @@ components:
               - rationale
       required:
         - suggestions
+
+    Board:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        ageLevels:
+          type: array
+          items:
+            type: string
+          description: "e.g. Young, Kid, Tween"
+        difficulty:
+          type: ["string", "null"]
+          description: "e.g. Easy, Medium, Hard"
+        timeOfYear:
+          type: ["string", "null"]
+          description: "e.g. All Year, Summer, Winter"
+        availability:
+          type: ["string", "null"]
+          description: "e.g. All, Seasonal"
+        status:
+          type: string
+          enum: [active, draft, concept]
+        notes:
+          type: ["string", "null"]
+        wordCount:
+          type: integer
+          description: "Number of words assigned to this board"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+        - updatedAt
+
+    BoardList:
+      type: object
+      properties:
+        boards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Board"
+        total:
+          type: integer
+      required:
+        - boards
+        - total
+
+    CreateBoardBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        ageLevels:
+          type: array
+          items:
+            type: string
+          default: []
+        difficulty:
+          type: ["string", "null"]
+        timeOfYear:
+          type: ["string", "null"]
+        availability:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, draft, concept]
+          default: active
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+
+    UpdateBoardBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        ageLevels:
+          type: array
+          items:
+            type: string
+        difficulty:
+          type: ["string", "null"]
+        timeOfYear:
+          type: ["string", "null"]
+        availability:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, draft, concept]
+        notes:
+          type: ["string", "null"]
+
+    Snapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Snapshot identifier, e.g. snap_1234567890"
+        label:
+          type: string
+          description: "Human-readable label for the snapshot"
+        createdAt:
+          type: string
+          format: date-time
+        wordCount:
+          type: integer
+          description: "Number of words in the snapshot"
+        sizeBytes:
+          type: integer
+          description: "File size of the SQL dump in bytes"
+      required:
+        - id
+        - label
+        - createdAt
+        - wordCount
+        - sizeBytes
+
+    SnapshotList:
+      type: object
+      properties:
+        snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Snapshot"
+      required:
+        - snapshots
+
+    CreateSnapshotBody:
+      type: object
+      properties:
+        label:
+          type: string
+          description: "Human-readable label for the snapshot"
+
+    SnapshotResponse:
+      type: object
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/Snapshot"
+      required:
+        - snapshot
+
+    RestoreSnapshotResponse:
+      type: object
+      properties:
+        restored:
+          type: boolean
+        snapshot:
+          $ref: "#/components/schemas/Snapshot"
+      required:
+        - restored
+        - snapshot
 
     Todo:
       type: object

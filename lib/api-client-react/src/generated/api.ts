@@ -19,19 +19,28 @@ import type {
 import type {
   AutofillRequest,
   AutofillResponse,
+  Board,
+  BoardList,
   BulkActionResponse,
   BulkWordIdsBody,
+  CreateBoardBody,
+  CreateSnapshotBody,
   CreateTodoBody,
   CreateWordBody,
+  DeleteSnapshot200,
   ErrorResponse,
   ExportWordsParams,
   HealthStatus,
   ListWordsParams,
   PatchTodoBody,
+  RestoreSnapshotResponse,
+  SnapshotList,
+  SnapshotResponse,
   SuggestWordsRequest,
   SuggestWordsResponse,
   Todo,
   TodoList,
+  UpdateBoardBody,
   UpdateWordBody,
   Word,
   WordList,
@@ -303,7 +312,7 @@ export const deleteTodo = async (
 };
 
 export const getDeleteTodoMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -344,13 +353,13 @@ export type DeleteTodoMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteTodo>>
 >;
 
-export type DeleteTodoMutationError = ErrorType<unknown>;
+export type DeleteTodoMutationError = ErrorType<ErrorResponse>;
 
 /**
  * @summary Delete a to-do item
  */
 export const useDeleteTodo = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1455,6 +1464,750 @@ export const usePurgeDeletedWords = <
 };
 
 /**
+ * @summary List all bingo boards
+ */
+export const getListBoardsUrl = () => {
+  return `/api/boards`;
+};
+
+export const listBoards = async (options?: RequestInit): Promise<BoardList> => {
+  return customFetch<BoardList>(getListBoardsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBoardsQueryKey = () => {
+  return [`/api/boards`] as const;
+};
+
+export const getListBoardsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBoards>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBoards>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListBoardsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listBoards>>> = ({
+    signal,
+  }) => listBoards({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBoards>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBoardsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBoards>>
+>;
+export type ListBoardsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all bingo boards
+ */
+
+export function useListBoards<
+  TData = Awaited<ReturnType<typeof listBoards>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBoards>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBoardsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new bingo board
+ */
+export const getCreateBoardUrl = () => {
+  return `/api/boards`;
+};
+
+export const createBoard = async (
+  createBoardBody: CreateBoardBody,
+  options?: RequestInit,
+): Promise<Board> => {
+  return customFetch<Board>(getCreateBoardUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBoardBody),
+  });
+};
+
+export const getCreateBoardMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBoard>>,
+    TError,
+    { data: BodyType<CreateBoardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBoard>>,
+  TError,
+  { data: BodyType<CreateBoardBody> },
+  TContext
+> => {
+  const mutationKey = ["createBoard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBoard>>,
+    { data: BodyType<CreateBoardBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBoard(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBoardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBoard>>
+>;
+export type CreateBoardMutationBody = BodyType<CreateBoardBody>;
+export type CreateBoardMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new bingo board
+ */
+export const useCreateBoard = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBoard>>,
+    TError,
+    { data: BodyType<CreateBoardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBoard>>,
+  TError,
+  { data: BodyType<CreateBoardBody> },
+  TContext
+> => {
+  return useMutation(getCreateBoardMutationOptions(options));
+};
+
+/**
+ * @summary Get a single bingo board
+ */
+export const getGetBoardUrl = (id: number) => {
+  return `/api/boards/${id}`;
+};
+
+export const getBoard = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Board> => {
+  return customFetch<Board>(getGetBoardUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBoardQueryKey = (id: number) => {
+  return [`/api/boards/${id}`] as const;
+};
+
+export const getGetBoardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoard>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBoardQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBoard>>> = ({
+    signal,
+  }) => getBoard(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getBoard>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetBoardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoard>>
+>;
+export type GetBoardQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single bingo board
+ */
+
+export function useGetBoard<
+  TData = Awaited<ReturnType<typeof getBoard>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a bingo board
+ */
+export const getUpdateBoardUrl = (id: number) => {
+  return `/api/boards/${id}`;
+};
+
+export const updateBoard = async (
+  id: number,
+  updateBoardBody: UpdateBoardBody,
+  options?: RequestInit,
+): Promise<Board> => {
+  return customFetch<Board>(getUpdateBoardUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBoardBody),
+  });
+};
+
+export const getUpdateBoardMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBoard>>,
+    TError,
+    { id: number; data: BodyType<UpdateBoardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBoard>>,
+  TError,
+  { id: number; data: BodyType<UpdateBoardBody> },
+  TContext
+> => {
+  const mutationKey = ["updateBoard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBoard>>,
+    { id: number; data: BodyType<UpdateBoardBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateBoard(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBoardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBoard>>
+>;
+export type UpdateBoardMutationBody = BodyType<UpdateBoardBody>;
+export type UpdateBoardMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a bingo board
+ */
+export const useUpdateBoard = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBoard>>,
+    TError,
+    { id: number; data: BodyType<UpdateBoardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBoard>>,
+  TError,
+  { id: number; data: BodyType<UpdateBoardBody> },
+  TContext
+> => {
+  return useMutation(getUpdateBoardMutationOptions(options));
+};
+
+/**
+ * @summary Delete a bingo board
+ */
+export const getDeleteBoardUrl = (id: number) => {
+  return `/api/boards/${id}`;
+};
+
+export const deleteBoard = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBoardUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBoardMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBoard>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBoard>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBoard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBoard>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBoard(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBoardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBoard>>
+>;
+
+export type DeleteBoardMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a bingo board
+ */
+export const useDeleteBoard = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBoard>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBoard>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBoardMutationOptions(options));
+};
+
+/**
+ * @summary List all database snapshots
+ */
+export const getListSnapshotsUrl = () => {
+  return `/api/snapshots`;
+};
+
+export const listSnapshots = async (
+  options?: RequestInit,
+): Promise<SnapshotList> => {
+  return customFetch<SnapshotList>(getListSnapshotsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSnapshotsQueryKey = () => {
+  return [`/api/snapshots`] as const;
+};
+
+export const getListSnapshotsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSnapshots>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSnapshots>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSnapshotsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSnapshots>>> = ({
+    signal,
+  }) => listSnapshots({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSnapshots>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSnapshotsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSnapshots>>
+>;
+export type ListSnapshotsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all database snapshots
+ */
+
+export function useListSnapshots<
+  TData = Awaited<ReturnType<typeof listSnapshots>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSnapshots>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSnapshotsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new database snapshot
+ */
+export const getCreateSnapshotUrl = () => {
+  return `/api/snapshots`;
+};
+
+export const createSnapshot = async (
+  createSnapshotBody?: CreateSnapshotBody,
+  options?: RequestInit,
+): Promise<SnapshotResponse> => {
+  return customFetch<SnapshotResponse>(getCreateSnapshotUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSnapshotBody),
+  });
+};
+
+export const getCreateSnapshotMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSnapshot>>,
+    TError,
+    { data: BodyType<CreateSnapshotBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSnapshot>>,
+  TError,
+  { data: BodyType<CreateSnapshotBody> },
+  TContext
+> => {
+  const mutationKey = ["createSnapshot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSnapshot>>,
+    { data: BodyType<CreateSnapshotBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSnapshot(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSnapshotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSnapshot>>
+>;
+export type CreateSnapshotMutationBody = BodyType<CreateSnapshotBody>;
+export type CreateSnapshotMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new database snapshot
+ */
+export const useCreateSnapshot = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSnapshot>>,
+    TError,
+    { data: BodyType<CreateSnapshotBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSnapshot>>,
+  TError,
+  { data: BodyType<CreateSnapshotBody> },
+  TContext
+> => {
+  return useMutation(getCreateSnapshotMutationOptions(options));
+};
+
+/**
+ * @summary Restore a database snapshot
+ */
+export const getRestoreSnapshotUrl = (id: string) => {
+  return `/api/snapshots/${id}/restore`;
+};
+
+export const restoreSnapshot = async (
+  id: string,
+  options?: RequestInit,
+): Promise<RestoreSnapshotResponse> => {
+  return customFetch<RestoreSnapshotResponse>(getRestoreSnapshotUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRestoreSnapshotMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreSnapshot>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreSnapshot>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["restoreSnapshot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreSnapshot>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return restoreSnapshot(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreSnapshotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreSnapshot>>
+>;
+
+export type RestoreSnapshotMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Restore a database snapshot
+ */
+export const useRestoreSnapshot = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreSnapshot>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof restoreSnapshot>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRestoreSnapshotMutationOptions(options));
+};
+
+/**
+ * @summary Delete a database snapshot
+ */
+export const getDeleteSnapshotUrl = (id: string) => {
+  return `/api/snapshots/${id}`;
+};
+
+export const deleteSnapshot = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DeleteSnapshot200> => {
+  return customFetch<DeleteSnapshot200>(getDeleteSnapshotUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSnapshotMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSnapshot>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSnapshot>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteSnapshot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSnapshot>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSnapshot(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSnapshotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSnapshot>>
+>;
+
+export type DeleteSnapshotMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a database snapshot
+ */
+export const useDeleteSnapshot = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSnapshot>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSnapshot>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteSnapshotMutationOptions(options));
+};
+
+/**
  * @summary Use AI to autofill missing tags for words
  */
 export const getAutofillWordsUrl = () => {
@@ -1560,7 +2313,7 @@ export const suggestWords = async (
 };
 
 export const getSuggestWordsMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1601,13 +2354,13 @@ export type SuggestWordsMutationResult = NonNullable<
   Awaited<ReturnType<typeof suggestWords>>
 >;
 export type SuggestWordsMutationBody = BodyType<SuggestWordsRequest>;
-export type SuggestWordsMutationError = ErrorType<unknown>;
+export type SuggestWordsMutationError = ErrorType<ErrorResponse>;
 
 /**
  * @summary Use AI to suggest new words to add to the database
  */
 export const useSuggestWords = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<

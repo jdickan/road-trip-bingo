@@ -3,6 +3,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
+import { sql, isNull } from "drizzle-orm";
+import { db, wordsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 const execFileAsync = promisify(execFile);
@@ -87,9 +89,12 @@ router.post("/snapshots", async (req, res): Promise<void> => {
 
     const stat = await fs.stat(dumpFile);
 
-    // Count words in the dump as a quick sanity check
-    const content = await fs.readFile(dumpFile, "utf8");
-    const wordCount = (content.match(/^COPY /m) ? content.split("\n").filter(l => l && !l.startsWith("\\") && !l.startsWith("COPY") && !l.startsWith("--") && !l.startsWith("SET") && l.trim() !== "").length : 0);
+    // Count live words via DB query (reliable, avoids regex-parsing the dump)
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(wordsTable)
+      .where(isNull(wordsTable.deletedAt));
+    const wordCount = countResult[0]?.count ?? 0;
 
     const meta: SnapshotMeta = {
       id,
@@ -137,8 +142,19 @@ router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
     );
     await execFileAsync("psql", [`--file=${dumpFile}`], { env });
 
-    logger.info({ id, label: meta.label }, "Snapshot restored");
-    res.json({ restored: true, snapshot: meta });
+    // Get accurate word count from the restored data
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(wordsTable)
+      .where(isNull(wordsTable.deletedAt));
+    const freshWordCount = countResult[0]?.count ?? 0;
+
+    // Update stored meta with fresh count
+    const updatedMeta: SnapshotMeta = { ...meta, wordCount: freshWordCount };
+    await fs.writeFile(metaFile, JSON.stringify(updatedMeta, null, 2)).catch(() => {});
+
+    logger.info({ id, label: meta.label, wordCount: freshWordCount }, "Snapshot restored");
+    res.json({ restored: true, snapshot: updatedMeta });
   } catch (err) {
     logger.error({ err }, "Failed to restore snapshot");
     res.status(500).json({ error: "Failed to restore snapshot" });
@@ -186,8 +202,22 @@ router.delete("/snapshots/:id", async (req, res): Promise<void> => {
   const metaFile = path.join(SNAPSHOTS_DIR, `${id}.meta.json`);
 
   try {
-    await fs.unlink(dumpFile).catch(() => {});
-    await fs.unlink(metaFile).catch(() => {});
+    // Check whether the snapshot actually exists before attempting deletion
+    const [dumpExists, metaExists] = await Promise.all([
+      fs.access(dumpFile).then(() => true).catch(() => false),
+      fs.access(metaFile).then(() => true).catch(() => false),
+    ]);
+
+    if (!dumpExists || !metaExists) {
+      res.status(404).json({ error: "Snapshot not found" });
+      return;
+    }
+
+    await Promise.all([
+      fs.unlink(dumpFile),
+      fs.unlink(metaFile),
+    ]);
+
     res.json({ deleted: true });
   } catch (err) {
     logger.error({ err }, "Failed to delete snapshot");

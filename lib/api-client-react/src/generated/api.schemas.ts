@@ -171,6 +171,130 @@ export interface SuggestWordsResponse {
   suggestions: SuggestWordsResponseSuggestionsItem[];
 }
 
+export type BoardStatus = (typeof BoardStatus)[keyof typeof BoardStatus];
+
+export const BoardStatus = {
+  active: "active",
+  draft: "draft",
+  concept: "concept",
+} as const;
+
+export interface Board {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** e.g. Young, Kid, Tween */
+  ageLevels?: string[];
+  /**
+   * e.g. Easy, Medium, Hard
+   * @nullable
+   */
+  difficulty?: string | null;
+  /**
+   * e.g. All Year, Summer, Winter
+   * @nullable
+   */
+  timeOfYear?: string | null;
+  /**
+   * e.g. All, Seasonal
+   * @nullable
+   */
+  availability?: string | null;
+  status: BoardStatus;
+  /** @nullable */
+  notes?: string | null;
+  /** Number of words assigned to this board */
+  wordCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardList {
+  boards: Board[];
+  total: number;
+}
+
+export type CreateBoardBodyStatus =
+  (typeof CreateBoardBodyStatus)[keyof typeof CreateBoardBodyStatus];
+
+export const CreateBoardBodyStatus = {
+  active: "active",
+  draft: "draft",
+  concept: "concept",
+} as const;
+
+export interface CreateBoardBody {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  ageLevels?: string[];
+  /** @nullable */
+  difficulty?: string | null;
+  /** @nullable */
+  timeOfYear?: string | null;
+  /** @nullable */
+  availability?: string | null;
+  status?: CreateBoardBodyStatus;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type UpdateBoardBodyStatus =
+  (typeof UpdateBoardBodyStatus)[keyof typeof UpdateBoardBodyStatus];
+
+export const UpdateBoardBodyStatus = {
+  active: "active",
+  draft: "draft",
+  concept: "concept",
+} as const;
+
+export interface UpdateBoardBody {
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  ageLevels?: string[];
+  /** @nullable */
+  difficulty?: string | null;
+  /** @nullable */
+  timeOfYear?: string | null;
+  /** @nullable */
+  availability?: string | null;
+  status?: UpdateBoardBodyStatus;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface Snapshot {
+  /** Snapshot identifier, e.g. snap_1234567890 */
+  id: string;
+  /** Human-readable label for the snapshot */
+  label: string;
+  createdAt: string;
+  /** Number of words in the snapshot */
+  wordCount: number;
+  /** File size of the SQL dump in bytes */
+  sizeBytes: number;
+}
+
+export interface SnapshotList {
+  snapshots: Snapshot[];
+}
+
+export interface CreateSnapshotBody {
+  /** Human-readable label for the snapshot */
+  label?: string;
+}
+
+export interface SnapshotResponse {
+  snapshot: Snapshot;
+}
+
+export interface RestoreSnapshotResponse {
+  restored: boolean;
+  snapshot: Snapshot;
+}
+
 export type TodoType = (typeof TodoType)[keyof typeof TodoType];
 
 export const TodoType = {
@@ -378,4 +502,8 @@ export type ExportWordsParams = {
   surroundings?: string;
   age?: string;
   findability?: string;
+};
+
+export type DeleteSnapshot200 = {
+  deleted: boolean;
 };

@@ -46,42 +46,51 @@ function parseBodyFields(body: Record<string, unknown>) {
 }
 
 // GET /boards
-router.get("/boards", async (_req: Request, res: Response): Promise<void> => {
-  const boards = await db.select().from(boardsTable).orderBy(boardsTable.name);
+router.get("/boards", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const boards = await db.select().from(boardsTable).orderBy(boardsTable.name);
 
-  // Count words per board name
-  const allWords = await db.select({ boards: wordsTable.boards }).from(wordsTable);
-  const wordCounts: Record<string, number> = {};
-  for (const { boards } of allWords) {
-    for (const b of boards ?? []) {
-      wordCounts[b] = (wordCounts[b] ?? 0) + 1;
+    const allWords = await db.select({ boards: wordsTable.boards }).from(wordsTable);
+    const wordCounts: Record<string, number> = {};
+    for (const { boards } of allWords) {
+      for (const b of boards ?? []) {
+        wordCounts[b] = (wordCounts[b] ?? 0) + 1;
+      }
     }
-  }
 
-  res.json({
-    boards: boards.map((b) => ({
-      ...mapBoard(b),
-      wordCount: wordCounts[b.name] ?? 0,
-    })),
-    total: boards.length,
-  });
+    res.json({
+      boards: boards.map((b) => ({
+        ...mapBoard(b),
+        wordCount: wordCounts[b.name] ?? 0,
+      })),
+      total: boards.length,
+    });
+  } catch (err) {
+    req.log.error({ err }, "GET /boards failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /boards/:id
 router.get("/boards/:id", async (req: Request, res: Response): Promise<void> => {
-  const id = parseBoardId(req.params.id);
+  const id = parseBoardId(String(req.params.id));
   if (!id) {
     res.status(400).json({ error: "Invalid board id" });
     return;
   }
 
-  const [board] = await db.select().from(boardsTable).where(eq(boardsTable.id, id));
-  if (!board) {
-    res.status(404).json({ error: "Board not found" });
-    return;
-  }
+  try {
+    const [board] = await db.select().from(boardsTable).where(eq(boardsTable.id, id));
+    if (!board) {
+      res.status(404).json({ error: "Board not found" });
+      return;
+    }
 
-  res.json(mapBoard(board));
+    res.json(mapBoard(board));
+  } catch (err) {
+    req.log.error({ err }, "GET /boards/:id failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // POST /boards
@@ -92,75 +101,90 @@ router.post("/boards", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const [board] = await db
-    .insert(boardsTable)
-    .values({
-      name: body.name,
-      description: body.description ?? null,
-      ageLevels: body.ageLevels ?? [],
-      difficulty: body.difficulty ?? null,
-      timeOfYear: body.timeOfYear ?? null,
-      availability: body.availability ?? null,
-      status: body.status ?? "active",
-      notes: body.notes ?? null,
-    })
-    .returning();
+  try {
+    const [board] = await db
+      .insert(boardsTable)
+      .values({
+        name: body.name,
+        description: body.description ?? null,
+        ageLevels: body.ageLevels ?? [],
+        difficulty: body.difficulty ?? null,
+        timeOfYear: body.timeOfYear ?? null,
+        availability: body.availability ?? null,
+        status: body.status ?? "active",
+        notes: body.notes ?? null,
+      })
+      .returning();
 
-  res.status(201).json(mapBoard(board));
+    res.status(201).json(mapBoard(board));
+  } catch (err) {
+    req.log.error({ err }, "POST /boards failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // PATCH /boards/:id
 router.patch("/boards/:id", async (req: Request, res: Response): Promise<void> => {
-  const id = parseBoardId(req.params.id);
+  const id = parseBoardId(String(req.params.id));
   if (!id) {
     res.status(400).json({ error: "Invalid board id" });
     return;
   }
 
-  const body = parseBodyFields(req.body ?? {});
-  const updateData: Partial<typeof boardsTable.$inferInsert> = {};
-  if (body.name !== undefined) updateData.name = body.name;
-  if (body.description !== undefined) updateData.description = body.description;
-  if (body.ageLevels !== undefined) updateData.ageLevels = body.ageLevels;
-  if (body.difficulty !== undefined) updateData.difficulty = body.difficulty;
-  if (body.timeOfYear !== undefined) updateData.timeOfYear = body.timeOfYear;
-  if (body.availability !== undefined) updateData.availability = body.availability;
-  if (body.status !== undefined) updateData.status = body.status;
-  if (body.notes !== undefined) updateData.notes = body.notes;
+  try {
+    const body = parseBodyFields(req.body ?? {});
+    const updateData: Partial<typeof boardsTable.$inferInsert> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.ageLevels !== undefined) updateData.ageLevels = body.ageLevels;
+    if (body.difficulty !== undefined) updateData.difficulty = body.difficulty;
+    if (body.timeOfYear !== undefined) updateData.timeOfYear = body.timeOfYear;
+    if (body.availability !== undefined) updateData.availability = body.availability;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.notes !== undefined) updateData.notes = body.notes;
 
-  const [board] = await db
-    .update(boardsTable)
-    .set(updateData)
-    .where(eq(boardsTable.id, id))
-    .returning();
+    const [board] = await db
+      .update(boardsTable)
+      .set(updateData)
+      .where(eq(boardsTable.id, id))
+      .returning();
 
-  if (!board) {
-    res.status(404).json({ error: "Board not found" });
-    return;
+    if (!board) {
+      res.status(404).json({ error: "Board not found" });
+      return;
+    }
+
+    res.json(mapBoard(board));
+  } catch (err) {
+    req.log.error({ err }, "PATCH /boards/:id failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json(mapBoard(board));
 });
 
 // DELETE /boards/:id
 router.delete("/boards/:id", async (req: Request, res: Response): Promise<void> => {
-  const id = parseBoardId(req.params.id);
+  const id = parseBoardId(String(req.params.id));
   if (!id) {
     res.status(400).json({ error: "Invalid board id" });
     return;
   }
 
-  const [board] = await db
-    .delete(boardsTable)
-    .where(eq(boardsTable.id, id))
-    .returning();
+  try {
+    const [board] = await db
+      .delete(boardsTable)
+      .where(eq(boardsTable.id, id))
+      .returning();
 
-  if (!board) {
-    res.status(404).json({ error: "Board not found" });
-    return;
+    if (!board) {
+      res.status(404).json({ error: "Board not found" });
+      return;
+    }
+
+    res.sendStatus(204);
+  } catch (err) {
+    req.log.error({ err }, "DELETE /boards/:id failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.sendStatus(204);
 });
 
 export default router;

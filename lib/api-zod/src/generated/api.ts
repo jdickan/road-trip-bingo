@@ -451,6 +451,195 @@ export const ListDeletedWordsResponse = zod.object({
 });
 
 /**
+ * @summary List all bingo boards
+ */
+export const ListBoardsResponse = zod.object({
+  boards: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      ageLevels: zod
+        .array(zod.string())
+        .optional()
+        .describe("e.g. Young, Kid, Tween"),
+      difficulty: zod.string().nullish().describe("e.g. Easy, Medium, Hard"),
+      timeOfYear: zod
+        .string()
+        .nullish()
+        .describe("e.g. All Year, Summer, Winter"),
+      availability: zod.string().nullish().describe("e.g. All, Seasonal"),
+      status: zod.enum(["active", "draft", "concept"]),
+      notes: zod.string().nullish(),
+      wordCount: zod
+        .number()
+        .optional()
+        .describe("Number of words assigned to this board"),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create a new bingo board
+ */
+export const createBoardBodyAgeLevelsDefault = [];
+export const createBoardBodyStatusDefault = `active`;
+
+export const CreateBoardBody = zod.object({
+  name: zod.string(),
+  description: zod.string().nullish(),
+  ageLevels: zod.array(zod.string()).default(createBoardBodyAgeLevelsDefault),
+  difficulty: zod.string().nullish(),
+  timeOfYear: zod.string().nullish(),
+  availability: zod.string().nullish(),
+  status: zod
+    .enum(["active", "draft", "concept"])
+    .default(createBoardBodyStatusDefault),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a single bingo board
+ */
+export const GetBoardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBoardResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  ageLevels: zod
+    .array(zod.string())
+    .optional()
+    .describe("e.g. Young, Kid, Tween"),
+  difficulty: zod.string().nullish().describe("e.g. Easy, Medium, Hard"),
+  timeOfYear: zod.string().nullish().describe("e.g. All Year, Summer, Winter"),
+  availability: zod.string().nullish().describe("e.g. All, Seasonal"),
+  status: zod.enum(["active", "draft", "concept"]),
+  notes: zod.string().nullish(),
+  wordCount: zod
+    .number()
+    .optional()
+    .describe("Number of words assigned to this board"),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a bingo board
+ */
+export const UpdateBoardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBoardBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().nullish(),
+  ageLevels: zod.array(zod.string()).optional(),
+  difficulty: zod.string().nullish(),
+  timeOfYear: zod.string().nullish(),
+  availability: zod.string().nullish(),
+  status: zod.enum(["active", "draft", "concept"]).optional(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateBoardResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  ageLevels: zod
+    .array(zod.string())
+    .optional()
+    .describe("e.g. Young, Kid, Tween"),
+  difficulty: zod.string().nullish().describe("e.g. Easy, Medium, Hard"),
+  timeOfYear: zod.string().nullish().describe("e.g. All Year, Summer, Winter"),
+  availability: zod.string().nullish().describe("e.g. All, Seasonal"),
+  status: zod.enum(["active", "draft", "concept"]),
+  notes: zod.string().nullish(),
+  wordCount: zod
+    .number()
+    .optional()
+    .describe("Number of words assigned to this board"),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a bingo board
+ */
+export const DeleteBoardParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all database snapshots
+ */
+export const ListSnapshotsResponse = zod.object({
+  snapshots: zod.array(
+    zod.object({
+      id: zod.string().describe("Snapshot identifier, e.g. snap_1234567890"),
+      label: zod.string().describe("Human-readable label for the snapshot"),
+      createdAt: zod.coerce.date(),
+      wordCount: zod.number().describe("Number of words in the snapshot"),
+      sizeBytes: zod.number().describe("File size of the SQL dump in bytes"),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new database snapshot
+ */
+export const CreateSnapshotBody = zod.object({
+  label: zod
+    .string()
+    .optional()
+    .describe("Human-readable label for the snapshot"),
+});
+
+export const CreateSnapshotResponse = zod.object({
+  snapshot: zod.object({
+    id: zod.string().describe("Snapshot identifier, e.g. snap_1234567890"),
+    label: zod.string().describe("Human-readable label for the snapshot"),
+    createdAt: zod.coerce.date(),
+    wordCount: zod.number().describe("Number of words in the snapshot"),
+    sizeBytes: zod.number().describe("File size of the SQL dump in bytes"),
+  }),
+});
+
+/**
+ * @summary Restore a database snapshot
+ */
+export const RestoreSnapshotParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RestoreSnapshotResponse = zod.object({
+  restored: zod.boolean(),
+  snapshot: zod.object({
+    id: zod.string().describe("Snapshot identifier, e.g. snap_1234567890"),
+    label: zod.string().describe("Human-readable label for the snapshot"),
+    createdAt: zod.coerce.date(),
+    wordCount: zod.number().describe("Number of words in the snapshot"),
+    sizeBytes: zod.number().describe("File size of the SQL dump in bytes"),
+  }),
+});
+
+/**
+ * @summary Delete a database snapshot
+ */
+export const DeleteSnapshotParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteSnapshotResponse = zod.object({
+  deleted: zod.boolean(),
+});
+
+/**
  * @summary Use AI to autofill missing tags for words
  */
 export const autofillWordsBodyWordIdsMax = 50;

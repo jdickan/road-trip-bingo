@@ -25,6 +25,8 @@ import {
 
 const router: IRouter = Router();
 
+const MAX_LIMIT = 500;
+
 function buildFilters(params: {
   search?: string;
   region?: string;
@@ -140,53 +142,69 @@ router.get("/words", async (req, res): Promise<void> => {
     return;
   }
 
-  const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete, limit = 1000, offset = 0 } = parsed.data;
+  const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete, offset = 0 } = parsed.data;
+  const limit = Math.min(parsed.data.limit ?? 100, MAX_LIMIT);
 
-  const userFilters = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
-  const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
+  try {
+    const userFilters = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
+    const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
-  const [words, countResult] = await Promise.all([
-    db
-      .select()
-      .from(wordsTable)
-      .where(where)
-      .orderBy(wordsTable.word)
-      .limit(limit)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(wordsTable)
-      .where(where),
-  ]);
+    const [words, countResult] = await Promise.all([
+      db
+        .select()
+        .from(wordsTable)
+        .where(where)
+        .orderBy(wordsTable.word)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(wordsTable)
+        .where(where),
+    ]);
 
-  const response = ListWordsResponse.parse({
-    words: words.map(mapWordRow),
-    total: countResult[0]?.count ?? 0,
-  });
-  res.json(response);
+    const response = ListWordsResponse.parse({
+      words: words.map(mapWordRow),
+      total: countResult[0]?.count ?? 0,
+    });
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "GET /words failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /words/deleted — MUST be before /words/:id
 router.get("/words/deleted", async (_req, res): Promise<void> => {
-  const words = await db
-    .select()
-    .from(wordsTable)
-    .where(isNotNull(wordsTable.deletedAt))
-    .orderBy(wordsTable.deletedAt);
+  try {
+    const words = await db
+      .select()
+      .from(wordsTable)
+      .where(isNotNull(wordsTable.deletedAt))
+      .orderBy(wordsTable.deletedAt);
 
-  const response = ListDeletedWordsResponse.parse({
-    words: words.map(mapWordRow),
-    total: words.length,
-  });
-  res.json(response);
+    const response = ListDeletedWordsResponse.parse({
+      words: words.map(mapWordRow),
+      total: words.length,
+    });
+    res.json(response);
+  } catch (err) {
+    res.log?.error({ err }, "GET /words/deleted failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // DELETE /words/purge — MUST be before /words/:id
-router.delete("/words/purge", async (_req, res): Promise<void> => {
-  await db
-    .delete(wordsTable)
-    .where(isNotNull(wordsTable.deletedAt));
-  res.sendStatus(204);
+router.delete("/words/purge", async (req, res): Promise<void> => {
+  try {
+    await db
+      .delete(wordsTable)
+      .where(isNotNull(wordsTable.deletedAt));
+    res.sendStatus(204);
+  } catch (err) {
+    req.log.error({ err }, "DELETE /words/purge failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /words/export — MUST be before /words/:id
@@ -197,89 +215,99 @@ router.get("/words/export", async (req, res): Promise<void> => {
     return;
   }
 
-  const { board, season, region, surroundings, age, findability } = parsed.data;
-  const userFilters = buildFilters({ region, surroundings, age, findability, season, board });
-  const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
+  try {
+    const { board, season, region, surroundings, age, findability } = parsed.data;
+    const userFilters = buildFilters({ region, surroundings, age, findability, season, board });
+    const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
-  const words = await db
-    .select()
-    .from(wordsTable)
-    .where(where)
-    .orderBy(wordsTable.word);
+    const words = await db
+      .select()
+      .from(wordsTable)
+      .where(where)
+      .orderBy(wordsTable.word);
 
-  const response = ExportWordsResponse.parse({
-    words: words.map(mapWordRow),
-    total: words.length,
-  });
-  res.json(response);
+    const response = ExportWordsResponse.parse({
+      words: words.map(mapWordRow),
+      total: words.length,
+    });
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "GET /words/export failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /words/stats — MUST be before /words/:id
-router.get("/words/stats", async (_req, res): Promise<void> => {
-  const allWords = await db
-    .select()
-    .from(wordsTable)
-    .where(isNull(wordsTable.deletedAt));
+router.get("/words/stats", async (req, res): Promise<void> => {
+  try {
+    const allWords = await db
+      .select()
+      .from(wordsTable)
+      .where(isNull(wordsTable.deletedAt));
 
-  const byFindability: Record<string, number> = {};
-  const byAge: Record<string, number> = {};
-  const bySeason: Record<string, number> = {};
-  const byBoard: Record<string, number> = {};
-  const byRegion: Record<string, number> = {};
-  const bySurroundings: Record<string, number> = {};
-  const byDayNight: Record<string, number> = { "Day only": 0, "Night only": 0, "Day + Night": 0, "Unknown": 0 };
+    const byFindability: Record<string, number> = {};
+    const byAge: Record<string, number> = {};
+    const bySeason: Record<string, number> = {};
+    const byBoard: Record<string, number> = {};
+    const byRegion: Record<string, number> = {};
+    const bySurroundings: Record<string, number> = {};
+    const byDayNight: Record<string, number> = { "Day only": 0, "Night only": 0, "Day + Night": 0, "Unknown": 0 };
 
-  let incomplete = 0;
+    let incomplete = 0;
 
-  for (const w of allWords) {
-    if (!w.age || !w.findability) incomplete++;
+    for (const w of allWords) {
+      if (!w.age || !w.findability) incomplete++;
 
-    if (w.findability) {
-      byFindability[w.findability] = (byFindability[w.findability] ?? 0) + 1;
-    } else {
-      byFindability["Unknown"] = (byFindability["Unknown"] ?? 0) + 1;
+      if (w.findability) {
+        byFindability[w.findability] = (byFindability[w.findability] ?? 0) + 1;
+      } else {
+        byFindability["Unknown"] = (byFindability["Unknown"] ?? 0) + 1;
+      }
+
+      if (w.age) {
+        byAge[w.age] = (byAge[w.age] ?? 0) + 1;
+      } else {
+        byAge["Unknown"] = (byAge["Unknown"] ?? 0) + 1;
+      }
+
+      for (const s of w.seasons ?? []) {
+        bySeason[s] = (bySeason[s] ?? 0) + 1;
+      }
+      for (const b of w.boards ?? []) {
+        byBoard[b] = (byBoard[b] ?? 0) + 1;
+      }
+      for (const r of w.regions ?? []) {
+        byRegion[r] = (byRegion[r] ?? 0) + 1;
+      }
+      for (const sr of w.surroundings ?? []) {
+        bySurroundings[sr] = (bySurroundings[sr] ?? 0) + 1;
+      }
+
+      const dn = w.dayNight ?? [];
+      const hasDay = dn.includes("Day");
+      const hasNight = dn.includes("Night");
+      if (hasDay && hasNight) byDayNight["Day + Night"]++;
+      else if (hasDay)        byDayNight["Day only"]++;
+      else if (hasNight)      byDayNight["Night only"]++;
+      else                    byDayNight["Unknown"]++;
     }
 
-    if (w.age) {
-      byAge[w.age] = (byAge[w.age] ?? 0) + 1;
-    } else {
-      byAge["Unknown"] = (byAge["Unknown"] ?? 0) + 1;
-    }
-
-    for (const s of w.seasons ?? []) {
-      bySeason[s] = (bySeason[s] ?? 0) + 1;
-    }
-    for (const b of w.boards ?? []) {
-      byBoard[b] = (byBoard[b] ?? 0) + 1;
-    }
-    for (const r of w.regions ?? []) {
-      byRegion[r] = (byRegion[r] ?? 0) + 1;
-    }
-    for (const sr of w.surroundings ?? []) {
-      bySurroundings[sr] = (bySurroundings[sr] ?? 0) + 1;
-    }
-
-    const dn = w.dayNight ?? [];
-    const hasDay = dn.includes("Day");
-    const hasNight = dn.includes("Night");
-    if (hasDay && hasNight) byDayNight["Day + Night"]++;
-    else if (hasDay)        byDayNight["Day only"]++;
-    else if (hasNight)      byDayNight["Night only"]++;
-    else                    byDayNight["Unknown"]++;
+    const response = GetWordStatsResponse.parse({
+      total: allWords.length,
+      incomplete,
+      byFindability,
+      byAge,
+      bySeason,
+      byBoard,
+      byRegion,
+      bySurroundings,
+      byDayNight,
+    });
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "GET /words/stats failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const response = GetWordStatsResponse.parse({
-    total: allWords.length,
-    incomplete,
-    byFindability,
-    byAge,
-    bySeason,
-    byBoard,
-    byRegion,
-    bySurroundings,
-    byDayNight,
-  });
-  res.json(response);
 });
 
 // POST /words
@@ -290,24 +318,29 @@ router.post("/words", async (req, res): Promise<void> => {
     return;
   }
 
-  const [word] = await db
-    .insert(wordsTable)
-    .values({
-      word: parsed.data.word,
-      regions: parsed.data.regions ?? ["All"],
-      surroundings: parsed.data.surroundings ?? [],
-      dayNight: parsed.data.dayNight ?? ["Day"],
-      age: parsed.data.age ?? null,
-      findability: parsed.data.findability ?? null,
-      seasons: parsed.data.seasons ?? ["All"],
-      boards: parsed.data.boards ?? [],
-      notes: parsed.data.notes ?? null,
-      spanish: parsed.data.spanish ?? null,
-      emoji: parsed.data.emoji ?? null,
-    })
-    .returning();
+  try {
+    const [word] = await db
+      .insert(wordsTable)
+      .values({
+        word: parsed.data.word,
+        regions: parsed.data.regions ?? ["All"],
+        surroundings: parsed.data.surroundings ?? [],
+        dayNight: parsed.data.dayNight ?? ["Day"],
+        age: parsed.data.age ?? null,
+        findability: parsed.data.findability ?? null,
+        seasons: parsed.data.seasons ?? ["All"],
+        boards: parsed.data.boards ?? [],
+        notes: parsed.data.notes ?? null,
+        spanish: parsed.data.spanish ?? null,
+        emoji: parsed.data.emoji ?? null,
+      })
+      .returning();
 
-  res.status(201).json(GetWordResponse.parse(mapWordRow(word)));
+    res.status(201).json(GetWordResponse.parse(mapWordRow(word)));
+  } catch (err) {
+    req.log.error({ err }, "POST /words failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // POST /words/bulk-delete — MUST be before /words/:id
@@ -322,12 +355,17 @@ router.post("/words/bulk-delete", async (req, res): Promise<void> => {
     res.json(BulkDeleteWordsResponse.parse({ count: 0 }));
     return;
   }
-  const rows = await db
-    .update(wordsTable)
-    .set({ deletedAt: new Date() })
-    .where(and(inArray(wordsTable.id, ids), isNull(wordsTable.deletedAt)))
-    .returning({ id: wordsTable.id });
-  res.json(BulkDeleteWordsResponse.parse({ count: rows.length }));
+  try {
+    const rows = await db
+      .update(wordsTable)
+      .set({ deletedAt: new Date() })
+      .where(and(inArray(wordsTable.id, ids), isNull(wordsTable.deletedAt)))
+      .returning({ id: wordsTable.id });
+    res.json(BulkDeleteWordsResponse.parse({ count: rows.length }));
+  } catch (err) {
+    req.log.error({ err }, "POST /words/bulk-delete failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // POST /words/bulk-restore — MUST be before /words/:id
@@ -342,12 +380,17 @@ router.post("/words/bulk-restore", async (req, res): Promise<void> => {
     res.json(BulkRestoreWordsResponse.parse({ count: 0 }));
     return;
   }
-  const rows = await db
-    .update(wordsTable)
-    .set({ deletedAt: null })
-    .where(and(inArray(wordsTable.id, ids), isNotNull(wordsTable.deletedAt)))
-    .returning({ id: wordsTable.id });
-  res.json(BulkRestoreWordsResponse.parse({ count: rows.length }));
+  try {
+    const rows = await db
+      .update(wordsTable)
+      .set({ deletedAt: null })
+      .where(and(inArray(wordsTable.id, ids), isNotNull(wordsTable.deletedAt)))
+      .returning({ id: wordsTable.id });
+    res.json(BulkRestoreWordsResponse.parse({ count: rows.length }));
+  } catch (err) {
+    req.log.error({ err }, "POST /words/bulk-restore failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // POST /words/:id/restore — MUST be before /words/:id
@@ -358,18 +401,23 @@ router.post("/words/:id/restore", async (req, res): Promise<void> => {
     return;
   }
 
-  const [word] = await db
-    .update(wordsTable)
-    .set({ deletedAt: null })
-    .where(and(eq(wordsTable.id, params.data.id), isNotNull(wordsTable.deletedAt)))
-    .returning();
+  try {
+    const [word] = await db
+      .update(wordsTable)
+      .set({ deletedAt: null })
+      .where(and(eq(wordsTable.id, params.data.id), isNotNull(wordsTable.deletedAt)))
+      .returning();
 
-  if (!word) {
-    res.status(404).json({ error: "Deleted word not found" });
-    return;
+    if (!word) {
+      res.status(404).json({ error: "Deleted word not found" });
+      return;
+    }
+
+    res.json(RestoreWordResponse.parse(mapWordRow(word)));
+  } catch (err) {
+    req.log.error({ err }, "POST /words/:id/restore failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json(RestoreWordResponse.parse(mapWordRow(word)));
 });
 
 // GET /words/:id
@@ -380,17 +428,22 @@ router.get("/words/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [word] = await db
-    .select()
-    .from(wordsTable)
-    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)));
+  try {
+    const [word] = await db
+      .select()
+      .from(wordsTable)
+      .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)));
 
-  if (!word) {
-    res.status(404).json({ error: "Word not found" });
-    return;
+    if (!word) {
+      res.status(404).json({ error: "Word not found" });
+      return;
+    }
+
+    res.json(GetWordResponse.parse(mapWordRow(word)));
+  } catch (err) {
+    req.log.error({ err }, "GET /words/:id failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json(GetWordResponse.parse(mapWordRow(word)));
 });
 
 // PATCH /words/:id
@@ -407,31 +460,36 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const updateData: Partial<typeof wordsTable.$inferInsert> = {};
-  if (parsed.data.word !== undefined) updateData.word = parsed.data.word;
-  if (parsed.data.regions !== undefined) updateData.regions = parsed.data.regions;
-  if (parsed.data.surroundings !== undefined) updateData.surroundings = parsed.data.surroundings;
-  if (parsed.data.dayNight !== undefined) updateData.dayNight = parsed.data.dayNight;
-  if (parsed.data.age !== undefined) updateData.age = parsed.data.age;
-  if (parsed.data.findability !== undefined) updateData.findability = parsed.data.findability;
-  if (parsed.data.seasons !== undefined) updateData.seasons = parsed.data.seasons;
-  if (parsed.data.boards !== undefined) updateData.boards = parsed.data.boards;
-  if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
-  if (parsed.data.spanish !== undefined) updateData.spanish = parsed.data.spanish;
-  if (parsed.data.emoji !== undefined) updateData.emoji = parsed.data.emoji;
+  try {
+    const updateData: Partial<typeof wordsTable.$inferInsert> = {};
+    if (parsed.data.word !== undefined) updateData.word = parsed.data.word;
+    if (parsed.data.regions !== undefined) updateData.regions = parsed.data.regions;
+    if (parsed.data.surroundings !== undefined) updateData.surroundings = parsed.data.surroundings;
+    if (parsed.data.dayNight !== undefined) updateData.dayNight = parsed.data.dayNight;
+    if (parsed.data.age !== undefined) updateData.age = parsed.data.age;
+    if (parsed.data.findability !== undefined) updateData.findability = parsed.data.findability;
+    if (parsed.data.seasons !== undefined) updateData.seasons = parsed.data.seasons;
+    if (parsed.data.boards !== undefined) updateData.boards = parsed.data.boards;
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+    if (parsed.data.spanish !== undefined) updateData.spanish = parsed.data.spanish;
+    if (parsed.data.emoji !== undefined) updateData.emoji = parsed.data.emoji;
 
-  const [word] = await db
-    .update(wordsTable)
-    .set(updateData)
-    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
-    .returning();
+    const [word] = await db
+      .update(wordsTable)
+      .set(updateData)
+      .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
+      .returning();
 
-  if (!word) {
-    res.status(404).json({ error: "Word not found" });
-    return;
+    if (!word) {
+      res.status(404).json({ error: "Word not found" });
+      return;
+    }
+
+    res.json(UpdateWordResponse.parse(mapWordRow(word)));
+  } catch (err) {
+    req.log.error({ err }, "PATCH /words/:id failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json(UpdateWordResponse.parse(mapWordRow(word)));
 });
 
 // DELETE /words/:id — soft-delete
@@ -442,18 +500,23 @@ router.delete("/words/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [word] = await db
-    .update(wordsTable)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
-    .returning();
+  try {
+    const [word] = await db
+      .update(wordsTable)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
+      .returning();
 
-  if (!word) {
-    res.status(404).json({ error: "Word not found" });
-    return;
+    if (!word) {
+      res.status(404).json({ error: "Word not found" });
+      return;
+    }
+
+    res.sendStatus(204);
+  } catch (err) {
+    req.log.error({ err }, "DELETE /words/:id failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.sendStatus(204);
 });
 
 export default router;
