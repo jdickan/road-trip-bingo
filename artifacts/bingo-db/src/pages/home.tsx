@@ -45,13 +45,6 @@ export default function Home() {
   });
   const deletedTotal = deletedData?.total ?? 0;
 
-  // If trash tab is active but trash is now empty, bounce back to words
-  useEffect(() => {
-    if (tab === "trash" && deletedData && deletedTotal === 0) {
-      setTab("words");
-    }
-  }, [tab, deletedData, deletedTotal]);
-
   useEffect(() => () => { if (aiClearTimer.current) clearTimeout(aiClearTimer.current); }, []);
 
   useEffect(() => {
@@ -181,8 +174,8 @@ export default function Home() {
                 </button>
               ))}
 
-              {/* Trash tab — only when deleted words exist */}
-              {deletedTotal > 0 && (
+              {/* Trash tab — shown when deleted words exist, or while actively viewing Trash */}
+              {(deletedTotal > 0 || tab === "trash") && (
                 <button
                   onClick={() => handleTabChange("trash")}
                   className={cn(
@@ -233,7 +226,7 @@ export default function Home() {
           ) : tab === "todo" ? (
             <TodoPanel />
           ) : tab === "trash" ? (
-            <DeletedWordsPanel onEmpty={() => handleTabChange("words")} />
+            <DeletedWordsPanel />
           ) : (
             <ThemePanel />
           )}

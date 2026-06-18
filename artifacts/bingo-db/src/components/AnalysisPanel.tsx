@@ -1,6 +1,6 @@
 import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
 import { keepPreviousData } from "@tanstack/react-query";
-import { Loader2, BarChart2 } from "lucide-react";
+import { BarChart2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { getTagColor, isSubduedValue, type TagType } from "@/lib/tagColors";
 
@@ -112,9 +112,59 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
 
   if (isLoading && !stats) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="font-mono text-xs tracking-wide">Loading analysis…</span>
+      <div className="space-y-5 animate-pulse">
+        {/* KPI strip skeleton */}
+        <div className="flex border border-border divide-x divide-border">
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="flex flex-col items-end px-4 py-3 min-w-[72px] gap-1.5">
+              <div className="h-2 w-10 bg-muted/50 rounded-sm" />
+              <div className="h-7 w-12 bg-muted/50 rounded-sm" />
+            </div>
+          ))}
+        </div>
+        {/* Card grid skeleton */}
+        <div className="border border-border">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y divide-border/50">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="p-4 space-y-3">
+                <div className="h-2 w-20 bg-muted/50 rounded-sm" />
+                {[...Array(3)].map((_, j) => (
+                  <div key={j} className="flex items-center gap-2.5">
+                    <div className="h-2.5 w-28 bg-muted/40 rounded-sm shrink-0" />
+                    <div className="flex-1 h-1.5 bg-muted/30 rounded-sm" />
+                    <div className="h-2.5 w-6 bg-muted/40 rounded-sm" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y divide-border/50 border-t border-border/50">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className={`p-4 space-y-3 ${i === 3 ? "col-span-2" : ""}`}>
+                <div className="h-2 w-20 bg-muted/50 rounded-sm" />
+                {[...Array(i === 3 ? 3 : 4)].map((_, j) => (
+                  <div key={j} className="flex items-center gap-2.5">
+                    <div className="h-2.5 w-28 bg-muted/40 rounded-sm shrink-0" />
+                    <div className="flex-1 h-1.5 bg-muted/30 rounded-sm" />
+                    <div className="h-2.5 w-6 bg-muted/40 rounded-sm" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="p-4 border-t border-border/50 space-y-3">
+            <div className="h-2 w-16 bg-muted/50 rounded-sm" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <div className="h-2.5 w-20 bg-muted/40 rounded-sm shrink-0" />
+                  <div className="flex-1 h-1.5 bg-muted/30 rounded-sm" />
+                  <div className="h-2.5 w-6 bg-muted/40 rounded-sm" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

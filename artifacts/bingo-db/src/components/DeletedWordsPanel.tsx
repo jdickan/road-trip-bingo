@@ -12,10 +12,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-interface DeletedWordsPanelProps {
-  onEmpty: () => void;
-}
+import { EmptyState } from "./EmptyState";
 
 function formatDeletedDate(raw: string | null): string {
   if (!raw) return "—";
@@ -23,7 +20,7 @@ function formatDeletedDate(raw: string | null): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
+export default function DeletedWordsPanel() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [confirmPurge, setConfirmPurge] = useState(false);
@@ -66,7 +63,6 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
         queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
         queryClient.invalidateQueries({ queryKey: getListDeletedWordsQueryKey() });
         toast({ title: `${total} word${total === 1 ? "" : "s"} permanently deleted` });
-        onEmpty();
       },
       onError: () => {
         setConfirmPurge(false);
@@ -111,7 +107,6 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
           toast({ title: `${result.count} word${result.count === 1 ? "" : "s"} restored` });
           setSelectedIds(new Set());
           setSelectMode(false);
-          if (result.count === total) onEmpty();
         },
         onError: () => toast({ title: "Couldn't restore words", variant: "destructive" }),
       }
@@ -136,6 +131,14 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
         </h2>
       </div>
 
+      {/* ── Empty state ── */}
+      {!isLoading && words.length === 0 && (
+        <EmptyState
+          headline="Nothing in the trash"
+          body="Deleted words will appear here. Restore or permanently purge them from this view."
+        />
+      )}
+
       {/* ── Word rows ── */}
       <div className="divide-y divide-border/50">
         {isLoading ? (
@@ -146,11 +149,7 @@ export default function DeletedWordsPanel({ onEmpty }: DeletedWordsPanelProps) {
               <div className="ml-auto h-3 w-24 rounded bg-muted" />
             </div>
           ))
-        ) : words.length === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground/50 font-mono tracking-wider uppercase">
-            Nothing in trash
-          </div>
-        ) : (
+        ) : words.length === 0 ? null : (
           words.map((word) => (
             <div
               key={word.id}

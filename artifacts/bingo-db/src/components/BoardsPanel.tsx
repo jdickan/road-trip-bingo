@@ -92,7 +92,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
   const newBoardNameRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<BoardsResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<BoardsResponse>({
     queryKey: ["boards"],
     queryFn: fetchBoards,
     placeholderData: keepPreviousData,
@@ -279,19 +279,25 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         </div>
       </div>
 
-      {/* ── Loading skeletons — only when no cached data is available ── */}
+      {/* ── Loading skeletons — mirrors real card structure, no fixed pixel widths ── */}
       {isLoading && !data && (
         <div>
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-start gap-6 md:gap-10 py-8 border-b border-border animate-pulse">
-              <div className="w-10 md:w-16 shrink-0 flex justify-end pt-1">
-                <div className="h-10 w-10 bg-muted/50 rounded-sm" />
+              {/* Left rail — matches w-10 md:w-16 plate number column */}
+              <div className="w-10 md:w-16 shrink-0 flex justify-end pt-5">
+                <div className="h-9 md:h-10 w-8 md:w-9 bg-muted/50 rounded-sm" />
               </div>
-              <div className="flex-1 space-y-2.5">
-                <div className="h-2.5 w-16 bg-muted/50 rounded-sm" />
-                <div className="h-7 w-72 bg-muted/50 rounded-sm" />
-                <div className="h-3 w-96 bg-muted/50 rounded-sm" />
-                <div className="h-2.5 w-48 bg-muted/40 rounded-sm mt-4" />
+              {/* Main column — matches flex-1 card body */}
+              <div className="flex-1 min-w-0 space-y-2.5">
+                {/* Eyebrow: dot + status — text-[10.5px] mono */}
+                <div className="h-2.5 w-1/6 bg-muted/50 rounded-sm" />
+                {/* Title — text-2xl md:text-3xl font-editorial */}
+                <div className="h-7 md:h-8 w-2/5 bg-muted/50 rounded-sm" />
+                {/* Description — text-sm */}
+                <div className="h-3 w-3/4 bg-muted/50 rounded-sm" />
+                {/* Meta strip — text-xs mono, indented slightly */}
+                <div className="h-2.5 w-1/2 bg-muted/40 rounded-sm mt-3" />
               </div>
             </div>
           ))}
@@ -310,7 +316,13 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
       {isError && !data && (
         <div className="py-24 text-center">
           <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2">Error</p>
-          <p className="text-sm text-muted-foreground">Failed to load boards.</p>
+          <p className="text-sm text-muted-foreground mb-5">Failed to load boards.</p>
+          <button
+            onClick={() => void refetch()}
+            className="font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors text-muted-foreground hover:text-foreground"
+          >
+            Try again
+          </button>
         </div>
       )}
 

@@ -2,6 +2,15 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, RotateCcw, Trash2, Loader2, DatabaseZap, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,7 +75,7 @@ function formatBytes(b: number) {
 
 export default function SnapshotsPanel() {
   const [newLabel, setNewLabel] = useState("");
-  const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
+  const [restoreDialogId, setRestoreDialogId] = useState<string | null>(null);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -90,7 +99,7 @@ export default function SnapshotsPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/words"] });
       qc.invalidateQueries({ queryKey: ["/api/words/stats"] });
-      setConfirmRestoreId(null);
+      setRestoreDialogId(null);
       toast({ title: "Database restored", description: "All word data has been replaced." });
     },
     onError: () => toast({ title: "Couldn't restore snapshot", variant: "destructive" }),
@@ -180,23 +189,54 @@ export default function SnapshotsPanel() {
         </div>
       )}
 
+      {/* ── Restore confirmation dialog ── */}
+      {(() => {
+        const target = snapshots.find(s => s.id === restoreDialogId);
+        return (
+          <AlertDialog open={restoreDialogId !== null} onOpenChange={(open) => { if (!open) setRestoreDialogId(null); }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restore snapshot?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>
+                      This will replace <strong className="text-foreground font-medium">all</strong> current words and boards with the snapshot data.
+                      This action cannot be undone unless you save another snapshot first.
+                    </p>
+                    {target && (
+                      <p className="font-mono text-xs text-muted-foreground">
+                        Snapshot: <span className="text-foreground">{target.label}</span> · {target.wordCount} words · {formatDate(target.createdAt)}
+                      </p>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={restoreMutation.isPending}>Cancel</AlertDialogCancel>
+                <button
+                  className="inline-flex items-center gap-1.5 justify-center text-sm font-medium h-10 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  disabled={restoreMutation.isPending}
+                  onClick={() => { if (restoreDialogId) restoreMutation.mutate(restoreDialogId); }}
+                >
+                  {restoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                  Restore snapshot
+                </button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        );
+      })()}
+
       {/* ── Snapshot list ── */}
       {snapshots.length > 0 && (
         <div className="border border-border divide-y divide-border">
           {snapshots.map((s) => {
-            const isRestoring = restoreMutation.isPending && restoreMutation.variables === s.id;
             const isDeleting = deleteMutation.isPending && deleteMutation.variables === s.id;
-            const isConfirming = confirmRestoreId === s.id;
 
             return (
               <div
                 key={s.id}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 transition-colors",
-                  isConfirming
-                    ? "border-l-2 border-l-destructive/50 bg-destructive/5"
-                    : "hover:bg-muted/20"
-                )}
+                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20"
               >
                 {/* Info */}
                 <div className="flex-1 min-w-0">
@@ -207,56 +247,37 @@ export default function SnapshotsPanel() {
                 </div>
 
                 {/* Actions */}
-                {isConfirming ? (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-mono text-[10.5px] tracking-[0.04em] uppercase text-destructive">Replace all data?</span>
-                    <button
-                      className="flex items-center gap-1.5 text-xs text-destructive-foreground bg-destructive border border-destructive px-3 py-1.5 hover:opacity-90 transition-opacity duration-150 disabled:opacity-50"
-                      disabled={isRestoring}
-                      onClick={() => restoreMutation.mutate(s.id)}
-                    >
-                      {isRestoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes, restore"}
-                    </button>
-                    <button
-                      className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
-                      onClick={() => setConfirmRestoreId(null)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
-                      onClick={() => setConfirmRestoreId(s.id)}
-                      title="Restore this snapshot"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      Restore
-                    </button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                      title="Download SQL dump"
-                      onClick={() => downloadSnapshot(s.id, s.label).catch(() =>
-                        toast({ title: "Couldn't download snapshot", variant: "destructive" })
-                      )}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      disabled={isDeleting}
-                      onClick={() => deleteMutation.mutate(s.id)}
-                      title="Delete snapshot"
-                    >
-                      {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    className="flex items-center gap-1.5 text-xs text-foreground border border-border px-3 py-1.5 hover:bg-muted/40 transition-colors duration-150"
+                    onClick={() => setRestoreDialogId(s.id)}
+                    title="Restore this snapshot"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Restore
+                  </button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    title="Download SQL dump"
+                    onClick={() => downloadSnapshot(s.id, s.label).catch(() =>
+                      toast({ title: "Couldn't download snapshot", variant: "destructive" })
+                    )}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    disabled={isDeleting}
+                    onClick={() => deleteMutation.mutate(s.id)}
+                    title="Delete snapshot"
+                  >
+                    {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
               </div>
             );
           })}

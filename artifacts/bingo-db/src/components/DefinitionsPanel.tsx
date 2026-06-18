@@ -252,12 +252,29 @@ export default function DefinitionsPanel() {
           headline="No definitions"
           body="All definition groups have been removed. Restore the defaults to bring them back."
         >
-          <button
-            onClick={resetToDefaults}
-            className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
-          >
-            Restore default definitions
-          </button>
+          {confirmReset ? (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={resetToDefaults}
+                className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-destructive/60 text-destructive px-4 py-2 hover:bg-destructive/10 transition-colors"
+              >
+                Confirm restore
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
+            >
+              Restore default definitions
+            </button>
+          )}
         </EmptyState>
       )}
 
