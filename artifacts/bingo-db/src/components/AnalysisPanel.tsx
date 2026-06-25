@@ -1,5 +1,6 @@
 import { useGetWordStats, getGetWordStatsQueryKey } from "@workspace/api-client-react";
 import { keepPreviousData } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { BarChart2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { getTagColor, isSubduedValue, type TagType } from "@/lib/tagColors";
@@ -110,6 +111,28 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
     query: { queryKey: getGetWordStatsQueryKey(), placeholderData: keepPreviousData },
   });
 
+  const derived = useMemo(() => {
+    const dn  = stats?.byDayNight     ?? {};
+    const age = stats?.byAge          ?? {};
+    const fi  = stats?.byFindability  ?? {};
+    const sea = stats?.bySeason       ?? {};
+    const reg = stats?.byRegion       ?? {};
+    const sur = stats?.bySurroundings ?? {};
+    const brd = stats?.byBoard        ?? {};
+
+    const dnMax  = Math.max(...DAY_NIGHT_ORDER.map(k    => dn[k]  ?? 0), 1);
+    const ageMax = Math.max(...AGE_ORDER.map(k           => age[k] ?? 0), 1);
+    const fiMax  = Math.max(...FINDABILITY_ORDER.map(k   => fi[k]  ?? 0), 1);
+    const seaMax = Math.max(...SEASON_ORDER.map(k        => sea[k] ?? 0), 1);
+    const regMax = Math.max(...REGION_ORDER.map(k        => reg[k] ?? 0), 1);
+    const surMax = Math.max(...SURROUNDINGS_ORDER.map(k  => sur[k] ?? 0), 1);
+
+    const sortedBoards = Object.entries(brd).sort((a, b) => b[1] - a[1]);
+    const brdMax       = Math.max(...sortedBoards.map(([, v]) => v), 1);
+
+    return { dn, age, fi, sea, reg, sur, dnMax, ageMax, fiMax, seaMax, regMax, surMax, sortedBoards, brdMax };
+  }, [stats]);
+
   if (isLoading && !stats) {
     return (
       <div className="space-y-5 animate-pulse">
@@ -193,23 +216,7 @@ export default function AnalysisPanel({ onGoToWords }: AnalysisPanelProps = {}) 
   const complete    = total - stats.incomplete;
   const completePct = total > 0 ? Math.round((complete / total) * 100) : 0;
 
-  const dn  = stats.byDayNight     ?? {};
-  const age = stats.byAge          ?? {};
-  const fi  = stats.byFindability  ?? {};
-  const sea = stats.bySeason       ?? {};
-  const reg = stats.byRegion       ?? {};
-  const sur = stats.bySurroundings ?? {};
-  const brd = stats.byBoard        ?? {};
-
-  const dnMax   = Math.max(...DAY_NIGHT_ORDER.map(k   => dn[k]  ?? 0), 1);
-  const ageMax  = Math.max(...AGE_ORDER.map(k          => age[k] ?? 0), 1);
-  const fiMax   = Math.max(...FINDABILITY_ORDER.map(k  => fi[k]  ?? 0), 1);
-  const seaMax  = Math.max(...SEASON_ORDER.map(k       => sea[k] ?? 0), 1);
-  const regMax  = Math.max(...REGION_ORDER.map(k       => reg[k] ?? 0), 1);
-  const surMax  = Math.max(...SURROUNDINGS_ORDER.map(k => sur[k] ?? 0), 1);
-
-  const sortedBoards = Object.entries(brd).sort((a, b) => b[1] - a[1]);
-  const brdMax       = Math.max(...sortedBoards.map(([, v]) => v), 1);
+  const { dn, age, fi, sea, reg, sur, dnMax, ageMax, fiMax, seaMax, regMax, surMax, sortedBoards, brdMax } = derived;
 
   return (
     <div className="space-y-5">

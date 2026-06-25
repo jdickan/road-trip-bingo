@@ -9,9 +9,14 @@ import { EmptyState } from "./EmptyState";
 const STORAGE_KEY = "bingo-definitions-v2";
 
 interface Definition {
+  id: string;
   tag: string;
   definition: string;
   type: "Single select" | "Multiselect";
+}
+
+function defId(): string {
+  return crypto.randomUUID();
 }
 
 interface ColumnGroup {
@@ -27,13 +32,13 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "🗺️",
     description: "Which US region(s) this item can be found in. Use All if it's universally applicable across the country.",
     definitions: [
-      { tag: "All", definition: "Can be found in any state or region of the country (US).", type: "Multiselect" },
-      { tag: "NE", definition: "NE or Northeast, includes Maine, New Hampshire, Vermont, Massachusetts, Rhode Island, Connecticut, New York, New Jersey, Delaware, Pennsylvania, and Maryland.", type: "Multiselect" },
-      { tag: "SE", definition: "SE or Southeast includes Washington DC, Virginia, North Carolina, South Carolina, West Virginia, Georgia, Florida, Alabama, Kentucky, Tennessee.", type: "Multiselect" },
-      { tag: "N Cent", definition: "N Cent or the Midwest states include Ohio, Indiana, Illinois, Michigan, Wisconsin, Minnesota, North Dakota, South Dakota, Nebraska, Iowa.", type: "Multiselect" },
-      { tag: "S Cent", definition: "S Cent or South Central states include Arkansas, Louisiana, Texas, Oklahoma, Kansas.", type: "Multiselect" },
-      { tag: "NW + AK", definition: "NW or Northwest includes northern California, Oregon, Washington, Idaho, Montana, Wyoming, Utah, Colorado, and Alaska.", type: "Multiselect" },
-      { tag: "SW + HI", definition: "SW or Southwest includes New Mexico, Arizona, Nevada, Hawaii and southern California.", type: "Multiselect" },
+      { id: "reg-all",    tag: "All",     definition: "Can be found in any state or region of the country (US).", type: "Multiselect" },
+      { id: "reg-ne",     tag: "NE",      definition: "NE or Northeast, includes Maine, New Hampshire, Vermont, Massachusetts, Rhode Island, Connecticut, New York, New Jersey, Delaware, Pennsylvania, and Maryland.", type: "Multiselect" },
+      { id: "reg-se",     tag: "SE",      definition: "SE or Southeast includes Washington DC, Virginia, North Carolina, South Carolina, West Virginia, Georgia, Florida, Alabama, Kentucky, Tennessee.", type: "Multiselect" },
+      { id: "reg-ncent",  tag: "N Cent",  definition: "N Cent or the Midwest states include Ohio, Indiana, Illinois, Michigan, Wisconsin, Minnesota, North Dakota, South Dakota, Nebraska, Iowa.", type: "Multiselect" },
+      { id: "reg-scent",  tag: "S Cent",  definition: "S Cent or South Central states include Arkansas, Louisiana, Texas, Oklahoma, Kansas.", type: "Multiselect" },
+      { id: "reg-nwak",   tag: "NW + AK", definition: "NW or Northwest includes northern California, Oregon, Washington, Idaho, Montana, Wyoming, Utah, Colorado, and Alaska.", type: "Multiselect" },
+      { id: "reg-swhi",   tag: "SW + HI", definition: "SW or Southwest includes New Mexico, Arizona, Nevada, Hawaii and southern California.", type: "Multiselect" },
     ],
   },
   {
@@ -41,12 +46,12 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "🏙️",
     description: "The population density or geographic type where this item is likely to be spotted.",
     definitions: [
-      { tag: "All", definition: "Generally applicable to any population density or geographic type.", type: "Multiselect" },
-      { tag: "Urban / City", definition: "A dense and populous region.", type: "Multiselect" },
-      { tag: "Rural / Xurban", definition: "Low population where the animals likely outnumber the humans.", type: "Multiselect" },
-      { tag: "Suburban / Town", definition: "A mix of housing and shopping with medium population density.", type: "Multiselect" },
-      { tag: "Highway", definition: "Interstate or driving with limited access.", type: "Multiselect" },
-      { tag: "Coast", definition: "Oceanic coastlines anywhere in the country.", type: "Multiselect" },
+      { id: "sur-all",      tag: "All",               definition: "Generally applicable to any population density or geographic type.", type: "Multiselect" },
+      { id: "sur-urban",    tag: "Urban / City",       definition: "A dense and populous region.", type: "Multiselect" },
+      { id: "sur-rural",    tag: "Rural / Xurban",     definition: "Low population where the animals likely outnumber the humans.", type: "Multiselect" },
+      { id: "sur-suburban", tag: "Suburban / Town",    definition: "A mix of housing and shopping with medium population density.", type: "Multiselect" },
+      { id: "sur-highway",  tag: "Highway",            definition: "Interstate or driving with limited access.", type: "Multiselect" },
+      { id: "sur-coast",    tag: "Coast",              definition: "Oceanic coastlines anywhere in the country.", type: "Multiselect" },
     ],
   },
   {
@@ -54,8 +59,8 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "🌓",
     description: "When this item is most visible or relevant during a road trip.",
     definitions: [
-      { tag: "Day", definition: "Can be easily seen during the day.", type: "Multiselect" },
-      { tag: "Night", definition: "Can be easily seen at night.", type: "Multiselect" },
+      { id: "dn-day",   tag: "Day",   definition: "Can be easily seen during the day.", type: "Multiselect" },
+      { id: "dn-night", tag: "Night", definition: "Can be easily seen at night.", type: "Multiselect" },
     ],
   },
   {
@@ -63,9 +68,9 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "👧",
     description: "The youngest age group that would understand and recognize this item. Lower values are inclusive of higher groups.",
     definitions: [
-      { tag: "Young", definition: "A word that is understandable by 3+ years of age and easily conveyed through a drawing. If this is selected, then young, kids, and tweens can all appreciate these words.", type: "Single select" },
-      { tag: "Kid", definition: "Common words most kids would know. If this is selected then both kids and tweens can appreciate these words.", type: "Single select" },
-      { tag: "Tween", definition: "More difficult terms that only kids who are reading chapter books without pictures would likely know.", type: "Single select" },
+      { id: "age-young", tag: "Young", definition: "A word that is understandable by 3+ years of age and easily conveyed through a drawing. If this is selected, then young, kids, and tweens can all appreciate these words.", type: "Single select" },
+      { id: "age-kid",   tag: "Kid",   definition: "Common words most kids would know. If this is selected then both kids and tweens can appreciate these words.", type: "Single select" },
+      { id: "age-tween", tag: "Tween", definition: "More difficult terms that only kids who are reading chapter books without pictures would likely know.", type: "Single select" },
     ],
   },
   {
@@ -73,9 +78,9 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "🔍",
     description: "How often this item is likely to be spotted on a typical driving trip. Boards should lean heavily toward High and Medium.",
     definitions: [
-      { tag: "High", definition: "Easily spotted within 20 minutes on a typical driving trip.", type: "Single select" },
-      { tag: "Medium", definition: "Generally known and easily pictured but not quite as prevalent. Usually spotted within an hour on a typical driving trip.", type: "Single select" },
-      { tag: "Low", definition: "Rarely spotted and may not be seen without visiting select destinations where relevant. Most bingo boards shouldn't have more than 3–5 tiles considered low findability.", type: "Single select" },
+      { id: "fi-high",   tag: "High",   definition: "Easily spotted within 20 minutes on a typical driving trip.", type: "Single select" },
+      { id: "fi-medium", tag: "Medium", definition: "Generally known and easily pictured but not quite as prevalent. Usually spotted within an hour on a typical driving trip.", type: "Single select" },
+      { id: "fi-low",    tag: "Low",    definition: "Rarely spotted and may not be seen without visiting select destinations where relevant. Most bingo boards shouldn't have more than 3–5 tiles considered low findability.", type: "Single select" },
     ],
   },
   {
@@ -83,11 +88,11 @@ const DEFAULT_GROUPS: ColumnGroup[] = [
     emoji: "🍂",
     description: "Which months of the year this item is commonly visible. Use All if it can be found year-round.",
     definitions: [
-      { tag: "All", definition: "These items can be found any month of the year. If selected, the other seasons are not selected.", type: "Multiselect" },
-      { tag: "Spring", definition: "These items can be found in March, April, or May.", type: "Multiselect" },
-      { tag: "Summer", definition: "These items can be found in June, July, or August.", type: "Multiselect" },
-      { tag: "Fall", definition: "These items can be found in September, October, or November.", type: "Multiselect" },
-      { tag: "Winter", definition: "These items can be found in December, January, or February.", type: "Multiselect" },
+      { id: "sea-all",    tag: "All",    definition: "These items can be found any month of the year. If selected, the other seasons are not selected.", type: "Multiselect" },
+      { id: "sea-spring", tag: "Spring", definition: "These items can be found in March, April, or May.", type: "Multiselect" },
+      { id: "sea-summer", tag: "Summer", definition: "These items can be found in June, July, or August.", type: "Multiselect" },
+      { id: "sea-fall",   tag: "Fall",   definition: "These items can be found in September, October, or November.", type: "Multiselect" },
+      { id: "sea-winter", tag: "Winter", definition: "These items can be found in December, January, or February.", type: "Multiselect" },
     ],
   },
 ];
@@ -101,10 +106,19 @@ const CORE_TAGS: Record<string, readonly string[]> = {
   "Season": SEASONS,
 };
 
+function backfillIds(groups: ColumnGroup[]): ColumnGroup[] {
+  return groups.map((g) => ({
+    ...g,
+    definitions: g.definitions.map((d) =>
+      d.id ? d : { ...d, id: defId() }
+    ),
+  }));
+}
+
 function loadGroups(): ColumnGroup[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ColumnGroup[];
+    if (raw) return backfillIds(JSON.parse(raw) as ColumnGroup[]);
   } catch {}
   return DEFAULT_GROUPS;
 }
@@ -210,7 +224,7 @@ export default function DefinitionsPanel() {
       prev.map((g, gi) =>
         gi !== groupIdx ? g : {
           ...g,
-          definitions: [...g.definitions, { tag: tag.trim(), definition: definition.trim(), type: g.definitions[0]?.type ?? "Multiselect" }],
+          definitions: [...g.definitions, { id: defId(), tag: tag.trim(), definition: definition.trim(), type: g.definitions[0]?.type ?? "Multiselect" }],
         }
       )
     );
@@ -332,7 +346,7 @@ export default function DefinitionsPanel() {
 
               return (
                 <div
-                  key={di}
+                  key={def.id}
                   className={`group/row flex items-start gap-5 py-5 border-t border-border/50 transition-colors -mx-4 px-4 ${isPendingDel ? "bg-destructive/5" : "hover:bg-muted/20"}`}
                 >
                   {/* Tag name */}

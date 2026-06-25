@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "./EmptyState";
 import { getTagColor } from "@/lib/tagColors";
@@ -167,21 +167,28 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
 
   const boards = data?.boards ?? [];
 
-  const filtered = boards.filter((b) => {
-    const matchesStatus = statusFilter === "all" || b.status === statusFilter;
-    const matchesSearch =
-      !search ||
-      b.name.toLowerCase().includes(search.toLowerCase()) ||
-      (b.description ?? "").toLowerCase().includes(search.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const filtered = useMemo(
+    () =>
+      boards.filter((b) => {
+        const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+        const matchesSearch =
+          !search ||
+          b.name.toLowerCase().includes(search.toLowerCase()) ||
+          (b.description ?? "").toLowerCase().includes(search.toLowerCase());
+        return matchesStatus && matchesSearch;
+      }),
+    [boards, search, statusFilter]
+  );
 
-  const activeCounts = {
-    all: boards.length,
-    active: boards.filter((b) => b.status === "active").length,
-    draft: boards.filter((b) => b.status === "draft").length,
-    concept: boards.filter((b) => b.status === "concept").length,
-  };
+  const activeCounts = useMemo(
+    () => ({
+      all: boards.length,
+      active: boards.filter((b) => b.status === "active").length,
+      draft: boards.filter((b) => b.status === "draft").length,
+      concept: boards.filter((b) => b.status === "concept").length,
+    }),
+    [boards]
+  );
 
   function startEdit(board: Board) {
     setEditingId(board.id);

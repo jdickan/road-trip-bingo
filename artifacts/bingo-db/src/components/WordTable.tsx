@@ -199,6 +199,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const { toast } = useToast();
   const [newWordTop, setNewWordTop] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const quickAddTopRef = useRef<HTMLInputElement>(null);
 
   // ── Select mode ─────────────────────────────────────────────────────────────
   const [selectMode, setSelectMode] = useState(false);
@@ -596,6 +597,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
               <form onSubmit={handleAddWordTop} className="flex items-center gap-2">
                 <Plus className="h-3.5 w-3.5 text-muted-foreground/50 ml-2 shrink-0" />
                 <Input
+                  ref={quickAddTopRef}
                   placeholder="Quick add — separate multiple with commas…"
                   value={newWordTop}
                   onChange={(e) => setNewWordTop(e.target.value)}
@@ -640,7 +642,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                   jsonLabel="word"
                 >
                   <button
-                    onClick={() => (document.querySelector('[data-testid="input-quick-add-top"]') as HTMLInputElement | null)?.focus()}
+                    onClick={() => quickAddTopRef.current?.focus()}
                     className="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] uppercase border border-border px-4 py-2 hover:bg-muted/40 transition-colors"
                   >
                     <Plus className="h-3 w-3" />
