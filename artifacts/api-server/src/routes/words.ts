@@ -22,6 +22,7 @@ import {
   BulkRestoreWordsBody,
   BulkRestoreWordsResponse,
 } from "@workspace/api-zod";
+import { bumpBoardsContentVersion } from "../lib/content-version";
 
 const router: IRouter = Router();
 
@@ -203,6 +204,16 @@ async function resolveBoards(tx: DbOrTx, boardIds: number[]) {
     throw new UnknownBoardIdsError(uniqueIds.filter((i) => !foundIds.has(i)));
   }
   return found;
+}
+
+/** Fetch the distinct board IDs currently linked to any of the given words. */
+async function getJunctionBoardIds(tx: DbOrTx, wordIds: number[]): Promise<number[]> {
+  if (wordIds.length === 0) return [];
+  const rows = await tx
+    .select({ boardId: wordBoardsTable.boardId })
+    .from(wordBoardsTable)
+    .where(inArray(wordBoardsTable.wordId, wordIds));
+  return [...new Set(rows.map((r) => r.boardId))];
 }
 
 /** Replace a word's junction rows with the given resolved boards. */
@@ -432,6 +443,8 @@ router.post("/words", async (req, res): Promise<void> => {
         })
         .returning();
       await replaceWordBoards(tx, word.id, boards);
+      // New word content appears in these boards' /v1 bundles.
+      await bumpBoardsContentVersion(tx, boards.map((b) => b.id));
       return mapWordRow(word, {
         ids: boards.map((b) => b.id),
         names: boards.map((b) => b.name),
@@ -462,12 +475,19 @@ router.post("/words/bulk-delete", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const rows = await db
-      .update(wordsTable)
-      .set({ deletedAt: new Date() })
-      .where(and(inArray(wordsTable.id, ids), isNull(wordsTable.deletedAt)))
-      .returning({ id: wordsTable.id });
-    res.json(BulkDeleteWordsResponse.parse({ count: rows.length }));
+    const count = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(wordsTable)
+        .set({ deletedAt: new Date() })
+        .where(and(inArray(wordsTable.id, ids), isNull(wordsTable.deletedAt)))
+        .returning({ id: wordsTable.id });
+      await bumpBoardsContentVersion(
+        tx,
+        await getJunctionBoardIds(tx, rows.map((r) => r.id)),
+      );
+      return rows.length;
+    });
+    res.json(BulkDeleteWordsResponse.parse({ count }));
   } catch (err) {
     req.log.error({ err }, "POST /words/bulk-delete failed");
     res.status(500).json({ error: "Internal server error" });
@@ -487,12 +507,19 @@ router.post("/words/bulk-restore", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const rows = await db
-      .update(wordsTable)
-      .set({ deletedAt: null })
-      .where(and(inArray(wordsTable.id, ids), isNotNull(wordsTable.deletedAt)))
-      .returning({ id: wordsTable.id });
-    res.json(BulkRestoreWordsResponse.parse({ count: rows.length }));
+    const count = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(wordsTable)
+        .set({ deletedAt: null })
+        .where(and(inArray(wordsTable.id, ids), isNotNull(wordsTable.deletedAt)))
+        .returning({ id: wordsTable.id });
+      await bumpBoardsContentVersion(
+        tx,
+        await getJunctionBoardIds(tx, rows.map((r) => r.id)),
+      );
+      return rows.length;
+    });
+    res.json(BulkRestoreWordsResponse.parse({ count }));
   } catch (err) {
     req.log.error({ err }, "POST /words/bulk-restore failed");
     res.status(500).json({ error: "Internal server error" });
@@ -508,11 +535,17 @@ router.post("/words/:id/restore", async (req, res): Promise<void> => {
   }
 
   try {
-    const [word] = await db
-      .update(wordsTable)
-      .set({ deletedAt: null })
-      .where(and(eq(wordsTable.id, params.data.id), isNotNull(wordsTable.deletedAt)))
-      .returning();
+    const word = await db.transaction(async (tx) => {
+      const [w] = await tx
+        .update(wordsTable)
+        .set({ deletedAt: null })
+        .where(and(eq(wordsTable.id, params.data.id), isNotNull(wordsTable.deletedAt)))
+        .returning();
+      if (!w) return null;
+      // Restored words reappear in /v1 bundles.
+      await bumpBoardsContentVersion(tx, await getJunctionBoardIds(tx, [w.id]));
+      return w;
+    });
 
     if (!word) {
       res.status(404).json({ error: "Deleted word not found" });
@@ -583,12 +616,28 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
 
     const boardIds = parsed.data.boardIds;
 
+    // Bundle-visible word fields — edits to these change what /v1 bundles
+    // serve, so they must bump the linked published boards' contentVersion.
+    // `notes` is editorial-only and deliberately excluded.
+    const contentFieldChanged =
+      parsed.data.word !== undefined ||
+      parsed.data.regions !== undefined ||
+      parsed.data.surroundings !== undefined ||
+      parsed.data.dayNight !== undefined ||
+      parsed.data.age !== undefined ||
+      parsed.data.findability !== undefined ||
+      parsed.data.seasons !== undefined ||
+      parsed.data.spanish !== undefined ||
+      parsed.data.emoji !== undefined;
+
     const updated = await db.transaction(async (tx) => {
       let boards: { id: number; name: string }[] | undefined;
       if (boardIds !== undefined) {
         boards = await resolveBoards(tx, boardIds);
         updateData.boards = boards.map((b) => b.name);
       }
+
+      const oldBoardIds = await getJunctionBoardIds(tx, [params.data.id]);
 
       const [word] = await tx
         .update(wordsTable)
@@ -600,6 +649,17 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
 
       if (boards !== undefined) {
         await replaceWordBoards(tx, word.id, boards);
+      }
+
+      const newBoardIds = boards !== undefined ? boards.map((b) => b.id) : oldBoardIds;
+      const membershipChanged =
+        boards !== undefined &&
+        JSON.stringify([...oldBoardIds].sort((a, b) => a - b)) !==
+          JSON.stringify([...newBoardIds].sort((a, b) => a - b));
+
+      if (contentFieldChanged || membershipChanged) {
+        // Union of old ∪ new: a board the word left must also re-version.
+        await bumpBoardsContentVersion(tx, [...oldBoardIds, ...newBoardIds]);
       }
       return word;
     });
@@ -630,11 +690,17 @@ router.delete("/words/:id", async (req, res): Promise<void> => {
   }
 
   try {
-    const [word] = await db
-      .update(wordsTable)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
-      .returning();
+    const word = await db.transaction(async (tx) => {
+      const [w] = await tx
+        .update(wordsTable)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
+        .returning();
+      if (!w) return null;
+      // Soft-deleted words disappear from /v1 bundles.
+      await bumpBoardsContentVersion(tx, await getJunctionBoardIds(tx, [w.id]));
+      return w;
+    });
 
     if (!word) {
       res.status(404).json({ error: "Word not found" });

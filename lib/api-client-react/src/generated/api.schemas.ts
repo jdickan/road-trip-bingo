@@ -519,6 +519,71 @@ export interface PatchTodoBody {
   notes?: string | null;
 }
 
+/**
+ * Published-board metadata exposed on the public /v1 API
+ */
+export interface PublishedBoardSummary {
+  id: number;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  /** e.g. Young, Kid, Tween */
+  ageLevels: string[];
+  /**
+   * e.g. Easy, Medium, Hard
+   * @nullable
+   */
+  difficulty: string | null;
+  /**
+   * e.g. All Year, Summer, Winter
+   * @nullable
+   */
+  timeOfYear: string | null;
+  /** Globally-monotonic version stamped on the board's last content change */
+  contentVersion: number;
+  /** Number of non-deleted words linked to this board */
+  wordCount: number;
+}
+
+export interface PublishedBoardList {
+  boards: PublishedBoardSummary[];
+  /** Number of boards in this response (after any `since` filter) */
+  total: number;
+  /** Highest contentVersion across ALL published boards (0 when none), regardless of the `since` filter. Persist this and pass it as `since` on the next sync. */
+  latestVersion: number;
+}
+
+/**
+ * A word entry inside a board bundle — gameplay content only, no editorial fields
+ */
+export interface BundleWord {
+  id: number;
+  word: string;
+  /** @nullable */
+  spanish: string | null;
+  /** @nullable */
+  emoji: string | null;
+  /** @nullable */
+  age: string | null;
+  /** @nullable */
+  findability: string | null;
+  seasons: string[];
+  dayNight: string[];
+  regions: string[];
+  surroundings: string[];
+}
+
+/**
+ * Self-contained payload for one published board: metadata + resolved word list
+ */
+export interface BoardBundle {
+  board: PublishedBoardSummary;
+  words: BundleWord[];
+  contentVersion: number;
+  /** "sha256:<hex>" over the canonical JSON of the word list (words sorted by id, fixed key order). Lets the client verify a stored bundle or skip an unchanged re-download. */
+  checksum: string;
+}
+
 export type ListWordsParams = {
   search?: string;
   region?: string;
@@ -551,4 +616,12 @@ export type ExportWordsParams = {
 
 export type DeleteSnapshot200 = {
   deleted: boolean;
+};
+
+export type ListPublishedBoardsParams = {
+  /**
+   * Only return boards with contentVersion greater than this value. Omit to list all published boards.
+   * @minimum 0
+   */
+  since?: number;
 };

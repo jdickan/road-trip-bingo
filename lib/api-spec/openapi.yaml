@@ -17,6 +17,8 @@ tags:
     description: Database snapshot operations
   - name: ai
     description: AI-powered operations
+  - name: public
+    description: Read-only, versioned public API for external consumers (iOS app)
 paths:
   /todos:
     get:
@@ -685,6 +687,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/boards:
+    get:
+      operationId: listPublishedBoards
+      tags: [public]
+      summary: List published boards (read-only, versioned public API)
+      description: >-
+        Public, API-key-gated endpoint for external consumers (the iOS app).
+        Returns only boards with published = true — draft/concept boards and
+        unpublished edits are never visible here. Pass `since` (the highest
+        contentVersion seen on a previous sync) to receive only boards whose
+        content changed after that version.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: >-
+            Only return boards with contentVersion greater than this value.
+            Omit to list all published boards.
+      responses:
+        "200":
+          description: Published boards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishedBoardList"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/boards/{id}/bundle:
+    get:
+      operationId: getBoardBundle
+      tags: [public]
+      summary: Get the self-contained content bundle for a published board
+      description: >-
+        Returns the full payload needed to play one board offline: board
+        metadata plus its resolved word list (joined server-side, excluding
+        soft-deleted words), a contentVersion, and a checksum over the word
+        list. Only available for published boards.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Board bundle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardBundle"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Board not found or not published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -1323,3 +1400,139 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+
+    PublishedBoardSummary:
+      type: object
+      description: "Published-board metadata exposed on the public /v1 API"
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        ageLevels:
+          type: array
+          items:
+            type: string
+          description: "e.g. Young, Kid, Tween"
+        difficulty:
+          type: ["string", "null"]
+          description: "e.g. Easy, Medium, Hard"
+        timeOfYear:
+          type: ["string", "null"]
+          description: "e.g. All Year, Summer, Winter"
+        contentVersion:
+          type: integer
+          description: "Globally-monotonic version stamped on the board's last content change"
+        wordCount:
+          type: integer
+          description: "Number of non-deleted words linked to this board"
+      required:
+        - id
+        - name
+        - description
+        - ageLevels
+        - difficulty
+        - timeOfYear
+        - contentVersion
+        - wordCount
+
+    PublishedBoardList:
+      type: object
+      properties:
+        boards:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublishedBoardSummary"
+        total:
+          type: integer
+          description: "Number of boards in this response (after any `since` filter)"
+        latestVersion:
+          type: integer
+          description: >-
+            Highest contentVersion across ALL published boards (0 when none),
+            regardless of the `since` filter. Persist this and pass it as
+            `since` on the next sync.
+      required:
+        - boards
+        - total
+        - latestVersion
+
+    BundleWord:
+      type: object
+      description: "A word entry inside a board bundle — gameplay content only, no editorial fields"
+      properties:
+        id:
+          type: integer
+        word:
+          type: string
+        spanish:
+          type: ["string", "null"]
+        emoji:
+          type: ["string", "null"]
+        age:
+          type: ["string", "null"]
+        findability:
+          type: ["string", "null"]
+        seasons:
+          type: array
+          items:
+            type: string
+        dayNight:
+          type: array
+          items:
+            type: string
+        regions:
+          type: array
+          items:
+            type: string
+        surroundings:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - word
+        - spanish
+        - emoji
+        - age
+        - findability
+        - seasons
+        - dayNight
+        - regions
+        - surroundings
+
+    BoardBundle:
+      type: object
+      description: "Self-contained payload for one published board: metadata + resolved word list"
+      properties:
+        board:
+          $ref: "#/components/schemas/PublishedBoardSummary"
+        words:
+          type: array
+          items:
+            $ref: "#/components/schemas/BundleWord"
+        contentVersion:
+          type: integer
+        checksum:
+          type: string
+          description: >-
+            "sha256:<hex>" over the canonical JSON of the word list (words
+            sorted by id, fixed key order). Lets the client verify a stored
+            bundle or skip an unchanged re-download.
+      required:
+        - board
+        - words
+        - contentVersion
+        - checksum
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: >-
+        Static API key for the public /v1 namespace. This key ships inside the
+        iOS app binary — it is attribution/abuse control, not real access
+        control. Admin routes use a separate password-gated bearer token.

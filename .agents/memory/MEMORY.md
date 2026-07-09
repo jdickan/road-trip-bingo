@@ -1,1 +1,2 @@
 - [Snapshot dumps must include junction tables](snapshot-junction-integrity.md) — never rebuild junction rows from denormalized name columns on restore; names go stale after renames.
+- [Delta-sync cursor query ordering](delta-sync-cursor-ordering.md) — query the latestVersion cursor BEFORE the delta list, and bump versions for old ∪ new parents on membership moves.

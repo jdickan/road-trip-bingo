@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, isNull } from "drizzle-orm";
 import { db, boardsTable, wordsTable, wordBoardsTable } from "@workspace/db";
+import { bumpBoardsContentVersion } from "../lib/content-version";
 
 const router: IRouter = Router();
 
@@ -223,25 +224,59 @@ router.patch("/boards/:id", async (req: Request, res: Response): Promise<void> =
 
   try {
     const body = parseBodyFields(req.body ?? {});
-    const updateData: Partial<typeof boardsTable.$inferInsert> = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.ageLevels !== undefined) updateData.ageLevels = body.ageLevels;
-    if (body.difficulty !== undefined) updateData.difficulty = body.difficulty;
-    if (body.timeOfYear !== undefined) updateData.timeOfYear = body.timeOfYear;
-    if (body.availability !== undefined) updateData.availability = body.availability;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.published !== undefined) {
-      updateData.published = body.published;
-      updateData.publishedAt = body.published ? new Date() : null;
-    }
-    if (body.notes !== undefined) updateData.notes = body.notes;
 
-    const [board] = await db
-      .update(boardsTable)
-      .set(updateData)
-      .where(eq(boardsTable.id, id))
-      .returning();
+    const board = await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(boardsTable)
+        .where(eq(boardsTable.id, id));
+      if (!existing) return null;
+
+      const updateData: Partial<typeof boardsTable.$inferInsert> = {};
+      if (body.name !== undefined) updateData.name = body.name;
+      if (body.description !== undefined) updateData.description = body.description;
+      if (body.ageLevels !== undefined) updateData.ageLevels = body.ageLevels;
+      if (body.difficulty !== undefined) updateData.difficulty = body.difficulty;
+      if (body.timeOfYear !== undefined) updateData.timeOfYear = body.timeOfYear;
+      if (body.availability !== undefined) updateData.availability = body.availability;
+      if (body.status !== undefined) updateData.status = body.status;
+      if (body.published !== undefined && body.published !== existing.published) {
+        updateData.published = body.published;
+        // publishedAt = last publish time: stamped on the false→true
+        // transition, cleared on unpublish, untouched by republish no-ops.
+        updateData.publishedAt = body.published ? new Date() : null;
+      }
+      if (body.notes !== undefined) updateData.notes = body.notes;
+
+      const [updated] =
+        Object.keys(updateData).length > 0
+          ? await tx
+              .update(boardsTable)
+              .set(updateData)
+              .where(eq(boardsTable.id, id))
+              .returning()
+          : [existing];
+
+      // Content-version bump (drives the /v1 `since` delta sync):
+      //  - publish transition (false→true) always bumps, so every published
+      //    board carries a version from this sequence;
+      //  - edits to bundle-visible metadata bump only when the board is
+      //    published after this update.
+      const publishing = body.published === true && !existing.published;
+      const bundleMetadataChanged =
+        (body.name !== undefined && body.name !== existing.name) ||
+        (body.description !== undefined && body.description !== existing.description) ||
+        (body.ageLevels !== undefined &&
+          JSON.stringify(body.ageLevels) !== JSON.stringify(existing.ageLevels)) ||
+        (body.difficulty !== undefined && body.difficulty !== existing.difficulty) ||
+        (body.timeOfYear !== undefined && body.timeOfYear !== existing.timeOfYear);
+
+      if (updated.published && (publishing || bundleMetadataChanged)) {
+        await bumpBoardsContentVersion(tx, [id]);
+      }
+
+      return updated;
+    });
 
     if (!board) {
       res.status(404).json({ error: "Board not found" });

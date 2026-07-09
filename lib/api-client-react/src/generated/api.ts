@@ -20,6 +20,7 @@ import type {
   AutofillRequest,
   AutofillResponse,
   Board,
+  BoardBundle,
   BoardList,
   BulkActionResponse,
   BulkWordIdsBody,
@@ -31,8 +32,10 @@ import type {
   ErrorResponse,
   ExportWordsParams,
   HealthStatus,
+  ListPublishedBoardsParams,
   ListWordsParams,
   PatchTodoBody,
+  PublishedBoardList,
   RestoreSnapshotResponse,
   SnapshotList,
   SnapshotResponse,
@@ -2378,3 +2381,192 @@ export const useSuggestWords = <
 > => {
   return useMutation(getSuggestWordsMutationOptions(options));
 };
+
+/**
+ * Public, API-key-gated endpoint for external consumers (the iOS app). Returns only boards with published = true — draft/concept boards and unpublished edits are never visible here. Pass `since` (the highest contentVersion seen on a previous sync) to receive only boards whose content changed after that version.
+ * @summary List published boards (read-only, versioned public API)
+ */
+export const getListPublishedBoardsUrl = (
+  params?: ListPublishedBoardsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/boards?${stringifiedParams}`
+    : `/api/v1/boards`;
+};
+
+export const listPublishedBoards = async (
+  params?: ListPublishedBoardsParams,
+  options?: RequestInit,
+): Promise<PublishedBoardList> => {
+  return customFetch<PublishedBoardList>(getListPublishedBoardsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPublishedBoardsQueryKey = (
+  params?: ListPublishedBoardsParams,
+) => {
+  return [`/api/v1/boards`, ...(params ? [params] : [])] as const;
+};
+
+export const getListPublishedBoardsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPublishedBoards>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListPublishedBoardsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPublishedBoards>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPublishedBoardsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPublishedBoards>>
+  > = ({ signal }) =>
+    listPublishedBoards(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPublishedBoards>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPublishedBoardsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPublishedBoards>>
+>;
+export type ListPublishedBoardsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List published boards (read-only, versioned public API)
+ */
+
+export function useListPublishedBoards<
+  TData = Awaited<ReturnType<typeof listPublishedBoards>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListPublishedBoardsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPublishedBoards>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPublishedBoardsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the full payload needed to play one board offline: board metadata plus its resolved word list (joined server-side, excluding soft-deleted words), a contentVersion, and a checksum over the word list. Only available for published boards.
+ * @summary Get the self-contained content bundle for a published board
+ */
+export const getGetBoardBundleUrl = (id: number) => {
+  return `/api/v1/boards/${id}/bundle`;
+};
+
+export const getBoardBundle = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BoardBundle> => {
+  return customFetch<BoardBundle>(getGetBoardBundleUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBoardBundleQueryKey = (id: number) => {
+  return [`/api/v1/boards/${id}/bundle`] as const;
+};
+
+export const getGetBoardBundleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoardBundle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardBundle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBoardBundleQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBoardBundle>>> = ({
+    signal,
+  }) => getBoardBundle(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBoardBundle>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBoardBundleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoardBundle>>
+>;
+export type GetBoardBundleQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get the self-contained content bundle for a published board
+ */
+
+export function useGetBoardBundle<
+  TData = Awaited<ReturnType<typeof getBoardBundle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardBundle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardBundleQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

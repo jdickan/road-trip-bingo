@@ -855,3 +855,113 @@ export const SuggestWordsResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * Public, API-key-gated endpoint for external consumers (the iOS app). Returns only boards with published = true — draft/concept boards and unpublished edits are never visible here. Pass `since` (the highest contentVersion seen on a previous sync) to receive only boards whose content changed after that version.
+ * @summary List published boards (read-only, versioned public API)
+ */
+export const listPublishedBoardsQuerySinceMin = 0;
+
+export const ListPublishedBoardsQueryParams = zod.object({
+  since: zod.coerce
+    .number()
+    .min(listPublishedBoardsQuerySinceMin)
+    .optional()
+    .describe(
+      "Only return boards with contentVersion greater than this value. Omit to list all published boards.",
+    ),
+});
+
+export const ListPublishedBoardsResponse = zod.object({
+  boards: zod.array(
+    zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+        description: zod.string().nullable(),
+        ageLevels: zod.array(zod.string()).describe("e.g. Young, Kid, Tween"),
+        difficulty: zod.string().nullable().describe("e.g. Easy, Medium, Hard"),
+        timeOfYear: zod
+          .string()
+          .nullable()
+          .describe("e.g. All Year, Summer, Winter"),
+        contentVersion: zod
+          .number()
+          .describe(
+            "Globally-monotonic version stamped on the board's last content change",
+          ),
+        wordCount: zod
+          .number()
+          .describe("Number of non-deleted words linked to this board"),
+      })
+      .describe("Published-board metadata exposed on the public \/v1 API"),
+  ),
+  total: zod
+    .number()
+    .describe("Number of boards in this response (after any `since` filter)"),
+  latestVersion: zod
+    .number()
+    .describe(
+      "Highest contentVersion across ALL published boards (0 when none), regardless of the `since` filter. Persist this and pass it as `since` on the next sync.",
+    ),
+});
+
+/**
+ * Returns the full payload needed to play one board offline: board metadata plus its resolved word list (joined server-side, excluding soft-deleted words), a contentVersion, and a checksum over the word list. Only available for published boards.
+ * @summary Get the self-contained content bundle for a published board
+ */
+export const GetBoardBundleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBoardBundleResponse = zod
+  .object({
+    board: zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+        description: zod.string().nullable(),
+        ageLevels: zod.array(zod.string()).describe("e.g. Young, Kid, Tween"),
+        difficulty: zod.string().nullable().describe("e.g. Easy, Medium, Hard"),
+        timeOfYear: zod
+          .string()
+          .nullable()
+          .describe("e.g. All Year, Summer, Winter"),
+        contentVersion: zod
+          .number()
+          .describe(
+            "Globally-monotonic version stamped on the board's last content change",
+          ),
+        wordCount: zod
+          .number()
+          .describe("Number of non-deleted words linked to this board"),
+      })
+      .describe("Published-board metadata exposed on the public \/v1 API"),
+    words: zod.array(
+      zod
+        .object({
+          id: zod.number(),
+          word: zod.string(),
+          spanish: zod.string().nullable(),
+          emoji: zod.string().nullable(),
+          age: zod.string().nullable(),
+          findability: zod.string().nullable(),
+          seasons: zod.array(zod.string()),
+          dayNight: zod.array(zod.string()),
+          regions: zod.array(zod.string()),
+          surroundings: zod.array(zod.string()),
+        })
+        .describe(
+          "A word entry inside a board bundle — gameplay content only, no editorial fields",
+        ),
+    ),
+    contentVersion: zod.number(),
+    checksum: zod
+      .string()
+      .describe(
+        '\"sha256:<hex>\" over the canonical JSON of the word list (words sorted by id, fixed key order). Lets the client verify a stored bundle or skip an unchanged re-download.',
+      ),
+  })
+  .describe(
+    "Self-contained payload for one published board: metadata + resolved word list",
+  );

@@ -91,7 +91,7 @@ Array columns (dayNight, regions, surroundings, seasons, boards) are NOT NULL wi
 Use `cardinality(col) = 0` (not `IS NULL`) to detect empty/unset values in queries.
 
 ### Testing & CI
-- API tests: Vitest + supertest in `artifacts/api-server/src/__tests__/` (19 tests: words CRUD/filters/junction, boards publish/coverage/preview)
+- API tests: Vitest + supertest in `artifacts/api-server/src/__tests__/` (41 tests: words CRUD/filters/junction, boards publish/coverage/preview, v1 public API/contentVersion bumps/API key guard, AI autofill bumps with mocked OpenAI)
 - Tests run against a separate `bingo_test` database: set `TEST_DATABASE_URL` (same host as `DATABASE_URL`, pathname `/bingo_test`), then `pnpm --filter @workspace/api-server run test`
 - CI: `.github/workflows/ci.yml` — postgres:16 service, pnpm 10 + Node 24, runs typecheck → drizzle push-force → tests on push/PR to main
 
@@ -170,6 +170,18 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 - `POST /api/snapshots` — create a snapshot
 - `POST /api/snapshots/:id/restore` — restore a snapshot
 - `DELETE /api/snapshots/:id` — delete a snapshot
+
+#### Public v1 (read-only, for the iOS app)
+- `GET /api/v1/boards` — published boards only (`?since=<version>` for delta sync; response includes global `latestVersion` cursor)
+- `GET /api/v1/boards/:id/bundle` — self-contained bundle: board metadata + resolved word list (soft-deleted excluded, sorted by id) + `contentVersion` + `sha256:<hex>` checksum over the canonical word-list JSON
+- Auth: exempt from the admin Bearer guard; gated by `X-API-Key` header matching `PUBLIC_API_KEY` (read at request time; unset → 503 in production, open in dev/test) + 60 req/min/IP rate limit
+- Strictly GET-only — never add mutation routes under `/v1`
+
+#### Content versioning (`contentVersion`)
+- `bingo_boards.content_version` (int, default 0) is stamped from the global `bingo_content_version_seq` PG sequence via `artifacts/api-server/src/lib/content-version.ts`
+- Bump events (published boards only): publish transition (false→true), bundle-visible board metadata edits (name/description/ageLevels/difficulty/timeOfYear), word content edits (all fields except `notes`, including AI autofill), board-membership changes (bumps old ∪ new boards), word soft-delete/restore/bulk ops, snapshot restore (bumps ALL published boards)
+- No bump: editorial fields (board `notes`/`status`/`availability`, word `notes`), unpublish, purge of already-deleted words, edits touching only unpublished boards
+- `publishedAt` is set on the false→true transition, cleared on unpublish, untouched by republish no-ops
 
 ### `lib/db` (`@workspace/db`)
 

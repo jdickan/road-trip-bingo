@@ -184,7 +184,14 @@ app.post(
 // not set.  Once ADMIN_PASSWORD is configured, full HMAC validation applies
 // even in development.
 function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
-  if (req.path === "/auth/token" || req.path === "/healthz") {
+  // /v1/* is the public read-only namespace: it is exempt from the admin
+  // Bearer-token guard and instead protected by its own X-API-Key guard and
+  // rate limit (publicApiKeyGuard below, mounted on /api/v1).
+  if (
+    req.path === "/auth/token" ||
+    req.path === "/healthz" ||
+    req.path.startsWith("/v1/")
+  ) {
     next();
     return;
   }
@@ -218,6 +225,64 @@ function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
 // Mount BEFORE /api/ai/token and the main router — all requests to /api/*
 // that are not /auth/token or /healthz must pass the auth guard first.
 app.use("/api", apiAuthGuard);
+
+// ---------------------------------------------------------------------------
+// Public /v1 namespace — API key guard + rate limit
+// ---------------------------------------------------------------------------
+// The /v1 routes are read-only endpoints for external consumers (the iOS
+// app).  They are exempt from the admin Bearer-token guard above and instead
+// require a static X-API-Key header matching PUBLIC_API_KEY.
+//
+// PUBLIC_API_KEY is read at REQUEST time (not module load) so that setting or
+// rotating the key never requires reasoning about import order, and tests can
+// toggle it per-request.
+//
+// Unset key: 503 in production (fail closed), open in development/test.
+function publicApiKeyGuard(req: Request, res: Response, next: NextFunction): void {
+  const configuredKey = process.env["PUBLIC_API_KEY"] ?? null;
+
+  if (!configuredKey) {
+    if (process.env["NODE_ENV"] === "production") {
+      res.status(503).json({ error: "Public API is not configured." });
+      return;
+    }
+    next();
+    return;
+  }
+
+  const supplied = req.headers["x-api-key"];
+  if (typeof supplied !== "string" || supplied.length === 0) {
+    res.status(401).json({ error: "API key required." });
+    return;
+  }
+
+  const suppliedBuf = Buffer.from(supplied, "utf8");
+  const expectedBuf = Buffer.from(configuredKey, "utf8");
+  const match =
+    suppliedBuf.length === expectedBuf.length &&
+    timingSafeEqual(suppliedBuf, expectedBuf);
+
+  if (!match) {
+    res.status(401).json({ error: "Invalid API key." });
+    return;
+  }
+
+  next();
+}
+
+// 60 requests per minute per IP — generous for a sync client (one list call
+// + a handful of bundle downloads), hostile to scraping/abuse.  Disabled
+// under NODE_ENV=test so the suite never trips it.
+const publicApiRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env["NODE_ENV"] === "test",
+  message: { error: "Too many requests. Please slow down." },
+});
+
+app.use("/api/v1", publicApiRateLimit, publicApiKeyGuard);
 
 // ---------------------------------------------------------------------------
 // AI rate limit on /api/ai/* — applied after auth guard, before router

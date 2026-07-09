@@ -5,6 +5,7 @@ import aiRouter from "./ai";
 import boardsRouter from "./boards";
 import snapshotsRouter from "./snapshots";
 import todosRouter from "./todos";
+import v1Router from "./v1";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(aiRouter);
 router.use(boardsRouter);
 router.use(snapshotsRouter);
 router.use(todosRouter);
+router.use(v1Router);
 
 export default router;

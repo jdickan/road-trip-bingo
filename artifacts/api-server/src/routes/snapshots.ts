@@ -6,6 +6,7 @@ import path from "path";
 import { sql, isNull } from "drizzle-orm";
 import { db, wordsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { bumpAllPublishedBoards } from "../lib/content-version";
 
 const execFileAsync = promisify(execFile);
 const router: IRouter = Router();
@@ -165,6 +166,10 @@ router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
         ON CONFLICT DO NOTHING
       `);
     }
+
+    // A restore replaces word + junction data wholesale, so every published
+    // board's /v1 bundle may have changed — re-version them all.
+    await bumpAllPublishedBoards(db);
 
     // Get accurate word count from the restored data
     const countResult = await db

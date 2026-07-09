@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
+import { bumpBoardsContentVersion } from "../lib/content-version";
 
 const router: IRouter = Router();
 
@@ -332,6 +333,14 @@ Return only the JSON array, no explanation.`;
               .insert(wordBoardsTable)
               .values(newBoards.map((b) => ({ wordId: id, boardId: b.id })));
           }
+        }
+        if (row) {
+          // Every autofill field is bundle-visible content, so any update
+          // must bump the linked published boards' contentVersion.  Union of
+          // old ∪ new membership: boards the word left must re-version too.
+          const oldBoardIds = assocByWord.get(id)?.ids ?? [];
+          const newBoardIds = newBoards !== undefined ? newBoards.map((b) => b.id) : oldBoardIds;
+          await bumpBoardsContentVersion(tx, [...oldBoardIds, ...newBoardIds]);
         }
         return row;
       });
