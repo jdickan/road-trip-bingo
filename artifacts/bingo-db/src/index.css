@@ -482,3 +482,13 @@ html[data-colored-tags] .dark .tag-badge {
   background-color: hsl(var(--border) / 0.6);
 }
 /* Atelier skin: bars keep their pastel colors — no monochrome override. */
+
+/* ── Density: table cell vertical padding ────────────────────────────────────
+   data-density is set on <html> by applyTheme().
+   We only override vertical padding — horizontal padding stays at p-1 (4px).
+   The [data-density] selectors are specific enough (0,1,0) to beat Tailwind
+   utilities (0,0,1) without needing !important. We target shadcn TableCell
+   which renders as <td class="p-1 …">.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-density="compact"]     table tbody td { padding-top: 2px;  padding-bottom: 2px; }
+[data-density="comfortable"] table tbody td { padding-top: 10px; padding-bottom: 10px; }

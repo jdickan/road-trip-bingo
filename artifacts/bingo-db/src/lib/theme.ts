@@ -1,5 +1,8 @@
-export const STORAGE_KEY      = "bingo-theme-v1";   // stores My Theme + darkMode pref
-export const ACTIVE_SKIN_KEY  = "bingo-active-skin"; // "basic" | "custom"
+export const STORAGE_KEY      = "bingo-theme-v1";         // stores My Theme + darkMode pref
+export const ACTIVE_SKIN_KEY  = "bingo-active-skin";       // "basic" | "custom"
+export const PRESETS_KEY      = "bingo-theme-presets-v1";  // named user presets
+
+export type Density = "compact" | "cozy" | "comfortable";
 
 export interface ThemeValue {
   primaryHue: number;
@@ -11,6 +14,14 @@ export interface ThemeValue {
   darkMode: boolean;
   rowDividerOpacity: number;
   coloredTags: boolean;
+  density: Density;
+}
+
+export interface SavedPreset {
+  id: string;
+  name: string;
+  theme: ThemeValue;
+  savedAt: string;
 }
 
 // ── Basic theme — the original designed look, always recoverable ──────────────
@@ -24,6 +35,7 @@ export const BASIC_THEME: ThemeValue = {
   darkMode: false,
   rowDividerOpacity: 0.38,
   coloredTags: true,
+  density: "cozy",
 };
 
 // Backward-compat alias
@@ -40,6 +52,7 @@ export const ATELIER_THEME: ThemeValue = {
   darkMode: false,
   rowDividerOpacity: 0.10,
   coloredTags: true,
+  density: "cozy",
 };
 
 export type SkinName = "basic" | "custom";
@@ -107,6 +120,33 @@ export function loadTheme(): ThemeValue {
   return { ...loadCustomTheme(), darkMode };
 }
 
+// ── Named presets ─────────────────────────────────────────────────────────────
+
+export function loadSavedPresets(): SavedPreset[] {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    if (raw) return JSON.parse(raw) as SavedPreset[];
+  } catch {}
+  return [];
+}
+
+export function savePreset(name: string, theme: ThemeValue): SavedPreset {
+  const preset: SavedPreset = {
+    id: `preset_${Date.now()}`,
+    name: name.trim() || "Untitled",
+    theme: { ...theme },
+    savedAt: new Date().toISOString(),
+  };
+  const existing = loadSavedPresets();
+  localStorage.setItem(PRESETS_KEY, JSON.stringify([...existing, preset]));
+  return preset;
+}
+
+export function deletePreset(id: string): void {
+  const existing = loadSavedPresets().filter((p) => p.id !== id);
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(existing));
+}
+
 // ── Apply ─────────────────────────────────────────────────────────────────────
 
 export function applyTheme(t: ThemeValue, skin?: SkinName): void {
@@ -137,9 +177,10 @@ export function applyTheme(t: ThemeValue, skin?: SkinName): void {
     root.removeAttribute("data-colored-tags");
   }
 
+  // Density
+  root.setAttribute("data-density", t.density ?? "cozy");
+
   // ── Primary color (both skins) — slider-driven with dark-mode lightness flip ─
-  // In dark mode the lightness is inverted so near-black becomes near-white and
-  // saturated hues stay readable. --primary-foreground is computed accordingly.
   const effectivePrimaryLight = t.darkMode ? 100 - t.primaryLight : t.primaryLight;
   const primaryFg = effectivePrimaryLight > 55 ? "0 0% 9%" : "0 0% 99%";
   const primaryVal = `${t.primaryHue} ${t.primarySat}% ${effectivePrimaryLight}%`;
