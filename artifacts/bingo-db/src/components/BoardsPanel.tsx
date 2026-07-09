@@ -1,12 +1,39 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, X, Plus, Pencil, Trash2, Ban, ArrowUpRight } from "lucide-react";
+import { Search, X, Plus, Pencil, Trash2, ArrowUpRight, MoreHorizontal, LayoutGrid, Rows3 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "./EmptyState";
 import { getTagColor } from "@/lib/tagColors";
 import { customFetch } from "@workspace/api-client-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { BoardContentPreview } from "./BoardContentPreview";
+
+interface BoardCoverage {
+  status: "well-covered" | "needs-words" | "unbalanced";
+  label: string;
+}
+
+interface BoardPreviewWord {
+  id: number;
+  word: string;
+  emoji: string | null;
+}
 
 interface Board {
   id: number;
@@ -17,8 +44,12 @@ interface Board {
   timeOfYear: string | null;
   availability: string | null;
   status: "active" | "draft" | "concept";
+  published: boolean;
+  publishedAt: string | null;
   notes: string | null;
   wordCount: number;
+  coverage?: BoardCoverage;
+  preview?: BoardPreviewWord[];
 }
 
 interface BoardsResponse {
@@ -54,20 +85,81 @@ async function deleteBoard(id: number): Promise<void> {
 
 const STATUS_CYCLE: Board["status"][] = ["active", "draft", "concept"];
 
-function nextStatus(current: Board["status"]): Board["status"] {
-  const idx = STATUS_CYCLE.indexOf(current);
-  return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
-}
+/** Editorial lifecycle order for the segmented control: concept → draft → active. */
+const STATUS_ORDER: Board["status"][] = ["concept", "draft", "active"];
 
 function plateNumber(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+const COVERAGE_STYLES: Record<BoardCoverage["status"], string> = {
+  "well-covered": "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  "needs-words": "text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10",
+  unbalanced: "text-rose-600 dark:text-rose-400 border-rose-500/30 bg-rose-500/10",
+};
+
+const COVERAGE_RANK: Record<BoardCoverage["status"], number> = {
+  "needs-words": 0,
+  unbalanced: 1,
+  "well-covered": 2,
+};
+
+function CoverageBadge({ coverage }: { coverage: BoardCoverage }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center border px-1.5 py-0.5 font-mono text-[9.5px] tracking-[0.08em] uppercase rounded-sm whitespace-nowrap",
+        COVERAGE_STYLES[coverage.status]
+      )}
+    >
+      {coverage.label}
+    </span>
+  );
+}
+
+function StatusSegmented({
+  value,
+  onChange,
+  disabled,
+  boardName,
+}: {
+  value: Board["status"];
+  onChange: (s: Board["status"]) => void;
+  disabled?: boolean;
+  boardName: string;
+}) {
+  return (
+    <div
+      className="inline-flex border border-border rounded-sm overflow-hidden"
+      role="group"
+      aria-label={`Lifecycle status for ${boardName}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {STATUS_ORDER.map((s) => (
+        <button
+          key={s}
+          onClick={() => value !== s && onChange(s)}
+          disabled={disabled}
+          aria-pressed={value === s}
+          className={cn(
+            "px-2 py-1 font-mono text-[9.5px] tracking-[0.14em] uppercase transition-colors disabled:opacity-40",
+            value === s
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          )}
+        >
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type StatusFilter = "all" | "active" | "draft" | "concept";
 
 interface BoardsPanelProps {
-  onSelectBoard: (boardName: string | null) => void;
-  selectedBoard: string | null;
+  onSelectBoard: (board: { id: number; name: string } | null) => void;
+  selectedBoard: { id: number; name: string } | null;
 }
 
 interface EditState {
@@ -85,6 +177,7 @@ interface NewBoardState {
 export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPanelProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [view, setView] = useState<"cards" | "list">("cards");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editState, setEditState] = useState<EditState>({ name: "", description: "" });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -180,6 +273,17 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     [boards, search, statusFilter]
   );
 
+  // List view: triage order — boards that need attention first
+  const listSorted = useMemo(
+    () =>
+      [...filtered].sort((a, b) => {
+        const ra = COVERAGE_RANK[a.coverage?.status ?? "well-covered"];
+        const rb = COVERAGE_RANK[b.coverage?.status ?? "well-covered"];
+        return ra - rb || a.wordCount - b.wordCount || a.name.localeCompare(b.name);
+      }),
+    [filtered]
+  );
+
   const activeCounts = useMemo(
     () => ({
       all: boards.length,
@@ -205,13 +309,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
     setEditingId(null);
   }
 
-  function cycleStatus(board: Board, e: React.MouseEvent) {
-    e.stopPropagation();
-    patchMutation.mutate({ id: board.id, patch: { status: nextStatus(board.status) } });
-  }
-
-  function confirmDelete(id: number, e: React.MouseEvent) {
-    e.stopPropagation();
+  function confirmDelete(id: number) {
     setConfirmDeleteId(id);
     setEditingId(null);
   }
@@ -266,6 +364,30 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
 
         {/* Right actions */}
         <div className="ml-auto flex items-center gap-4 pl-6">
+          <div className="flex items-center border border-border rounded-sm overflow-hidden" role="group" aria-label="View mode">
+            <button
+              onClick={() => setView("cards")}
+              aria-label="Card view"
+              aria-pressed={view === "cards"}
+              className={cn(
+                "p-1.5 transition-colors",
+                view === "cards" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setView("list")}
+              aria-label="List view"
+              aria-pressed={view === "list"}
+              className={cn(
+                "p-1.5 transition-colors",
+                view === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+              )}
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+            </button>
+          </div>
           {selectedBoard && (
             <button
               onClick={() => onSelectBoard(null)}
@@ -428,9 +550,9 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         )
       )}
 
-      {/* ── Board rows ── */}
-      {data && filtered.map((board, index) => {
-        const isSelected = selectedBoard === board.name;
+      {/* ── Board rows (cards view) ── */}
+      {data && view === "cards" && filtered.map((board) => {
+        const isSelected = selectedBoard?.id === board.id;
         const isEditing = editingId === board.id;
         const isConfirmingDelete = confirmDeleteId === board.id;
         const boardColor = getTagColor("board", board.name);
@@ -438,9 +560,14 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
         return (
           <div
             key={board.id}
+            onClick={() => {
+              if (!isEditing && !isConfirmingDelete) {
+                onSelectBoard(isSelected ? null : { id: board.id, name: board.name });
+              }
+            }}
             className={cn(
               "group relative flex items-start gap-6 md:gap-10 py-8 border-b border-border transition-colors duration-200",
-              !isEditing && "hover:bg-muted/40"
+              !isEditing && "hover:bg-muted/40 cursor-pointer"
             )}
             data-testid={`board-card-${board.id}`}
           >
@@ -463,7 +590,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
             {/* Main column */}
             <div className="flex-1 min-w-0">
               {/* Eyebrow: color dot + status + selected indicator */}
-              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2 flex items-center gap-2">
+              <p className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground mb-2 flex flex-wrap items-center gap-2">
                 <span
                   style={{
                     display: "inline-block",
@@ -475,7 +602,11 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                   }}
                 />
                 {board.status}
-                {isSelected && <span className="ml-3 text-foreground/70">· selected</span>}
+                {board.published && (
+                  <span className="text-emerald-600 dark:text-emerald-400">· published</span>
+                )}
+                {board.coverage && <CoverageBadge coverage={board.coverage} />}
+                {isSelected && <span className="ml-1 text-foreground/70">· selected</span>}
               </p>
 
               {/* Title — editing vs. display */}
@@ -494,8 +625,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                   className="bg-transparent border-0 border-b border-foreground text-2xl md:text-3xl font-editorial italic text-foreground outline-none py-1 w-full"
                 />
               ) : (
-                <button
-                  onClick={() => onSelectBoard(isSelected ? null : board.name)}
+                <span
                   className={cn(
                     "text-left text-2xl md:text-3xl font-editorial italic leading-tight transition-all duration-200 text-foreground block",
                     isSelected
@@ -504,7 +634,7 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                   )}
                 >
                   {board.name}
-                </button>
+                </span>
               )}
 
               {/* Description */}
@@ -547,6 +677,11 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                 </p>
               )}
 
+              {/* Content preview: deterministic sample of the board's words */}
+              {!isEditing && (
+                <BoardContentPreview preview={board.preview ?? []} wordCount={board.wordCount} />
+              )}
+
               {/* Edit save / cancel */}
               {isEditing && (
                 <div className="flex items-center gap-4 mt-4" onClick={(e) => e.stopPropagation()}>
@@ -587,47 +722,131 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
               )}
             </div>
 
-            {/* Right rail: ghost icon buttons + arrow */}
+            {/* Right rail: overflow menu, status control, published toggle */}
             {!isEditing && !isConfirmingDelete && (
-              <div className="shrink-0 flex items-center gap-0.5 pt-1">
-                <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div
+                className="shrink-0 flex flex-col items-end gap-2.5 pt-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-0.5">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label={`More actions for "${board.name}"`}
+                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid={`board-menu-${board.id}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => startEdit(board)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => confirmDelete(board.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <button
-                    aria-label={`Edit "${board.name}"`}
-                    onClick={(e) => { e.stopPropagation(); startEdit(board); }}
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => onSelectBoard(isSelected ? null : { id: board.id, name: board.name })}
+                    aria-label={`Filter words to ${board.name}`}
+                    className="p-1.5 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    aria-label={board.status === "concept" ? `Enable "${board.name}"` : `Disable "${board.name}"`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      patchMutation.mutate({ id: board.id, patch: { status: board.status === "concept" ? "active" : "concept" } });
-                    }}
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Ban className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    aria-label={`Delete "${board.name}"`}
-                    onClick={(e) => confirmDelete(board.id, e)}
-                    className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <ArrowUpRight className="h-4 w-4" />
                   </button>
                 </div>
-                <button
-                  onClick={() => onSelectBoard(isSelected ? null : board.name)}
-                  aria-label={`Filter words to ${board.name}`}
-                  className="p-1.5 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground"
-                >
-                  <ArrowUpRight className="h-4 w-4" />
-                </button>
+                <StatusSegmented
+                  value={board.status}
+                  boardName={board.name}
+                  onChange={(s) => patchMutation.mutate({ id: board.id, patch: { status: s } })}
+                  disabled={patchMutation.isPending}
+                />
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <span className="font-mono text-[9.5px] tracking-[0.14em] uppercase text-muted-foreground">
+                    Published
+                  </span>
+                  <Switch
+                    checked={board.published}
+                    onCheckedChange={(checked) =>
+                      patchMutation.mutate({ id: board.id, patch: { published: checked } })
+                    }
+                    aria-label={`Published: ${board.name}`}
+                    className="scale-90"
+                    data-testid={`board-published-${board.id}`}
+                  />
+                </label>
               </div>
             )}
           </div>
         );
       })}
+
+      {/* ── List view: dense triage table, sorted by coverage ── */}
+      {data && view === "list" && filtered.length > 0 && (
+        <div className="mt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Board</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead className="text-right">Words</TableHead>
+                <TableHead>Coverage</TableHead>
+                <TableHead>Difficulty</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {listSorted.map((board) => {
+                const isSelected = selectedBoard?.id === board.id;
+                return (
+                  <TableRow
+                    key={board.id}
+                    onClick={() => onSelectBoard(isSelected ? null : { id: board.id, name: board.name })}
+                    className={cn("cursor-pointer", isSelected && "bg-muted/40")}
+                    data-testid={`board-row-${board.id}`}
+                  >
+                    <TableCell className="font-medium">
+                      {board.name}
+                      {isSelected && (
+                        <span className="ml-2 font-mono text-[9.5px] tracking-[0.14em] uppercase text-muted-foreground">
+                          selected
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground">
+                        {board.status}
+                      </span>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        checked={board.published}
+                        onCheckedChange={(checked) =>
+                          patchMutation.mutate({ id: board.id, patch: { published: checked } })
+                        }
+                        aria-label={`Published: ${board.name}`}
+                        className="scale-90"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{board.wordCount}</TableCell>
+                    <TableCell>
+                      {board.coverage ? <CoverageBadge coverage={board.coverage} /> : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{board.difficulty ?? "—"}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,10 @@
  */
 
 export type ExportWordsParams = {
-  board?: string;
+  /**
+   * Comma-separated board IDs to filter by
+   */
+  boardId?: string;
   season?: string;
   region?: string;
   surroundings?: string;

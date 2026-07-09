@@ -34,8 +34,10 @@ export interface Word {
   findability: string | null;
   /** e.g. All, Spring, Summer, Fall, Winter */
   seasons: string[];
-  /** e.g. General, Flora & Fauna, Chaos, etc. */
+  /** Board names (read-only, derived from boardIds) */
   boards: string[];
+  /** IDs of boards this word is associated with */
+  boardIds: number[];
   /** @nullable */
   notes: string | null;
   /**
@@ -69,7 +71,7 @@ export interface CreateWordBody {
   /** @nullable */
   findability?: string | null;
   seasons?: string[];
-  boards?: string[];
+  boardIds?: number[];
   /** @nullable */
   notes?: string | null;
   /** @nullable */
@@ -88,7 +90,7 @@ export interface UpdateWordBody {
   /** @nullable */
   findability?: string | null;
   seasons?: string[];
-  boards?: string[];
+  boardIds?: number[];
   /** @nullable */
   notes?: string | null;
   /** @nullable */
@@ -179,6 +181,31 @@ export const BoardStatus = {
   concept: "concept",
 } as const;
 
+export type BoardCoverageStatus =
+  (typeof BoardCoverageStatus)[keyof typeof BoardCoverageStatus];
+
+export const BoardCoverageStatus = {
+  "well-covered": "well-covered",
+  "needs-words": "needs-words",
+  unbalanced: "unbalanced",
+} as const;
+
+/**
+ * Server-computed curation-quality indicator for a board's word pool
+ */
+export interface BoardCoverage {
+  status: BoardCoverageStatus;
+  /** Human-readable summary, e.g. 'Needs more words (12/25)' or 'All Low findability' */
+  label: string;
+}
+
+export interface BoardPreviewWord {
+  id: number;
+  word: string;
+  /** @nullable */
+  emoji: string | null;
+}
+
 export interface Board {
   id: number;
   name: string;
@@ -202,10 +229,20 @@ export interface Board {
    */
   availability?: string | null;
   status: BoardStatus;
+  /** Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status. */
+  published: boolean;
+  /**
+   * When the board was last published, or null if unpublished
+   * @nullable
+   */
+  publishedAt: string | null;
   /** @nullable */
   notes?: string | null;
   /** Number of words assigned to this board */
   wordCount?: number;
+  coverage?: BoardCoverage;
+  /** Deterministic sample of words on this board (seeded by board id, stable across refetches) */
+  preview?: BoardPreviewWord[];
   createdAt: string;
   updatedAt: string;
 }
@@ -236,6 +273,7 @@ export interface CreateBoardBody {
   /** @nullable */
   availability?: string | null;
   status?: CreateBoardBodyStatus;
+  published?: boolean;
   /** @nullable */
   notes?: string | null;
 }
@@ -261,6 +299,7 @@ export interface UpdateBoardBody {
   /** @nullable */
   availability?: string | null;
   status?: UpdateBoardBodyStatus;
+  published?: boolean;
   /** @nullable */
   notes?: string | null;
 }
@@ -487,7 +526,10 @@ export type ListWordsParams = {
   age?: string;
   findability?: string;
   season?: string;
-  board?: string;
+  /**
+   * Comma-separated board IDs to filter by
+   */
+  boardId?: string;
   dayNight?: string;
   incomplete?: boolean;
   complete?: boolean;
@@ -496,7 +538,10 @@ export type ListWordsParams = {
 };
 
 export type ExportWordsParams = {
-  board?: string;
+  /**
+   * Comma-separated board IDs to filter by
+   */
+  boardId?: string;
   season?: string;
   region?: string;
   surroundings?: string;

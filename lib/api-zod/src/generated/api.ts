@@ -132,7 +132,10 @@ export const ListWordsQueryParams = zod.object({
   age: zod.coerce.string().optional(),
   findability: zod.coerce.string().optional(),
   season: zod.coerce.string().optional(),
-  board: zod.coerce.string().optional(),
+  boardId: zod.coerce
+    .string()
+    .optional()
+    .describe("Comma-separated board IDs to filter by"),
   dayNight: zod.coerce.string().optional(),
   incomplete: zod.coerce.boolean().optional(),
   complete: zod.coerce.boolean().optional(),
@@ -161,7 +164,10 @@ export const ListWordsResponse = zod.object({
         .describe("e.g. All, Spring, Summer, Fall, Winter"),
       boards: zod
         .array(zod.string())
-        .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+        .describe("Board names (read-only, derived from boardIds)"),
+      boardIds: zod
+        .array(zod.number())
+        .describe("IDs of boards this word is associated with"),
       notes: zod.string().nullable(),
       spanish: zod.string().nullable().describe("Mexican Spanish translation"),
       emoji: zod
@@ -185,7 +191,7 @@ export const createWordBodyDayNightDefault = [`Day`];
 export const createWordBodyAgeDefault = null;
 export const createWordBodyFindabilityDefault = null;
 export const createWordBodySeasonsDefault = [`All`];
-export const createWordBodyBoardsDefault = [];
+export const createWordBodyBoardIdsDefault = [];
 export const createWordBodyNotesDefault = null;
 export const createWordBodySpanishDefault = null;
 export const createWordBodyEmojiDefault = null;
@@ -200,7 +206,7 @@ export const CreateWordBody = zod.object({
   age: zod.string().nullish().default(createWordBodyAgeDefault),
   findability: zod.string().nullish().default(createWordBodyFindabilityDefault),
   seasons: zod.array(zod.string()).default(createWordBodySeasonsDefault),
-  boards: zod.array(zod.string()).default(createWordBodyBoardsDefault),
+  boardIds: zod.array(zod.number()).default(createWordBodyBoardIdsDefault),
   notes: zod.string().nullish().default(createWordBodyNotesDefault),
   spanish: zod.string().nullish().default(createWordBodySpanishDefault),
   emoji: zod.string().nullish().default(createWordBodyEmojiDefault),
@@ -252,7 +258,10 @@ export const RestoreWordResponse = zod.object({
     .describe("e.g. All, Spring, Summer, Fall, Winter"),
   boards: zod
     .array(zod.string())
-    .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+    .describe("Board names (read-only, derived from boardIds)"),
+  boardIds: zod
+    .array(zod.number())
+    .describe("IDs of boards this word is associated with"),
   notes: zod.string().nullable(),
   spanish: zod.string().nullable().describe("Mexican Spanish translation"),
   emoji: zod.string().nullable().describe("System emoji representing the word"),
@@ -285,7 +294,10 @@ export const GetWordResponse = zod.object({
     .describe("e.g. All, Spring, Summer, Fall, Winter"),
   boards: zod
     .array(zod.string())
-    .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+    .describe("Board names (read-only, derived from boardIds)"),
+  boardIds: zod
+    .array(zod.number())
+    .describe("IDs of boards this word is associated with"),
   notes: zod.string().nullable(),
   spanish: zod.string().nullable().describe("Mexican Spanish translation"),
   emoji: zod.string().nullable().describe("System emoji representing the word"),
@@ -309,7 +321,7 @@ export const UpdateWordBody = zod.object({
   age: zod.string().nullish(),
   findability: zod.string().nullish(),
   seasons: zod.array(zod.string()).optional(),
-  boards: zod.array(zod.string()).optional(),
+  boardIds: zod.array(zod.number()).optional(),
   notes: zod.string().nullish(),
   spanish: zod.string().nullish(),
   emoji: zod.string().nullish(),
@@ -332,7 +344,10 @@ export const UpdateWordResponse = zod.object({
     .describe("e.g. All, Spring, Summer, Fall, Winter"),
   boards: zod
     .array(zod.string())
-    .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+    .describe("Board names (read-only, derived from boardIds)"),
+  boardIds: zod
+    .array(zod.number())
+    .describe("IDs of boards this word is associated with"),
   notes: zod.string().nullable(),
   spanish: zod.string().nullable().describe("Mexican Spanish translation"),
   emoji: zod.string().nullable().describe("System emoji representing the word"),
@@ -352,7 +367,10 @@ export const DeleteWordParams = zod.object({
  * @summary Export all words as JSON for the bingo app
  */
 export const ExportWordsQueryParams = zod.object({
-  board: zod.coerce.string().optional(),
+  boardId: zod.coerce
+    .string()
+    .optional()
+    .describe("Comma-separated board IDs to filter by"),
   season: zod.coerce.string().optional(),
   region: zod.coerce.string().optional(),
   surroundings: zod.coerce.string().optional(),
@@ -381,7 +399,10 @@ export const ExportWordsResponse = zod.object({
         .describe("e.g. All, Spring, Summer, Fall, Winter"),
       boards: zod
         .array(zod.string())
-        .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+        .describe("Board names (read-only, derived from boardIds)"),
+      boardIds: zod
+        .array(zod.number())
+        .describe("IDs of boards this word is associated with"),
       notes: zod.string().nullable(),
       spanish: zod.string().nullable().describe("Mexican Spanish translation"),
       emoji: zod
@@ -435,7 +456,10 @@ export const ListDeletedWordsResponse = zod.object({
         .describe("e.g. All, Spring, Summer, Fall, Winter"),
       boards: zod
         .array(zod.string())
-        .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+        .describe("Board names (read-only, derived from boardIds)"),
+      boardIds: zod
+        .array(zod.number())
+        .describe("IDs of boards this word is associated with"),
       notes: zod.string().nullable(),
       spanish: zod.string().nullable().describe("Mexican Spanish translation"),
       emoji: zod
@@ -470,11 +494,45 @@ export const ListBoardsResponse = zod.object({
         .describe("e.g. All Year, Summer, Winter"),
       availability: zod.string().nullish().describe("e.g. All, Seasonal"),
       status: zod.enum(["active", "draft", "concept"]),
+      published: zod
+        .boolean()
+        .describe(
+          "Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status.",
+        ),
+      publishedAt: zod.coerce
+        .date()
+        .nullable()
+        .describe("When the board was last published, or null if unpublished"),
       notes: zod.string().nullish(),
       wordCount: zod
         .number()
         .optional()
         .describe("Number of words assigned to this board"),
+      coverage: zod
+        .object({
+          status: zod.enum(["well-covered", "needs-words", "unbalanced"]),
+          label: zod
+            .string()
+            .describe(
+              "Human-readable summary, e.g. 'Needs more words (12\/25)' or 'All Low findability'",
+            ),
+        })
+        .optional()
+        .describe(
+          "Server-computed curation-quality indicator for a board's word pool",
+        ),
+      preview: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            word: zod.string(),
+            emoji: zod.string().nullable(),
+          }),
+        )
+        .optional()
+        .describe(
+          "Deterministic sample of words on this board (seeded by board id, stable across refetches)",
+        ),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -487,6 +545,7 @@ export const ListBoardsResponse = zod.object({
  */
 export const createBoardBodyAgeLevelsDefault = [];
 export const createBoardBodyStatusDefault = `active`;
+export const createBoardBodyPublishedDefault = false;
 
 export const CreateBoardBody = zod.object({
   name: zod.string(),
@@ -498,6 +557,7 @@ export const CreateBoardBody = zod.object({
   status: zod
     .enum(["active", "draft", "concept"])
     .default(createBoardBodyStatusDefault),
+  published: zod.boolean().default(createBoardBodyPublishedDefault),
   notes: zod.string().nullish(),
 });
 
@@ -520,11 +580,45 @@ export const GetBoardResponse = zod.object({
   timeOfYear: zod.string().nullish().describe("e.g. All Year, Summer, Winter"),
   availability: zod.string().nullish().describe("e.g. All, Seasonal"),
   status: zod.enum(["active", "draft", "concept"]),
+  published: zod
+    .boolean()
+    .describe(
+      "Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status.",
+    ),
+  publishedAt: zod.coerce
+    .date()
+    .nullable()
+    .describe("When the board was last published, or null if unpublished"),
   notes: zod.string().nullish(),
   wordCount: zod
     .number()
     .optional()
     .describe("Number of words assigned to this board"),
+  coverage: zod
+    .object({
+      status: zod.enum(["well-covered", "needs-words", "unbalanced"]),
+      label: zod
+        .string()
+        .describe(
+          "Human-readable summary, e.g. 'Needs more words (12\/25)' or 'All Low findability'",
+        ),
+    })
+    .optional()
+    .describe(
+      "Server-computed curation-quality indicator for a board's word pool",
+    ),
+  preview: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        word: zod.string(),
+        emoji: zod.string().nullable(),
+      }),
+    )
+    .optional()
+    .describe(
+      "Deterministic sample of words on this board (seeded by board id, stable across refetches)",
+    ),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -544,6 +638,7 @@ export const UpdateBoardBody = zod.object({
   timeOfYear: zod.string().nullish(),
   availability: zod.string().nullish(),
   status: zod.enum(["active", "draft", "concept"]).optional(),
+  published: zod.boolean().optional(),
   notes: zod.string().nullish(),
 });
 
@@ -559,11 +654,45 @@ export const UpdateBoardResponse = zod.object({
   timeOfYear: zod.string().nullish().describe("e.g. All Year, Summer, Winter"),
   availability: zod.string().nullish().describe("e.g. All, Seasonal"),
   status: zod.enum(["active", "draft", "concept"]),
+  published: zod
+    .boolean()
+    .describe(
+      "Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status.",
+    ),
+  publishedAt: zod.coerce
+    .date()
+    .nullable()
+    .describe("When the board was last published, or null if unpublished"),
   notes: zod.string().nullish(),
   wordCount: zod
     .number()
     .optional()
     .describe("Number of words assigned to this board"),
+  coverage: zod
+    .object({
+      status: zod.enum(["well-covered", "needs-words", "unbalanced"]),
+      label: zod
+        .string()
+        .describe(
+          "Human-readable summary, e.g. 'Needs more words (12\/25)' or 'All Low findability'",
+        ),
+    })
+    .optional()
+    .describe(
+      "Server-computed curation-quality indicator for a board's word pool",
+    ),
+  preview: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        word: zod.string(),
+        emoji: zod.string().nullable(),
+      }),
+    )
+    .optional()
+    .describe(
+      "Deterministic sample of words on this board (seeded by board id, stable across refetches)",
+    ),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -684,7 +813,10 @@ export const AutofillWordsResponse = zod.object({
         .describe("e.g. All, Spring, Summer, Fall, Winter"),
       boards: zod
         .array(zod.string())
-        .describe("e.g. General, Flora & Fauna, Chaos, etc."),
+        .describe("Board names (read-only, derived from boardIds)"),
+      boardIds: zod
+        .array(zod.number())
+        .describe("IDs of boards this word is associated with"),
       notes: zod.string().nullable(),
       spanish: zod.string().nullable().describe("Mexican Spanish translation"),
       emoji: zod

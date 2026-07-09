@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, sql, and, or, isNull, isNotNull, inArray } from "drizzle-orm";
-import { db, wordsTable } from "@workspace/db";
+import { eq, ilike, sql, and, or, isNull, isNotNull, inArray, exists } from "drizzle-orm";
+import { db, wordsTable, boardsTable, wordBoardsTable } from "@workspace/db";
 import {
   ListWordsQueryParams,
   ListWordsResponse,
@@ -34,7 +34,7 @@ function buildFilters(params: {
   age?: string;
   findability?: string;
   season?: string;
-  board?: string;
+  boardId?: string;
   dayNight?: string;
   incomplete?: boolean;
   complete?: boolean;
@@ -79,10 +79,22 @@ function buildFilters(params: {
     );
   }
 
-  const boardVals = split(params.board);
-  if (boardVals.length > 0) {
+  const boardIdVals = split(params.boardId)
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  if (boardIdVals.length > 0) {
     conditions.push(
-      or(...boardVals.map((v) => sql`${wordsTable.boards} @> ARRAY[${v}]::text[]`))
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(wordBoardsTable)
+          .where(
+            and(
+              eq(wordBoardsTable.wordId, wordsTable.id),
+              inArray(wordBoardsTable.boardId, boardIdVals)
+            )
+          )
+      )
     );
   }
 
@@ -114,7 +126,11 @@ function buildFilters(params: {
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
-function mapWordRow(row: typeof wordsTable.$inferSelect) {
+type WordRow = typeof wordsTable.$inferSelect;
+type BoardAssoc = { ids: number[]; names: string[] };
+type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function mapWordRow(row: WordRow, assoc?: BoardAssoc) {
   return {
     id: row.id,
     word: row.word,
@@ -124,7 +140,8 @@ function mapWordRow(row: typeof wordsTable.$inferSelect) {
     age: row.age ?? null,
     findability: row.findability ?? null,
     seasons: row.seasons ?? [],
-    boards: row.boards ?? [],
+    boards: assoc?.names ?? [],
+    boardIds: assoc?.ids ?? [],
     notes: row.notes ?? null,
     spanish: row.spanish ?? null,
     emoji: row.emoji ?? null,
@@ -132,6 +149,74 @@ function mapWordRow(row: typeof wordsTable.$inferSelect) {
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
   };
+}
+
+/** Fetch board associations (ids + names, name-sorted) for a set of word IDs. */
+async function getBoardAssociations(wordIds: number[]): Promise<Map<number, BoardAssoc>> {
+  const map = new Map<number, BoardAssoc>();
+  if (wordIds.length === 0) return map;
+  const rows = await db
+    .select({
+      wordId: wordBoardsTable.wordId,
+      boardId: wordBoardsTable.boardId,
+      name: boardsTable.name,
+    })
+    .from(wordBoardsTable)
+    .innerJoin(boardsTable, eq(wordBoardsTable.boardId, boardsTable.id))
+    .where(inArray(wordBoardsTable.wordId, wordIds))
+    .orderBy(boardsTable.name);
+  for (const r of rows) {
+    const entry = map.get(r.wordId) ?? { ids: [], names: [] };
+    entry.ids.push(r.boardId);
+    entry.names.push(r.name);
+    map.set(r.wordId, entry);
+  }
+  return map;
+}
+
+/** Map an array of word rows to response objects, enriched with board associations. */
+async function enrichWords(rows: WordRow[]) {
+  const assoc = await getBoardAssociations(rows.map((r) => r.id));
+  return rows.map((r) => mapWordRow(r, assoc.get(r.id)));
+}
+
+class UnknownBoardIdsError extends Error {
+  constructor(public missingIds: number[]) {
+    super(`Unknown board IDs: ${missingIds.join(", ")}`);
+  }
+}
+
+/**
+ * Resolve board IDs to {id, name} rows (name-sorted).
+ * Throws UnknownBoardIdsError if any ID does not exist.
+ */
+async function resolveBoards(tx: DbOrTx, boardIds: number[]) {
+  const uniqueIds = [...new Set(boardIds)];
+  if (uniqueIds.length === 0) return [];
+  const found = await tx
+    .select({ id: boardsTable.id, name: boardsTable.name })
+    .from(boardsTable)
+    .where(inArray(boardsTable.id, uniqueIds))
+    .orderBy(boardsTable.name);
+  if (found.length !== uniqueIds.length) {
+    const foundIds = new Set(found.map((b) => b.id));
+    throw new UnknownBoardIdsError(uniqueIds.filter((i) => !foundIds.has(i)));
+  }
+  return found;
+}
+
+/** Replace a word's junction rows with the given resolved boards. */
+async function replaceWordBoards(
+  tx: DbOrTx,
+  wordId: number,
+  boards: { id: number; name: string }[]
+) {
+  await tx.delete(wordBoardsTable).where(eq(wordBoardsTable.wordId, wordId));
+  if (boards.length > 0) {
+    await tx
+      .insert(wordBoardsTable)
+      .values(boards.map((b) => ({ wordId, boardId: b.id })));
+  }
 }
 
 // GET /words
@@ -142,11 +227,11 @@ router.get("/words", async (req, res): Promise<void> => {
     return;
   }
 
-  const { search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete, offset = 0 } = parsed.data;
+  const { search, region, surroundings, age, findability, season, boardId, dayNight, incomplete, complete, offset = 0 } = parsed.data;
   const limit = Math.min(parsed.data.limit ?? 100, MAX_LIMIT);
 
   try {
-    const userFilters = buildFilters({ search, region, surroundings, age, findability, season, board, dayNight, incomplete, complete });
+    const userFilters = buildFilters({ search, region, surroundings, age, findability, season, boardId, dayNight, incomplete, complete });
     const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
     const [words, countResult] = await Promise.all([
@@ -164,7 +249,7 @@ router.get("/words", async (req, res): Promise<void> => {
     ]);
 
     const response = ListWordsResponse.parse({
-      words: words.map(mapWordRow),
+      words: await enrichWords(words),
       total: countResult[0]?.count ?? 0,
     });
     res.json(response);
@@ -184,7 +269,7 @@ router.get("/words/deleted", async (_req, res): Promise<void> => {
       .orderBy(wordsTable.deletedAt);
 
     const response = ListDeletedWordsResponse.parse({
-      words: words.map(mapWordRow),
+      words: await enrichWords(words),
       total: words.length,
     });
     res.json(response);
@@ -216,8 +301,8 @@ router.get("/words/export", async (req, res): Promise<void> => {
   }
 
   try {
-    const { board, season, region, surroundings, age, findability } = parsed.data;
-    const userFilters = buildFilters({ region, surroundings, age, findability, season, board });
+    const { boardId, season, region, surroundings, age, findability } = parsed.data;
+    const userFilters = buildFilters({ region, surroundings, age, findability, season, boardId });
     const where = userFilters ? and(isNull(wordsTable.deletedAt), userFilters) : isNull(wordsTable.deletedAt);
 
     const words = await db
@@ -227,7 +312,7 @@ router.get("/words/export", async (req, res): Promise<void> => {
       .orderBy(wordsTable.word);
 
     const response = ExportWordsResponse.parse({
-      words: words.map(mapWordRow),
+      words: await enrichWords(words),
       total: words.length,
     });
     res.json(response);
@@ -273,9 +358,6 @@ router.get("/words/stats", async (req, res): Promise<void> => {
       for (const s of w.seasons ?? []) {
         bySeason[s] = (bySeason[s] ?? 0) + 1;
       }
-      for (const b of w.boards ?? []) {
-        byBoard[b] = (byBoard[b] ?? 0) + 1;
-      }
       for (const r of w.regions ?? []) {
         byRegion[r] = (byRegion[r] ?? 0) + 1;
       }
@@ -290,6 +372,17 @@ router.get("/words/stats", async (req, res): Promise<void> => {
       else if (hasDay)        byDayNight["Day only"]++;
       else if (hasNight)      byDayNight["Night only"]++;
       else                    byDayNight["Unknown"]++;
+    }
+
+    const boardCounts = await db
+      .select({ name: boardsTable.name, count: sql<number>`count(*)::int` })
+      .from(wordBoardsTable)
+      .innerJoin(boardsTable, eq(wordBoardsTable.boardId, boardsTable.id))
+      .innerJoin(wordsTable, eq(wordBoardsTable.wordId, wordsTable.id))
+      .where(isNull(wordsTable.deletedAt))
+      .groupBy(boardsTable.name);
+    for (const bc of boardCounts) {
+      byBoard[bc.name] = bc.count;
     }
 
     const response = GetWordStatsResponse.parse({
@@ -319,25 +412,38 @@ router.post("/words", async (req, res): Promise<void> => {
   }
 
   try {
-    const [word] = await db
-      .insert(wordsTable)
-      .values({
-        word: parsed.data.word,
-        regions: parsed.data.regions ?? ["All"],
-        surroundings: parsed.data.surroundings ?? [],
-        dayNight: parsed.data.dayNight ?? ["Day"],
-        age: parsed.data.age ?? null,
-        findability: parsed.data.findability ?? null,
-        seasons: parsed.data.seasons ?? ["All"],
-        boards: parsed.data.boards ?? [],
-        notes: parsed.data.notes ?? null,
-        spanish: parsed.data.spanish ?? null,
-        emoji: parsed.data.emoji ?? null,
-      })
-      .returning();
+    const body = parsed.data;
+    const created = await db.transaction(async (tx) => {
+      const boards = await resolveBoards(tx, body.boardIds ?? []);
+      const [word] = await tx
+        .insert(wordsTable)
+        .values({
+          word: body.word,
+          regions: body.regions ?? ["All"],
+          surroundings: body.surroundings ?? [],
+          dayNight: body.dayNight ?? ["Day"],
+          age: body.age ?? null,
+          findability: body.findability ?? null,
+          seasons: body.seasons ?? ["All"],
+          boards: boards.map((b) => b.name),
+          notes: body.notes ?? null,
+          spanish: body.spanish ?? null,
+          emoji: body.emoji ?? null,
+        })
+        .returning();
+      await replaceWordBoards(tx, word.id, boards);
+      return mapWordRow(word, {
+        ids: boards.map((b) => b.id),
+        names: boards.map((b) => b.name),
+      });
+    });
 
-    res.status(201).json(GetWordResponse.parse(mapWordRow(word)));
+    res.status(201).json(GetWordResponse.parse(created));
   } catch (err) {
+    if (err instanceof UnknownBoardIdsError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
     req.log.error({ err }, "POST /words failed");
     res.status(500).json({ error: "Internal server error" });
   }
@@ -413,7 +519,8 @@ router.post("/words/:id/restore", async (req, res): Promise<void> => {
       return;
     }
 
-    res.json(RestoreWordResponse.parse(mapWordRow(word)));
+    const [enriched] = await enrichWords([word]);
+    res.json(RestoreWordResponse.parse(enriched));
   } catch (err) {
     req.log.error({ err }, "POST /words/:id/restore failed");
     res.status(500).json({ error: "Internal server error" });
@@ -439,7 +546,8 @@ router.get("/words/:id", async (req, res): Promise<void> => {
       return;
     }
 
-    res.json(GetWordResponse.parse(mapWordRow(word)));
+    const [enriched] = await enrichWords([word]);
+    res.json(GetWordResponse.parse(enriched));
   } catch (err) {
     req.log.error({ err }, "GET /words/:id failed");
     res.status(500).json({ error: "Internal server error" });
@@ -469,24 +577,45 @@ router.patch("/words/:id", async (req, res): Promise<void> => {
     if (parsed.data.age !== undefined) updateData.age = parsed.data.age;
     if (parsed.data.findability !== undefined) updateData.findability = parsed.data.findability;
     if (parsed.data.seasons !== undefined) updateData.seasons = parsed.data.seasons;
-    if (parsed.data.boards !== undefined) updateData.boards = parsed.data.boards;
     if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
     if (parsed.data.spanish !== undefined) updateData.spanish = parsed.data.spanish;
     if (parsed.data.emoji !== undefined) updateData.emoji = parsed.data.emoji;
 
-    const [word] = await db
-      .update(wordsTable)
-      .set(updateData)
-      .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
-      .returning();
+    const boardIds = parsed.data.boardIds;
 
-    if (!word) {
+    const updated = await db.transaction(async (tx) => {
+      let boards: { id: number; name: string }[] | undefined;
+      if (boardIds !== undefined) {
+        boards = await resolveBoards(tx, boardIds);
+        updateData.boards = boards.map((b) => b.name);
+      }
+
+      const [word] = await tx
+        .update(wordsTable)
+        .set(updateData)
+        .where(and(eq(wordsTable.id, params.data.id), isNull(wordsTable.deletedAt)))
+        .returning();
+
+      if (!word) return null;
+
+      if (boards !== undefined) {
+        await replaceWordBoards(tx, word.id, boards);
+      }
+      return word;
+    });
+
+    if (!updated) {
       res.status(404).json({ error: "Word not found" });
       return;
     }
 
-    res.json(UpdateWordResponse.parse(mapWordRow(word)));
+    const [enriched] = await enrichWords([updated]);
+    res.json(UpdateWordResponse.parse(enriched));
   } catch (err) {
+    if (err instanceof UnknownBoardIdsError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
     req.log.error({ err }, "PATCH /words/:id failed");
     res.status(500).json({ error: "Internal server error" });
   }

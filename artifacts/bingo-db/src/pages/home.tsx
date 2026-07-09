@@ -32,7 +32,7 @@ type Tab = StaticTab | "trash";
 export default function Home() {
   const [tab, setTab] = useState<Tab>("words");
   const [filters, setFilters] = useState<ListWordsParams>({ limit: 500, offset: 0 });
-  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
+  const [selectedBoard, setSelectedBoard] = useState<{ id: number; name: string } | null>(null);
   const [aiChanges, setAiChanges] = useState<Record<number, Set<string>>>({});
   const [filterBarFixed, setFilterBarFixed] = useState(false);
 
@@ -95,10 +95,10 @@ export default function Home() {
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }
 
-  function handleSelectBoard(boardName: string | null) {
-    setSelectedBoard(boardName);
-    setFilters((prev) => ({ ...prev, board: boardName ?? undefined, offset: 0 }));
-    if (boardName) handleTabChange("words");
+  function handleSelectBoard(board: { id: number; name: string } | null) {
+    setSelectedBoard(board);
+    setFilters((prev) => ({ ...prev, boardId: board ? String(board.id) : undefined, offset: 0 }));
+    if (board) handleTabChange("words");
   }
 
   function resetHome() {

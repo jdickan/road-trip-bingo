@@ -5,6 +5,8 @@
  * Road Trip Bingo Word Database API
  * OpenAPI spec version: 0.1.0
  */
+import type { BoardCoverage } from "./boardCoverage";
+import type { BoardPreviewWord } from "./boardPreviewWord";
 import type { BoardStatus } from "./boardStatus";
 
 export interface Board {
@@ -30,10 +32,20 @@ export interface Board {
    */
   availability?: string | null;
   status: BoardStatus;
+  /** Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status. */
+  published: boolean;
+  /**
+   * When the board was last published, or null if unpublished
+   * @nullable
+   */
+  publishedAt: Date | null;
   /** @nullable */
   notes?: string | null;
   /** Number of words assigned to this board */
   wordCount?: number;
+  coverage?: BoardCoverage;
+  /** Deterministic sample of words on this board (seeded by board id, stable across refetches) */
+  preview?: BoardPreviewWord[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -14,7 +14,8 @@ type SaveState = "idle" | "saving" | "saved";
 
 interface CellEditorProps {
   word: Word;
-  field: keyof UpdateWordBody;
+  /** "boards" is display-only on Word; edits are saved as boardIds via boardNameToId. */
+  field: keyof UpdateWordBody | "boards";
   options?: readonly string[];
   type?: "text" | "single-select" | "multi-select";
   badgeType?: "findability" | "age" | "season" | "region" | "surroundings" | "board" | "dayNight";
@@ -22,9 +23,11 @@ interface CellEditorProps {
   className?: string;
   /** When true, shows a green dot indicating this field was recently changed by AI autofill. */
   aiChanged?: boolean;
+  /** Required when field="boards": maps board names (displayed) to IDs (saved). */
+  boardNameToId?: Map<string, number>;
 }
 
-export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className, aiChanged }: CellEditorProps) {
+export function CellEditor({ word, field, options, type = "text", badgeType, placeholder, className, aiChanged, boardNameToId }: CellEditorProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<any>(word[field as keyof Word]);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -50,8 +53,17 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
     setSaveState("saving");
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
+    const data: UpdateWordBody =
+      field === "boards"
+        ? {
+            boardIds: (Array.isArray(newValue) ? (newValue as string[]) : [])
+              .map((name) => boardNameToId?.get(name))
+              .filter((id): id is number => id !== undefined),
+          }
+        : ({ [field]: newValue } as UpdateWordBody);
+
     updateMutation.mutate(
-      { id: word.id, data: { [field]: newValue } },
+      { id: word.id, data },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["/api/words"] });
@@ -66,7 +78,7 @@ export function CellEditor({ word, field, options, type = "text", badgeType, pla
         },
       }
     );
-  }, [word, field, updateMutation, queryClient, toast]);
+  }, [word, field, boardNameToId, updateMutation, queryClient, toast]);
 
   const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (e.target.value !== word[field as keyof Word]) {

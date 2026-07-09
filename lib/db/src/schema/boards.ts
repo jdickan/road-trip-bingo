@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -11,6 +11,8 @@ export const boardsTable = pgTable("bingo_boards", {
   timeOfYear: text("time_of_year"),
   availability: text("availability"),
   status: text("status").notNull().default("active"),
+  published: boolean("published").notNull().default(false),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

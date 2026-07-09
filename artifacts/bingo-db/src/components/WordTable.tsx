@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Word,
   ListWordsParams,
   useListWords,
+  useListBoards,
   useCreateWord,
   useDeleteWord,
   useBulkDeleteWords,
@@ -24,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2, ArrowRight, ArrowLeft, X, Check, ChevronDown, Sparkles, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CellEditor } from "./CellEditor";
-import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, BOARDS, DAY_NIGHT } from "@/lib/constants";
+import { REGIONS, SURROUNDINGS, AGES, FINDABILITY, SEASONS, DAY_NIGHT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./EmptyState";
 import SuggestWordsModal from "./SuggestWordsModal";
@@ -36,14 +37,13 @@ interface WordTableProps {
   aiChanges?: Record<number, Set<string>>;
 }
 
-const FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: readonly string[] }> = {
+const STATIC_FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: readonly string[] }> = {
   "Region":       { filterKey: "region",       options: REGIONS.filter(r => r !== "All") },
   "Surroundings": { filterKey: "surroundings", options: SURROUNDINGS.filter(s => s !== "All") },
   "Day/Night":    { filterKey: "dayNight",     options: DAY_NIGHT },
   "Age":          { filterKey: "age",          options: AGES },
   "Findability":  { filterKey: "findability",  options: FINDABILITY },
   "Season":       { filterKey: "season",       options: SEASONS.filter(s => s !== "All") },
-  "Boards":       { filterKey: "board",        options: BOARDS },
 };
 
 const COL_WIDTHS_KEY = "bingo-column-widths-v1";
@@ -116,17 +116,38 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [draftSelections, setDraftSelections] = useState<Set<string>>(new Set());
 
+  // Live boards from the database — options for the Boards filter + cell editor
+  const { data: boardsData } = useListBoards();
+  const liveBoards = useMemo(() => boardsData?.boards ?? [], [boardsData]);
+  const boardNames = useMemo(() => liveBoards.map((b) => b.name), [liveBoards]);
+  const boardNameToId = useMemo(() => new Map(liveBoards.map((b) => [b.name, b.id])), [liveBoards]);
+  const boardIdToName = useMemo(() => new Map(liveBoards.map((b) => [b.id, b.name])), [liveBoards]);
+
+  const FILTER_COLS: Record<string, { filterKey: keyof ListWordsParams; options: readonly string[] }> = useMemo(
+    () => ({
+      ...STATIC_FILTER_COLS,
+      "Boards": { filterKey: "boardId", options: boardNames },
+    }),
+    [boardNames]
+  );
+
   // Sync draft from current filter value whenever the panel opens.
   // No active filter = all options visible = initialize all as checked.
+  // Boards filter stores IDs in the URL param but displays names in the UI.
   useEffect(() => {
     if (!activeFilter) return;
     const col = FILTER_COLS[activeFilter];
     if (!col) return;
     const currentVal = filters[col.filterKey] as string | undefined;
+    if (!currentVal) {
+      setDraftSelections(new Set(col.options));
+      return;
+    }
+    const parts = currentVal.split(",").map((s) => s.trim()).filter(Boolean);
     setDraftSelections(
-      currentVal
-        ? new Set(currentVal.split(",").map((s) => s.trim()).filter(Boolean))
-        : new Set(col.options)
+      col.filterKey === "boardId"
+        ? new Set(parts.map((id) => boardIdToName.get(Number(id))).filter((n): n is string => n !== undefined))
+        : new Set(parts)
     );
   }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -143,7 +164,15 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
     if (!activeFilter || !activeFiltKey) return;
     // All options checked (or none) = no filter active
     const allSelected = activeFiltOpts.length > 0 && activeFiltOpts.every((o) => draftSelections.has(o));
-    const val = (!allSelected && draftSelections.size > 0) ? [...draftSelections].join(",") : undefined;
+    let val: string | undefined;
+    if (!allSelected && draftSelections.size > 0) {
+      val = activeFiltKey === "boardId"
+        ? [...draftSelections]
+            .map((name) => boardNameToId.get(name))
+            .filter((id): id is number => id !== undefined)
+            .join(",") || undefined
+        : [...draftSelections].join(",");
+    }
     setFilters?.((p) => ({ ...p, [activeFiltKey]: val, offset: 0 }));
     setPage(0);
     setActiveFilter(null);
@@ -243,7 +272,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
   const hasActiveFilters = Boolean(
     filters.search || filters.region || filters.surroundings ||
     filters.age || filters.findability || filters.season ||
-    filters.board || filters.dayNight || filters.incomplete
+    filters.boardId || filters.dayNight || filters.incomplete
   );
 
   function clearFilters() {
@@ -267,13 +296,19 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
       wordRows.map(row => {
         const s = (k: string) => typeof row[k] === "string" ? String(row[k]) : undefined;
         const a = (k: string) => Array.isArray(row[k]) ? (row[k] as string[]) : undefined;
+        // Accept either numeric boardIds or board names (mapped to IDs via live boards)
+        const boardIds = Array.isArray(row.boardIds)
+          ? (row.boardIds as unknown[]).filter((x): x is number => typeof x === "number")
+          : a("boards")
+              ?.map((name) => boardNameToId.get(name))
+              .filter((id): id is number => id !== undefined);
         return createMutation.mutateAsync({
           data: {
             word: String(row.word).trim(),
             spanish: s("spanish"), emoji: s("emoji"), age: s("age"),
             findability: s("findability"), notes: s("notes"),
             regions: a("regions"), surroundings: a("surroundings"),
-            dayNight: a("dayNight"), seasons: a("seasons"), boards: a("boards"),
+            dayNight: a("dayNight"), seasons: a("seasons"), boardIds,
           },
         }).then(
           (r) => { onProgress(++done, total); return r; },
@@ -734,7 +769,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
                     <CellEditor word={word} field="seasons" type="multi-select" badgeType="season" options={SEASONS} aiChanged={changed?.has("seasons")} />
                   </TableCell>
                   <TableCell className="p-1 align-top">
-                    <CellEditor word={word} field="boards" type="multi-select" badgeType="board" options={BOARDS} aiChanged={changed?.has("boards")} />
+                    <CellEditor word={word} field="boards" type="multi-select" badgeType="board" options={boardNames} boardNameToId={boardNameToId} aiChanged={changed?.has("boards")} />
                   </TableCell>
                   <TableCell className="p-1 align-top">
                     {word.notes ? (

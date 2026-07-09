@@ -38,11 +38,14 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - **Export JSON**: download filtered word list as JSON
 
 #### Boards tab
-- 28 boards (15 active + 1 draft + 12 concept) shown as cards
-- Status badges: Active (green), Draft (amber), Concept (blue/sky)
-- Card meta: description, age levels, difficulty, time of year, availability, word count
-- Click a card to filter the Words tab to that board's words
-- Inline edit: name + description; status cycles via badge click or enable/disable button
+- 28 boards shown in two views: Cards (default) or List (dense table), toggle in filter bar
+- Coverage badge per board (computed server-side): "No words yet" / "Needs more words (n/25)" (amber) / "Unbalanced" (rose) / "Well covered" (emerald)
+- Published toggle (Switch) per board, independent of lifecycle status; publishedAt = last publish time; "· published" indicator in card eyebrow
+- Lifecycle status via 3-way segmented control: concept → draft → active
+- Content preview: up to 8 deterministic sample word chips per card (seeded hash, stable across reloads); dashed placeholders when board has no words
+- Whole card clickable → filters Words tab to that board's words
+- Right rail per card: overflow menu (Rename/Delete), open arrow, segmented status, Published switch
+- List view: table sorted by coverage severity (needs-words → unbalanced → well-covered, then word count asc) with columns Board/Status/Published/Words/Coverage/Difficulty
 - Delete with confirmation; create new board inline
 - Filter by status; search by name/description
 
@@ -63,7 +66,8 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 
 #### Snapshots tab
 - Save named point-in-time database copies (pg_dump stored in `data/snapshots/`)
-- Restore any snapshot (replaces all word data, with confirmation)
+- Dumps include both `bingo_words` and the `bingo_word_boards` junction, so restores preserve exact word↔board links even after board renames
+- Restore any snapshot (replaces all word data, with confirmation); older snapshots without junction rows fall back to a name-based rebuild
 - Delete snapshots; list shows label, date, word count, file size
 
 ### Header
@@ -77,13 +81,19 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - All routes use Zod schemas for request/response validation
 
 ### Database
-- `bingo_words` table: id, word, spanish, emoji, regions[], surroundings[], dayNight[], age, findability, seasons[], boards[], notes, createdAt, updatedAt
-- `bingo_boards` table: id, name, description, ageLevels[], difficulty, timeOfYear, availability, status, notes, wordCount, createdAt, updatedAt
+- `bingo_words` table: id, word, spanish, emoji, regions[], surroundings[], dayNight[], age, findability, seasons[], boards[], notes, createdAt, updatedAt, deletedAt
+- `bingo_boards` table: id, name, description, ageLevels[], difficulty, timeOfYear, availability, status, published, publishedAt, notes, wordCount, createdAt, updatedAt
+- `bingo_word_boards` junction table (word_id, board_id, composite PK, FKs with cascade delete) — **source of truth** for word↔board membership; the `bingo_words.boards` name array is a denormalized read-model kept in sync on word writes
 - Seed: `lib/db/seed-excel.mjs` parses the Excel source file (`attached_assets/Bingo_word_database-4_...xlsx`)
 
 ### Array column note
 Array columns (dayNight, regions, surroundings, seasons, boards) are NOT NULL with defaults.
 Use `cardinality(col) = 0` (not `IS NULL`) to detect empty/unset values in queries.
+
+### Testing & CI
+- API tests: Vitest + supertest in `artifacts/api-server/src/__tests__/` (19 tests: words CRUD/filters/junction, boards publish/coverage/preview)
+- Tests run against a separate `bingo_test` database: set `TEST_DATABASE_URL` (same host as `DATABASE_URL`, pathname `/bingo_test`), then `pnpm --filter @workspace/api-server run test`
+- CI: `.github/workflows/ci.yml` — postgres:16 service, pnpm 10 + Node 24, runs typecheck → drizzle push-force → tests on push/PR to main
 
 ## Structure
 

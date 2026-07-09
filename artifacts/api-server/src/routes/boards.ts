@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
-import { db, boardsTable, wordsTable } from "@workspace/db";
+import { eq, isNull } from "drizzle-orm";
+import { db, boardsTable, wordsTable, wordBoardsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -16,10 +16,71 @@ function mapBoard(row: typeof boardsTable.$inferSelect) {
     timeOfYear: row.timeOfYear ?? null,
     availability: row.availability ?? null,
     status: row.status,
+    published: row.published,
+    publishedAt: row.publishedAt ?? null,
     notes: row.notes ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Coverage + preview computation (server-owned curation-quality rules)
+// ---------------------------------------------------------------------------
+
+interface BoardWordRow {
+  wordId: number;
+  word: string;
+  emoji: string | null;
+  age: string | null;
+  findability: string | null;
+}
+
+/** Minimum word pool for a 5x5 board to be considered adequately stocked. */
+const MIN_WORDS = 25;
+/** Number of words included in the deterministic preview sample. */
+const PREVIEW_SIZE = 8;
+
+type CoverageStatus = "well-covered" | "needs-words" | "unbalanced";
+
+function computeCoverage(words: BoardWordRow[]): { status: CoverageStatus; label: string } {
+  if (words.length === 0) {
+    return { status: "needs-words", label: "No words yet" };
+  }
+  if (words.length < MIN_WORDS) {
+    return { status: "needs-words", label: `Needs more words (${words.length}/${MIN_WORDS})` };
+  }
+
+  const findabilities = new Set(
+    words.map((w) => w.findability).filter((f): f is string => f !== null),
+  );
+  if (findabilities.size === 1 && findabilities.has("Low")) {
+    return { status: "unbalanced", label: "All Low findability" };
+  }
+
+  const ages = new Set(words.map((w) => w.age).filter((a): a is string => a !== null));
+  if (ages.size === 1) {
+    return { status: "unbalanced", label: `Only one age tier (${[...ages][0]})` };
+  }
+
+  return { status: "well-covered", label: "Well-covered" };
+}
+
+/**
+ * Deterministic sample seeded by board id — stable across refetches so the
+ * preview doesn't jitter on every re-render.
+ */
+function computePreview(boardId: number, words: BoardWordRow[]) {
+  const scored = words.map((w) => {
+    // Simple integer hash mixing boardId and wordId
+    let h = (Math.imul(w.wordId + 1, 2654435761) ^ Math.imul(boardId + 1, 40503)) >>> 0;
+    h = (Math.imul(h ^ (h >>> 16), 2246822507) ^ (h >>> 13)) >>> 0;
+    return { score: h, w };
+  });
+  scored.sort((a, b) => a.score - b.score || a.w.wordId - b.w.wordId);
+  return scored
+    .slice(0, PREVIEW_SIZE)
+    .map(({ w }) => ({ id: w.wordId, word: w.word, emoji: w.emoji ?? null }));
 }
 
 function parseBoardId(id: string): number | null {
@@ -41,8 +102,9 @@ function parseBodyFields(body: Record<string, unknown>) {
     statusRaw === "active" || statusRaw === "draft" || statusRaw === "concept"
       ? statusRaw
       : undefined;
+  const published = typeof body.published === "boolean" ? body.published : undefined;
   const notes = typeof body.notes === "string" ? body.notes : undefined;
-  return { name, description, ageLevels, difficulty, timeOfYear, availability, status, notes };
+  return { name, description, ageLevels, difficulty, timeOfYear, availability, status, published, notes };
 }
 
 // GET /boards
@@ -50,19 +112,45 @@ router.get("/boards", async (req: Request, res: Response): Promise<void> => {
   try {
     const boards = await db.select().from(boardsTable).orderBy(boardsTable.name);
 
-    const allWords = await db.select({ boards: wordsTable.boards }).from(wordsTable);
-    const wordCounts: Record<string, number> = {};
-    for (const { boards } of allWords) {
-      for (const b of boards ?? []) {
-        wordCounts[b] = (wordCounts[b] ?? 0) + 1;
-      }
+    // All (board, word) associations via the junction, excluding soft-deleted
+    // words — used for word counts, coverage, and preview samples.
+    const rows = await db
+      .select({
+        boardId: wordBoardsTable.boardId,
+        wordId: wordsTable.id,
+        word: wordsTable.word,
+        emoji: wordsTable.emoji,
+        age: wordsTable.age,
+        findability: wordsTable.findability,
+      })
+      .from(wordBoardsTable)
+      .innerJoin(wordsTable, eq(wordBoardsTable.wordId, wordsTable.id))
+      .where(isNull(wordsTable.deletedAt));
+
+    const wordsByBoard = new Map<number, BoardWordRow[]>();
+    for (const r of rows) {
+      const list = wordsByBoard.get(r.boardId);
+      const entry: BoardWordRow = {
+        wordId: r.wordId,
+        word: r.word,
+        emoji: r.emoji,
+        age: r.age,
+        findability: r.findability,
+      };
+      if (list) list.push(entry);
+      else wordsByBoard.set(r.boardId, [entry]);
     }
 
     res.json({
-      boards: boards.map((b) => ({
-        ...mapBoard(b),
-        wordCount: wordCounts[b.name] ?? 0,
-      })),
+      boards: boards.map((b) => {
+        const words = wordsByBoard.get(b.id) ?? [];
+        return {
+          ...mapBoard(b),
+          wordCount: words.length,
+          coverage: computeCoverage(words),
+          preview: computePreview(b.id, words),
+        };
+      }),
       total: boards.length,
     });
   } catch (err) {
@@ -112,6 +200,8 @@ router.post("/boards", async (req: Request, res: Response): Promise<void> => {
         timeOfYear: body.timeOfYear ?? null,
         availability: body.availability ?? null,
         status: body.status ?? "active",
+        published: body.published ?? false,
+        publishedAt: body.published ? new Date() : null,
         notes: body.notes ?? null,
       })
       .returning();
@@ -141,6 +231,10 @@ router.patch("/boards/:id", async (req: Request, res: Response): Promise<void> =
     if (body.timeOfYear !== undefined) updateData.timeOfYear = body.timeOfYear;
     if (body.availability !== undefined) updateData.availability = body.availability;
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.published !== undefined) {
+      updateData.published = body.published;
+      updateData.publishedAt = body.published ? new Date() : null;
+    }
     if (body.notes !== undefined) updateData.notes = body.notes;
 
     const [board] = await db

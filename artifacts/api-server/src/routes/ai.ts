@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, isNull, or, sql } from "drizzle-orm";
-import { db, wordsTable } from "@workspace/db";
+import { eq, isNull, or, sql, inArray } from "drizzle-orm";
+import { db, wordsTable, boardsTable, wordBoardsTable } from "@workspace/db";
 import {
   AutofillWordsBody,
   AutofillWordsResponse,
@@ -18,22 +18,19 @@ const VALID_DAY_NIGHT = ["Day", "Night"];
 const VALID_AGES = ["Young", "Kid", "Tween"];
 const VALID_FINDABILITIES = ["High", "Medium", "Low"];
 const VALID_SEASONS = ["All", "Spring", "Summer", "Fall", "Winter"];
-const VALID_BOARDS = [
-  "General", "Flora & Fauna", "Chaos", "Christmas", "Halloween",
-  "Sounds", "Smells", "Words for adults to say", "ABC Street Signs",
-  "Architecture", "Single letter", "License plate", "Song lyrics",
-  "Touchy feely", "Make your own", "Seasons"
-];
 
-const FIELD_DESCRIPTIONS = {
-  regions: `Geographic regions in the US where this thing is commonly found. Valid values: ${VALID_REGIONS.join(", ")}. Use "All" if found everywhere, otherwise list the specific regions.`,
-  surroundings: `What type of surroundings/environment this thing appears in. Valid values: ${VALID_SURROUNDINGS.join(", ")}. Can have multiple. Use "All" if ubiquitous.`,
-  dayNight: `Whether this thing is visible day, night, or both. Valid values: ${VALID_DAY_NIGHT.join(", ")}. Default to ["Day"] for most things.`,
-  age: `The age group most likely to find this interesting/challenging. Valid values: ${VALID_AGES.join(", ")} (single value only). Young=toddler/preschool simple objects, Kid=school-age, Tween=older kids/teens harder items.`,
-  findability: `How easy or hard this thing is to find on a road trip. Valid values: ${VALID_FINDABILITIES.join(", ")} (single value only). High=very common, Medium=sometimes seen, Low=rare.`,
-  seasons: `What seasons this thing is typically available/visible. Valid values: ${VALID_SEASONS.join(", ")}. Can have multiple.`,
-  boards: `Which bingo board themes this word fits on. Valid values: ${VALID_BOARDS.join(", ")}. Can have multiple.`,
-};
+/** Build field descriptions using the live board list from the database. */
+function buildFieldDescriptionMap(validBoardNames: string[]) {
+  return {
+    regions: `Geographic regions in the US where this thing is commonly found. Valid values: ${VALID_REGIONS.join(", ")}. Use "All" if found everywhere, otherwise list the specific regions.`,
+    surroundings: `What type of surroundings/environment this thing appears in. Valid values: ${VALID_SURROUNDINGS.join(", ")}. Can have multiple. Use "All" if ubiquitous.`,
+    dayNight: `Whether this thing is visible day, night, or both. Valid values: ${VALID_DAY_NIGHT.join(", ")}. Default to ["Day"] for most things.`,
+    age: `The age group most likely to find this interesting/challenging. Valid values: ${VALID_AGES.join(", ")} (single value only). Young=toddler/preschool simple objects, Kid=school-age, Tween=older kids/teens harder items.`,
+    findability: `How easy or hard this thing is to find on a road trip. Valid values: ${VALID_FINDABILITIES.join(", ")} (single value only). High=very common, Medium=sometimes seen, Low=rare.`,
+    seasons: `What seasons this thing is typically available/visible. Valid values: ${VALID_SEASONS.join(", ")}. Can have multiple.`,
+    boards: `Which bingo board themes this word fits on. Valid values: ${validBoardNames.join(", ")}. Can have multiple.`,
+  };
+}
 
 // Concurrency guard: allow only one AI request in-flight at a time.
 // The lock is claimed immediately at handler entry — before any DB or OpenAI
@@ -88,7 +85,7 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
         else if (field === "surroundings") nullConditions.push(or(isNull(wordsTable.surroundings), sql`cardinality(${wordsTable.surroundings}) = 0`));
         else if (field === "dayNight")     nullConditions.push(or(isNull(wordsTable.dayNight),     sql`cardinality(${wordsTable.dayNight}) = 0`));
         else if (field === "seasons")      nullConditions.push(or(isNull(wordsTable.seasons),      sql`cardinality(${wordsTable.seasons}) = 0`));
-        else if (field === "boards")       nullConditions.push(or(isNull(wordsTable.boards),       sql`cardinality(${wordsTable.boards}) = 0`));
+        else if (field === "boards")       nullConditions.push(sql`NOT EXISTS (SELECT 1 FROM bingo_word_boards wb WHERE wb.word_id = ${wordsTable.id})`);
         else if (field === "age")          nullConditions.push(isNull(wordsTable.age));
         else if (field === "findability")  nullConditions.push(isNull(wordsTable.findability));
       }
@@ -106,9 +103,37 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
       return;
     }
 
+    // Live board list from the database — source of truth for valid board values
+    const liveBoards = await db
+      .select({ id: boardsTable.id, name: boardsTable.name })
+      .from(boardsTable)
+      .orderBy(boardsTable.name);
+    const boardIdByName = new Map(liveBoards.map((b) => [b.name, b.id]));
+    const validBoardNames = liveBoards.map((b) => b.name);
+
+    // Current board associations (from the junction table) for the words being filled
+    const assocRows = await db
+      .select({
+        wordId: wordBoardsTable.wordId,
+        boardId: wordBoardsTable.boardId,
+        name: boardsTable.name,
+      })
+      .from(wordBoardsTable)
+      .innerJoin(boardsTable, eq(wordBoardsTable.boardId, boardsTable.id))
+      .where(inArray(wordBoardsTable.wordId, wordsToFill.map((w) => w.id)))
+      .orderBy(boardsTable.name);
+    const assocByWord = new Map<number, { ids: number[]; names: string[] }>();
+    for (const r of assocRows) {
+      const entry = assocByWord.get(r.wordId) ?? { ids: [], names: [] };
+      entry.ids.push(r.boardId);
+      entry.names.push(r.name);
+      assocByWord.set(r.wordId, entry);
+    }
+
     // Build field descriptions for requested fields
+    const fieldDescriptionMap = buildFieldDescriptionMap(validBoardNames);
     const fieldDescriptions = fields
-      .map((f) => `- ${f}: ${FIELD_DESCRIPTIONS[f as keyof typeof FIELD_DESCRIPTIONS] ?? f}`)
+      .map((f) => `- ${f}: ${fieldDescriptionMap[f as keyof typeof fieldDescriptionMap] ?? f}`)
       .join("\n");
 
     const wordsList = wordsToFill.map((w) => ({
@@ -121,7 +146,7 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
         age: w.age,
         findability: w.findability,
         seasons: w.seasons,
-        boards: w.boards,
+        boards: assocByWord.get(w.id)?.names ?? [],
       },
     }));
 
@@ -279,24 +304,42 @@ Return only the JSON array, no explanation.`;
           if (filtered.length > 0) updateData.seasons = filtered;
         }
       }
+      let newBoards: { id: number; name: string }[] | undefined;
       if (fields.includes("boards") && updates.boards !== undefined) {
         if (!Array.isArray(updates.boards)) {
           logger.warn({ id, value: updates.boards }, "AI autofill skipping boards: expected array");
         } else {
-          const filtered = filterArrayField(id, "boards", updates.boards as unknown[], VALID_BOARDS);
-          if (filtered.length > 0) updateData.boards = filtered;
+          const filtered = filterArrayField(id, "boards", updates.boards as unknown[], validBoardNames);
+          if (filtered.length > 0) {
+            newBoards = filtered.map((name) => ({ id: boardIdByName.get(name)!, name }));
+            updateData.boards = newBoards.map((b) => b.name);
+          }
         }
       }
 
       if (Object.keys(updateData).length === 0) continue;
 
-      const [updated] = await db
-        .update(wordsTable)
-        .set(updateData)
-        .where(eq(wordsTable.id, id))
-        .returning();
+      const updated = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(wordsTable)
+          .set(updateData)
+          .where(eq(wordsTable.id, id))
+          .returning();
+        if (row && newBoards !== undefined) {
+          await tx.delete(wordBoardsTable).where(eq(wordBoardsTable.wordId, id));
+          if (newBoards.length > 0) {
+            await tx
+              .insert(wordBoardsTable)
+              .values(newBoards.map((b) => ({ wordId: id, boardId: b.id })));
+          }
+        }
+        return row;
+      });
 
       if (updated) {
+        const assoc = newBoards !== undefined
+          ? { ids: newBoards.map((b) => b.id), names: newBoards.map((b) => b.name) }
+          : assocByWord.get(id) ?? { ids: [], names: [] };
         updatedWords.push({
           id: updated.id,
           word: updated.word,
@@ -306,12 +349,14 @@ Return only the JSON array, no explanation.`;
           age: updated.age ?? null,
           findability: updated.findability ?? null,
           seasons: updated.seasons ?? [],
-          boards: updated.boards ?? [],
+          boards: assoc.names,
+          boardIds: assoc.ids,
           notes: updated.notes ?? null,
           spanish: updated.spanish ?? null,
           emoji: updated.emoji ?? null,
           createdAt: updated.createdAt,
           updatedAt: updated.updatedAt,
+          deletedAt: updated.deletedAt ?? null,
         });
       }
     }

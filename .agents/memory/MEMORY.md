@@ -1,0 +1,1 @@
+- [Snapshot dumps must include junction tables](snapshot-junction-integrity.md) — never rebuild junction rows from denormalized name columns on restore; names go stale after renames.

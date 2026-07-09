@@ -16,7 +16,7 @@ export interface CreateWordBody {
   /** @nullable */
   findability?: string | null;
   seasons?: string[];
-  boards?: string[];
+  boardIds?: number[];
   /** @nullable */
   notes?: string | null;
   /** @nullable */

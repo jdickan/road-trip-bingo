@@ -18,7 +18,7 @@ export default function ExportModal({ filters }: { filters: ExportWordsParams })
     age: filters.age,
     findability: filters.findability,
     season: filters.season,
-    board: filters.board,
+    boardId: filters.boardId,
   };
 
   const { data, isLoading, refetch, isFetching } = useExportWords(exportParams, {

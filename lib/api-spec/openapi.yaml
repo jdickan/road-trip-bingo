@@ -144,10 +144,11 @@ paths:
           in: query
           schema:
             type: string
-        - name: board
+        - name: boardId
           in: query
           schema:
             type: string
+          description: "Comma-separated board IDs to filter by"
         - name: dayNight
           in: query
           schema:
@@ -344,10 +345,11 @@ paths:
       tags: [words]
       summary: Export all words as JSON for the bingo app
       parameters:
-        - name: board
+        - name: boardId
           in: query
           schema:
             type: string
+          description: "Comma-separated board IDs to filter by"
         - name: season
           in: query
           schema:
@@ -738,7 +740,12 @@ components:
           type: array
           items:
             type: string
-          description: "e.g. General, Flora & Fauna, Chaos, etc."
+          description: "Board names (read-only, derived from boardIds)"
+        boardIds:
+          type: array
+          items:
+            type: integer
+          description: "IDs of boards this word is associated with"
         notes:
           type: ["string", "null"]
         spanish:
@@ -766,6 +773,7 @@ components:
         - findability
         - seasons
         - boards
+        - boardIds
         - notes
         - spanish
         - emoji
@@ -817,10 +825,10 @@ components:
           items:
             type: string
           default: ["All"]
-        boards:
+        boardIds:
           type: array
           items:
-            type: string
+            type: integer
           default: []
         notes:
           type: ["string", "null"]
@@ -859,10 +867,10 @@ components:
           type: array
           items:
             type: string
-        boards:
+        boardIds:
           type: array
           items:
-            type: string
+            type: integer
         notes:
           type: ["string", "null"]
         spanish:
@@ -1022,11 +1030,25 @@ components:
         status:
           type: string
           enum: [active, draft, concept]
+        published:
+          type: boolean
+          description: "Content-release gate: whether this board's content is included in the app-facing export. Independent of lifecycle status."
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+          description: "When the board was last published, or null if unpublished"
         notes:
           type: ["string", "null"]
         wordCount:
           type: integer
           description: "Number of words assigned to this board"
+        coverage:
+          $ref: "#/components/schemas/BoardCoverage"
+        preview:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardPreviewWord"
+          description: "Deterministic sample of words on this board (seeded by board id, stable across refetches)"
         createdAt:
           type: string
           format: date-time
@@ -1037,8 +1059,38 @@ components:
         - id
         - name
         - status
+        - published
+        - publishedAt
         - createdAt
         - updatedAt
+
+    BoardCoverage:
+      type: object
+      description: "Server-computed curation-quality indicator for a board's word pool"
+      properties:
+        status:
+          type: string
+          enum: [well-covered, needs-words, unbalanced]
+        label:
+          type: string
+          description: "Human-readable summary, e.g. 'Needs more words (12/25)' or 'All Low findability'"
+      required:
+        - status
+        - label
+
+    BoardPreviewWord:
+      type: object
+      properties:
+        id:
+          type: integer
+        word:
+          type: string
+        emoji:
+          type: ["string", "null"]
+      required:
+        - id
+        - word
+        - emoji
 
     BoardList:
       type: object
@@ -1075,6 +1127,9 @@ components:
           type: string
           enum: [active, draft, concept]
           default: active
+        published:
+          type: boolean
+          default: false
         notes:
           type: ["string", "null"]
       required:
@@ -1100,6 +1155,8 @@ components:
         status:
           type: string
           enum: [active, draft, concept]
+        published:
+          type: boolean
         notes:
           type: ["string", "null"]
 

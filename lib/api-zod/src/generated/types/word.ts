@@ -27,8 +27,10 @@ export interface Word {
   findability: string | null;
   /** e.g. All, Spring, Summer, Fall, Winter */
   seasons: string[];
-  /** e.g. General, Flora & Fauna, Chaos, etc. */
+  /** Board names (read-only, derived from boardIds) */
   boards: string[];
+  /** IDs of boards this word is associated with */
+  boardIds: number[];
   /** @nullable */
   notes: string | null;
   /**

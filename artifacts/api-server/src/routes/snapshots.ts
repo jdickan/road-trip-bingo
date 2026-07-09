@@ -75,12 +75,14 @@ router.post("/snapshots", async (req, res): Promise<void> => {
   const metaFile = path.join(SNAPSHOTS_DIR, `${id}.meta.json`);
 
   try {
-    // Dump only the bingo_words table (data only, plain text format)
+    // Dump the words table plus the word↔board junction (data only, plain text
+    // format) so restores don't depend on the denormalized boards name column.
     await execFileAsync(
       "pg_dump",
       [
         "--data-only",
         "--table=bingo_words",
+        "--table=bingo_word_boards",
         "--format=plain",
         `--file=${dumpFile}`,
       ],
@@ -133,7 +135,10 @@ router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
     const raw = await fs.readFile(metaFile, "utf8");
     const meta: SnapshotMeta = JSON.parse(raw);
 
-    // Truncate the table first, then restore
+    // Truncate the table first, then restore.
+    // Note: CASCADE also truncates bingo_word_boards (FK to bingo_words).
+    // Newer snapshots include bingo_word_boards rows in the dump itself;
+    // older snapshots fall back to the name-based rebuild below.
     const env = pgEnv(dbUrl);
     await execFileAsync(
       "psql",
@@ -141,6 +146,25 @@ router.post("/snapshots/:id/restore", async (req, res): Promise<void> => {
       { env }
     );
     await execFileAsync("psql", [`--file=${dumpFile}`], { env });
+
+    // Fallback for snapshots that predate the junction table (or whose junction
+    // COPY failed, e.g. a referenced board was deleted): rebuild word↔board rows
+    // from the restored boards name array. No-op when the dump restored them.
+    const junctionCount = await db.execute(
+      sql`SELECT count(*)::int AS count FROM bingo_word_boards`
+    );
+    const restoredJunctionRows =
+      (junctionCount.rows[0] as { count: number } | undefined)?.count ?? 0;
+    if (restoredJunctionRows === 0) {
+      await db.execute(sql`
+        INSERT INTO bingo_word_boards (word_id, board_id)
+        SELECT DISTINCT w.id, b.id
+        FROM bingo_words w
+        CROSS JOIN LATERAL unnest(w.boards) AS bn(board_name)
+        JOIN bingo_boards b ON b.name = bn.board_name
+        ON CONFLICT DO NOTHING
+      `);
+    }
 
     // Get accurate word count from the restored data
     const countResult = await db

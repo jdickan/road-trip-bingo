@@ -19,6 +19,7 @@ export interface UpdateBoardBody {
   /** @nullable */
   availability?: string | null;
   status?: UpdateBoardBodyStatus;
+  published?: boolean;
   /** @nullable */
   notes?: string | null;
 }

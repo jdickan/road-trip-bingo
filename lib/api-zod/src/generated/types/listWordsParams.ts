@@ -13,7 +13,10 @@ export type ListWordsParams = {
   age?: string;
   findability?: string;
   season?: string;
-  board?: string;
+  /**
+   * Comma-separated board IDs to filter by
+   */
+  boardId?: string;
   dayNight?: string;
   incomplete?: boolean;
   complete?: boolean;

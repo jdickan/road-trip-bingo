@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ListWordsParams, useGetWordStats } from "@workspace/api-client-react";
+import { ListWordsParams, useGetWordStats, useListBoards } from "@workspace/api-client-react";
 import { Search, X, LayoutGrid } from "lucide-react";
 import SuggestWordsModal from "./SuggestWordsModal";
 import BulkAddModal from "./BulkAddModal";
@@ -39,6 +39,16 @@ export default function WordFilterBar({
   }, []);
 
   const { data: stats } = useGetWordStats();
+  const { data: boardsData } = useListBoards();
+  const boardNameById = new Map((boardsData?.boards ?? []).map((b) => [b.id, b.name]));
+  const activeBoardLabel = filters.boardId
+    ? filters.boardId
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((id) => boardNameById.get(Number(id)) ?? `#${id}`)
+        .join(", ")
+    : null;
   const total = stats?.total ?? 0;
   const incomplete = stats?.incomplete ?? 0;
   const complete = total - incomplete;
@@ -150,14 +160,14 @@ export default function WordFilterBar({
       </div>
 
       {/* Active board chip */}
-      {filters.board && (
+      {activeBoardLabel && (
         <div className="flex items-center border-l border-border px-4">
           <div className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 font-mono text-[10.5px] tracking-[0.12em] uppercase border border-border text-foreground bg-muted/40">
             <LayoutGrid className="h-3 w-3 text-muted-foreground shrink-0" />
-            <span>{filters.board}</span>
+            <span>{activeBoardLabel}</span>
             <button
               onClick={() => {
-                setFilters((prev) => ({ ...prev, board: undefined, offset: 0 }));
+                setFilters((prev) => ({ ...prev, boardId: undefined, offset: 0 }));
                 onClearBoard?.();
               }}
               className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
