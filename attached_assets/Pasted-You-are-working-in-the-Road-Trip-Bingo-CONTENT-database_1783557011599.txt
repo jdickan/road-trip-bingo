@@ -1,0 +1,77 @@
+You are working in the Road Trip Bingo CONTENT database — a management tool for
+categorizing/organizing road-trip bingo content (tile words, their icons/emoji,
+Spanish translations, tags, and "board idea" groupings). It is NOT a bingo game
+and does NOT render playable cards — a separate iOS app consumes this content.
+Keep the dense, compact, small-UI aesthetic that already exists; do not inflate
+spacing or font sizes.
+
+Read these design docs in the repo first and treat them as the source of truth for
+intent, then implement Phase 0 and Phase 1 below:
+- docs/ANALYSIS.md
+- docs/BOARDS_SCREEN_REDESIGN.md
+- docs/IOS_INTEGRATION_PLAN.md
+- docs/IMPLEMENTATION_PLAN.md
+
+Work in small, reviewable commits. After each phase, run `pnpm run typecheck` from
+the repo root and confirm it passes before moving on. Ask me before any destructive
+DB operation (data migration, drop, restore).
+
+=== PHASE 0 — Data integrity (do this first; everything depends on it) ===
+1. Replace the name-based word↔board link with IDs. Today `words.boards` is a
+   text[] of board NAMES, and GET /boards counts words by string-matching names —
+   so renaming a board silently orphans its words. Add a junction table
+   `bingo_word_boards(word_id, board_id)` in lib/db/src/schema/, and write a
+   migration that backfills it by matching each word's current board-name array
+   against bingo_boards.name. Preserve all existing associations. Show me the
+   migration and the match/miss counts BEFORE applying it.
+2. Update GET /boards (artifacts/api-server/src/routes/boards.ts) to compute
+   wordCount via a SQL join/GROUP BY on the junction table, not by loading the
+   entire words table into Node.
+3. Kill the duplicated board lists. The 16 board names are hardcoded in THREE
+   places that drift: the bingo_boards table (real), BOARDS in
+   artifacts/bingo-db/src/lib/constants.ts, and VALID_BOARDS in
+   artifacts/api-server/src/routes/ai.ts. Make the DB the single source of truth:
+   the Words-tab board editor and the AI autofill allowlist must both read the live
+   boards list (by ID, displaying names) instead of the hardcoded arrays. Remove
+   the two hardcoded copies.
+4. Add a test harness (Vitest) covering words CRUD, boards CRUD, and the new
+   join-based word count. Add a GitHub Actions workflow that runs
+   `pnpm run typecheck` + tests on push. There is currently zero automated
+   verification in the repo.
+
+=== PHASE 1 — Boards screen redesign (artifacts/bingo-db/src/components/BoardsPanel.tsx) ===
+The screen manages board-idea metadata but never shows the CONTENT grouped inside
+each idea, and it overloads one card with 5+ different click behaviors. Fix:
+1. Add a content preview to each board card: a compact sample (grid or chip list)
+   of representative words + their emoji/icons actually associated with that board
+   idea, sampled deterministically (seeded by board id) so it doesn't jitter on
+   refetch. If a board idea has few/no words, show the preview sparse — that
+   emptiness is useful signal. This is a CURATION preview, not a rendered playable
+   bingo card.
+2. Replace the bare "{n} words" chip with a compact coverage badge computed
+   server-side and returned from GET /boards: e.g. "Well-covered",
+   "Needs more words", or "Unbalanced (all Low findability)" based on word count +
+   age/findability spread.
+3. Split the overloaded `status` field into two independent controls:
+   - Lifecycle status (concept → draft → active) as a plain dropdown/segmented
+     control, NOT a click-to-cycle badge.
+   - A new `published` boolean column on bingo_boards (add publishedAt too) as a
+     separate toggle — this is the content-release gate for the future iOS export;
+     "active" must NOT auto-publish.
+   Replace the current grayscale-dimmed "concept" treatment with a clear labeled
+   pill so its meaning doesn't depend on a hover tooltip.
+4. Simplify interaction: one primary card action (click body → filter Words tab to
+   this board). Move edit/disable/delete out of hover-reveal icons into a single
+   overflow (⋯) menu in the card's top-right corner. The DropdownMenu component
+   already exists at components/ui/dropdown-menu.tsx (currently unused).
+5. Add a Cards/List view toggle for the Boards tab. The List view is a dense table
+   (name, lifecycle status, published, word count, coverage, difficulty) sortable
+   by coverage — reuse the Table primitives from WordTable.tsx for visual
+   consistency and to match the density I like.
+
+=== Do NOT do yet (later phases — leave for me) ===
+- Theme panel rework (Phase 2 in the implementation plan)
+- The /api/v1 iOS-facing read-only API, API keys, rate limiting (Phase 3)
+- The iOS app itself (Phase 4)
+Stop after Phase 1 and give me a summary of what changed, what the migration
+matched/missed, and anything you couldn't do safely without my input.
