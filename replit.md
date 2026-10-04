@@ -223,5 +223,7 @@ The project is backed up to GitHub at:
 
 Remote name: `github-backup` (not `origin` — reserved for Replit platform remotes)
 
-To push future updates, re-authenticate via the GitHub integration and run:
-  `git push github-backup main`
+To push future updates, run `git push github-backup main` using Replit's Git provider authorization.
+If Git reports "Invalid username or token", reconnect GitHub under Replit account settings → Git Providers.
+This authorization is separate from the GitHub (App) connector used for API calls.
+Keep the remote URL credential-free; never print authenticated remote URLs or copy tokens into commands.
