@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, isNull, or, sql, inArray } from "drizzle-orm";
+import { and, eq, isNull, or, sql, inArray } from "drizzle-orm";
 import { db, wordsTable, boardsTable, wordBoardsTable } from "@workspace/db";
 import {
   AutofillWordsBody,
@@ -10,6 +10,7 @@ import {
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
 import { bumpBoardsContentVersion } from "../lib/content-version";
+import { missingAutofillFields, sameWordRevision } from "../lib/autofill-policy";
 
 const router: IRouter = Router();
 
@@ -69,11 +70,11 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
       wordsToFill = await db
         .select()
         .from(wordsTable)
-        .where(
+        .where(and(isNull(wordsTable.deletedAt),
           cappedIds.length === 1
             ? eq(wordsTable.id, cappedIds[0])
             : or(...cappedIds.map((id) => eq(wordsTable.id, id)))
-        );
+        )).orderBy(wordsTable.id).limit(50);
       // Respect the 50-word cap even when IDs are explicitly supplied
       wordsToFill = wordsToFill.slice(0, 50);
     } else {
@@ -93,7 +94,9 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
       wordsToFill = await db
         .select()
         .from(wordsTable)
-        .where(nullConditions.length > 0 ? or(...nullConditions) : undefined);
+        .where(and(isNull(wordsTable.deletedAt),
+          nullConditions.length > 0 ? or(...nullConditions) : undefined))
+        .orderBy(wordsTable.id).limit(50);
       // Limit to 50 per batch — run autofill again to continue filling remaining words
       wordsToFill = wordsToFill.slice(0, 50);
     }
@@ -130,6 +133,12 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
       entry.names.push(r.name);
       assocByWord.set(r.wordId, entry);
     }
+    wordsToFill = wordsToFill.filter(w =>
+      missingAutofillFields(w, fields, assocByWord.get(w.id)?.ids ?? []).size > 0);
+    if (wordsToFill.length === 0) {
+      res.json(AutofillWordsResponse.parse({ updated: 0, results: [] }));
+      return;
+    }
 
     // Build field descriptions for requested fields
     const fieldDescriptionMap = buildFieldDescriptionMap(validBoardNames);
@@ -140,6 +149,7 @@ router.post("/ai/autofill", async (req, res): Promise<void> => {
     const wordsList = wordsToFill.map((w) => ({
       id: w.id,
       word: w.word,
+      missingFields: [...missingAutofillFields(w, fields, assocByWord.get(w.id)?.ids ?? [])],
       currentValues: {
         regions: w.regions,
         surroundings: w.surroundings,
@@ -158,7 +168,8 @@ This is for a road trip bingo game where players look for things out the car win
 Fields to fill in:
 ${fieldDescriptions}
 
-For each word, only provide values for the requested fields. 
+For each word, only provide values listed in that word's missingFields.
+Preserve all existing values. Do not reclassify fields that already have values.
 Return a JSON array of objects with "id" and the requested field values.
 Only use the exact valid values listed above.
 For array fields, return an array. For single-value fields (age, findability), return a string or null.
@@ -225,11 +236,24 @@ Return only the JSON array, no explanation.`;
       if (dropped.length > 0) {
         logger.warn({ id, field, dropped }, "AI autofill dropped invalid array elements");
       }
-      return valid;
+      const unique = [...new Set(valid)];
+      if (["regions", "surroundings", "seasons"].includes(field) &&
+          unique.includes("All") && unique.length > 1) {
+        logger.warn({ id, field }, "AI autofill rejected conflicting All and specific tags");
+        return [];
+      }
+      return unique;
     }
 
     // Apply updates
-    const updatedWords = [];
+    type Plan = {
+      id: number;
+      updateData: Partial<typeof wordsTable.$inferInsert>;
+      newBoards?: { id: number; name: string }[];
+    };
+    const plans: Plan[] = [];
+    const originalById = new Map(wordsToFill.map(w => [w.id, w]));
+    const seenIds = new Set<number>();
     for (const result of aiResults) {
       // Guard against null or non-object elements (e.g. a malformed AI response like [null, 1, "foo"])
       if (result === null || typeof result !== "object" || Array.isArray(result)) {
@@ -248,10 +272,16 @@ Return only the JSON array, no explanation.`;
         logger.warn({ id }, "AI autofill skipping result with id not in requested set");
         continue;
       }
+      if (seenIds.has(id)) {
+        logger.warn({ id }, "AI autofill skipping duplicate result id");
+        continue;
+      }
+      seenIds.add(id);
+      const missing = missingAutofillFields(originalById.get(id)!, fields, assocByWord.get(id)?.ids ?? []);
 
       const updateData: Partial<typeof wordsTable.$inferInsert> = {};
 
-      if (fields.includes("regions") && updates.regions !== undefined) {
+      if (missing.has("regions") && updates.regions !== undefined) {
         if (!Array.isArray(updates.regions)) {
           logger.warn({ id, value: updates.regions }, "AI autofill skipping regions: expected array");
         } else {
@@ -259,7 +289,7 @@ Return only the JSON array, no explanation.`;
           if (filtered.length > 0) updateData.regions = filtered;
         }
       }
-      if (fields.includes("surroundings") && updates.surroundings !== undefined) {
+      if (missing.has("surroundings") && updates.surroundings !== undefined) {
         if (!Array.isArray(updates.surroundings)) {
           logger.warn({ id, value: updates.surroundings }, "AI autofill skipping surroundings: expected array");
         } else {
@@ -267,7 +297,7 @@ Return only the JSON array, no explanation.`;
           if (filtered.length > 0) updateData.surroundings = filtered;
         }
       }
-      if (fields.includes("dayNight") && updates.dayNight !== undefined) {
+      if (missing.has("dayNight") && updates.dayNight !== undefined) {
         if (!Array.isArray(updates.dayNight)) {
           logger.warn({ id, value: updates.dayNight }, "AI autofill skipping dayNight: expected array");
         } else {
@@ -275,9 +305,9 @@ Return only the JSON array, no explanation.`;
           if (filtered.length > 0) updateData.dayNight = filtered;
         }
       }
-      if (fields.includes("age") && updates.age !== undefined) {
+      if (missing.has("age") && updates.age !== undefined) {
         if (updates.age === null) {
-          updateData.age = null;
+          logger.info({ id }, "AI autofill left uncertain age empty");
         } else if (typeof updates.age !== "string") {
           logger.warn({ id, value: updates.age }, "AI autofill skipping age: expected string or null");
         } else if (!VALID_AGES.includes(updates.age)) {
@@ -286,9 +316,9 @@ Return only the JSON array, no explanation.`;
           updateData.age = updates.age;
         }
       }
-      if (fields.includes("findability") && updates.findability !== undefined) {
+      if (missing.has("findability") && updates.findability !== undefined) {
         if (updates.findability === null) {
-          updateData.findability = null;
+          logger.info({ id }, "AI autofill left uncertain findability empty");
         } else if (typeof updates.findability !== "string") {
           logger.warn({ id, value: updates.findability }, "AI autofill skipping findability: expected string or null");
         } else if (!VALID_FINDABILITIES.includes(updates.findability)) {
@@ -297,7 +327,7 @@ Return only the JSON array, no explanation.`;
           updateData.findability = updates.findability;
         }
       }
-      if (fields.includes("seasons") && updates.seasons !== undefined) {
+      if (missing.has("seasons") && updates.seasons !== undefined) {
         if (!Array.isArray(updates.seasons)) {
           logger.warn({ id, value: updates.seasons }, "AI autofill skipping seasons: expected array");
         } else {
@@ -306,7 +336,7 @@ Return only the JSON array, no explanation.`;
         }
       }
       let newBoards: { id: number; name: string }[] | undefined;
-      if (fields.includes("boards") && updates.boards !== undefined) {
+      if (missing.has("boards") && updates.boards !== undefined) {
         if (!Array.isArray(updates.boards)) {
           logger.warn({ id, value: updates.boards }, "AI autofill skipping boards: expected array");
         } else {
@@ -319,12 +349,49 @@ Return only the JSON array, no explanation.`;
       }
 
       if (Object.keys(updateData).length === 0) continue;
+      plans.push({ id, updateData, newBoards });
+    }
 
-      const updated = await db.transaction(async (tx) => {
+    // Apply the complete validated batch atomically. Locked, fresh reads protect
+    // edits/deletions made during model latency and supply current memberships.
+    const response = await db.transaction(async (tx) => {
+      if (plans.length === 0) return AutofillWordsResponse.parse({ updated: 0, results: [] });
+      const currentRows = await tx.select().from(wordsTable)
+        .where(inArray(wordsTable.id, plans.map(p => p.id)))
+        .orderBy(wordsTable.id).for("update");
+      const currentById = new Map(currentRows.map(w => [w.id, w]));
+      const currentBoards = await tx.select({ id: boardsTable.id, name: boardsTable.name })
+        .from(boardsTable).orderBy(boardsTable.id).for("share");
+      const currentBoardNames = new Map(currentBoards.map(b => [b.id, b.name]));
+      const currentLinks = await tx.select().from(wordBoardsTable)
+        .where(inArray(wordBoardsTable.wordId, plans.map(p => p.id)))
+        .orderBy(wordBoardsTable.boardId);
+      const linksByWord = new Map<number, number[]>();
+      for (const link of currentLinks) {
+        const ids = linksByWord.get(link.wordId) ?? [];
+        ids.push(link.boardId);
+        linksByWord.set(link.wordId, ids);
+      }
+      const updatedWords = [];
+      for (const { id, updateData, newBoards } of plans) {
+        const original = originalById.get(id)!;
+        const current = currentById.get(id);
+        const oldBoardIds = linksByWord.get(id) ?? [];
+        const before = assocByWord.get(id) ?? { ids: [], names: [] };
+        const unchangedLinks = before.ids.length === oldBoardIds.length &&
+          before.ids.every(boardId => oldBoardIds.includes(boardId) &&
+            currentBoardNames.get(boardId) === before.names[before.ids.indexOf(boardId)]);
+        if (!current || current.deletedAt || !sameWordRevision(original, current) || !unchangedLinks) {
+          logger.info({ id }, "AI autofill skipped a word changed during processing");
+          continue;
+        }
+        if (newBoards?.some(b => currentBoardNames.get(b.id) !== b.name)) {
+          throw new Error("Board definitions changed during AI processing.");
+        }
         const [row] = await tx
           .update(wordsTable)
           .set(updateData)
-          .where(eq(wordsTable.id, id))
+          .where(and(eq(wordsTable.id, id), isNull(wordsTable.deletedAt)))
           .returning();
         if (row && newBoards !== undefined) {
           await tx.delete(wordBoardsTable).where(eq(wordBoardsTable.wordId, id));
@@ -338,43 +405,44 @@ Return only the JSON array, no explanation.`;
           // Every autofill field is bundle-visible content, so any update
           // must bump the linked published boards' contentVersion.  Union of
           // old ∪ new membership: boards the word left must re-version too.
-          const oldBoardIds = assocByWord.get(id)?.ids ?? [];
           const newBoardIds = newBoards !== undefined ? newBoards.map((b) => b.id) : oldBoardIds;
           await bumpBoardsContentVersion(tx, [...oldBoardIds, ...newBoardIds]);
         }
-        return row;
-      });
-
-      if (updated) {
-        const assoc = newBoards !== undefined
-          ? { ids: newBoards.map((b) => b.id), names: newBoards.map((b) => b.name) }
-          : assocByWord.get(id) ?? { ids: [], names: [] };
-        updatedWords.push({
-          id: updated.id,
-          word: updated.word,
-          regions: updated.regions ?? [],
-          surroundings: updated.surroundings ?? [],
-          dayNight: updated.dayNight ?? [],
-          age: updated.age ?? null,
-          findability: updated.findability ?? null,
-          seasons: updated.seasons ?? [],
-          boards: assoc.names,
-          boardIds: assoc.ids,
-          notes: updated.notes ?? null,
-          spanish: updated.spanish ?? null,
-          emoji: updated.emoji ?? null,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-          deletedAt: updated.deletedAt ?? null,
-        });
+        const updated = row;
+        if (updated) {
+          const assoc = newBoards !== undefined
+            ? { ids: newBoards.map((b) => b.id), names: newBoards.map((b) => b.name) }
+            : { ids: oldBoardIds, names: oldBoardIds.map(boardId => currentBoardNames.get(boardId)!) };
+          updatedWords.push({
+            id: updated.id,
+            word: updated.word,
+            regions: updated.regions ?? [],
+            surroundings: updated.surroundings ?? [],
+            dayNight: updated.dayNight ?? [],
+            age: updated.age ?? null,
+            findability: updated.findability ?? null,
+            seasons: updated.seasons ?? [],
+            boards: assoc.names,
+            boardIds: assoc.ids,
+            notes: updated.notes ?? null,
+            spanish: updated.spanish ?? null,
+            emoji: updated.emoji ?? null,
+            createdAt: updated.createdAt,
+            updatedAt: updated.updatedAt,
+            deletedAt: updated.deletedAt ?? null,
+          });
+        }
       }
-    }
-
-    const response = AutofillWordsResponse.parse({
-      updated: updatedWords.length,
-      results: updatedWords,
+      // Validate the response before COMMIT, so response errors cannot hide writes.
+      return AutofillWordsResponse.parse({
+        updated: updatedWords.length,
+        results: updatedWords,
+      });
     });
     res.json(response);
+  } catch (err) {
+    logger.error({ err }, "AI autofill batch failed");
+    res.status(500).json({ error: "Autofill failed. No changes from this batch were saved. Please try again." });
   } finally {
     aiRequestInFlight = false;
   }

@@ -79,7 +79,7 @@ export default function SnapshotsPanel() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["snapshots"],
     queryFn: fetchSnapshots,
   });
@@ -97,12 +97,15 @@ export default function SnapshotsPanel() {
   const restoreMutation = useMutation({
     mutationFn: restoreSnapshot,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/words"] });
-      qc.invalidateQueries({ queryKey: ["/api/words/stats"] });
+      qc.invalidateQueries();
       setRestoreDialogId(null);
-      toast({ title: "Database restored", description: "All word data has been replaced." });
+      toast({ title: "Words restored", description: "Word data and saved board links were restored. Board settings were not changed." });
     },
-    onError: () => toast({ title: "Couldn't restore snapshot", variant: "destructive" }),
+    onError: (error) => toast({
+      title: "Couldn't restore snapshot",
+      description: error instanceof Error ? error.message : "Restore failed. No partial restore was applied.",
+      variant: "destructive",
+    }),
   });
 
   const deleteMutation = useMutation({
@@ -129,7 +132,7 @@ export default function SnapshotsPanel() {
           Database Snapshots
         </h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
-          Save a named copy of all word data. Restore any snapshot to revert the database exactly to that state.
+          Save a private, persistent copy of all words and their board links. Restoring a snapshot does not revert board names or settings.
         </p>
       </div>
 
@@ -183,7 +186,13 @@ export default function SnapshotsPanel() {
       )}
 
       {/* ── Empty state ── */}
-      {!isLoading && snapshots.length === 0 && (
+      {isError && (
+        <div className="text-sm text-muted-foreground py-8 text-center border border-border">
+          Couldn&apos;t load snapshots. Your backups have not been deleted.
+          <button className="ml-2 underline" onClick={() => void refetch()}>Retry</button>
+        </div>
+      )}
+      {!isLoading && !isError && snapshots.length === 0 && (
         <div className="text-sm text-muted-foreground py-8 text-center border border-border bg-muted/10">
           No snapshots yet. Save one above to get started.
         </div>
@@ -200,9 +209,10 @@ export default function SnapshotsPanel() {
                 <AlertDialogDescription asChild>
                   <div className="space-y-2">
                     <p>
-                      This will replace <strong className="text-foreground font-medium">all</strong> current words and boards with the snapshot data.
+                      This will replace <strong className="text-foreground font-medium">all</strong> current words and their saved board links. Board names and settings will not be reverted.
                       This action cannot be undone unless you save another snapshot first.
                     </p>
+                    <p>If a referenced board no longer exists or the backup cannot be imported, the restore will fail without applying a partial restore.</p>
                     {target && (
                       <p className="font-mono text-xs text-muted-foreground">
                         Snapshot: <span className="text-foreground">{target.label}</span> · {target.wordCount} words · {formatDate(target.createdAt)}

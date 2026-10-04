@@ -33,7 +33,7 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - Quick-add row at the bottom of the table; delete button per row (hover-reveal)
 - Pagination (server-side, 100 words per page)
 - AI green dot indicators: cells recently updated by AI autofill show an emerald dot for 90 seconds
-- **AI Autofill** (batch, up to 50 words): selectable fields, run repeatedly to fill all gaps
+- **AI Autofill** (batch, up to 50 active words across the database): fills only missing selected fields, never overwrites existing values or Trash. Rechecks word revisions and current memberships after model latency; applies each batch in one transaction.
 - **AI Word Suggestions**: suggest new words by theme; one-click add to database
 - **Export JSON**: download filtered word list as JSON
 
@@ -65,9 +65,9 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - Light/dark mode toggle and accent color customization
 
 #### Snapshots tab
-- Save named point-in-time database copies (pg_dump stored in `data/snapshots/`)
+- Save named point-in-time word backups in private persistent App Storage. Existing local `data/snapshots/` backups are copied to storage without removing their originals.
 - Dumps include both `bingo_words` and the `bingo_word_boards` junction, so restores preserve exact word↔board links even after board renames
-- Restore any snapshot (replaces all word data, with confirmation); older snapshots without junction rows fall back to a name-based rebuild
+- Restore words and exact board links with confirmation, without reverting board definitions. Truncation, import and published-version bumps run in one transaction with stop-on-error. Missing saved boards or SQL errors roll back the restore; legacy dumps without verifiable junction data are refused but remain downloadable.
 - Delete snapshots; list shows label, date, word count, file size
 
 ### Header

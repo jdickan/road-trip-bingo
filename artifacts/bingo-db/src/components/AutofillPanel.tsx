@@ -46,16 +46,15 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
       { data: { fields: Array.from(selectedFields) } },
       {
         onSuccess: (data) => {
-          queryClient.invalidateQueries({ queryKey: ["/api/words"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/words/stats"] });
+          queryClient.invalidateQueries();
           const hitCap = data.updated >= 50;
           toast({
             title: data.updated === 0 ? "Nothing to fill" : "Autofill complete",
             description: data.updated === 0
-              ? "All selected fields already have values."
+              ? "No changes were applied. Fields may already be filled, words may have changed during processing, or AI may not have returned usable values."
               : hitCap
                 ? `Updated ${data.updated} words (batch limit reached — run again for more).`
-                : `Updated ${data.updated} words.`,
+                : `Updated ${data.updated} words. Existing values and words edited during processing were left unchanged.`,
           });
           if (data.updated > 0) {
             onComplete?.(data.results as Array<{ id: number }>, Array.from(selectedFields));
@@ -65,7 +64,7 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
         onError: () => {
           toast({
             title: "Couldn't autofill words",
-            description: "There was an error autofilling words. Please try again.",
+            description: "Autofill could not be confirmed. Refresh before trying again. Failed batches do not leave partial changes.",
             variant: "destructive",
           });
         }
@@ -85,7 +84,7 @@ export default function AutofillPanel({ onComplete }: AutofillPanelProps) {
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold text-sm leading-none mb-1">Batch Autofill Missing Data</h4>
-            <p className="text-xs text-muted-foreground">AI will fill in empty tags for up to 50 words at a time. If there are more incomplete words, just run it again.</p>
+            <p className="text-xs text-muted-foreground">Fills only empty tags on up to 50 active words across the whole database, not just your current filters. Existing values and words in Trash are never overwritten.</p>
           </div>
           
           <div className="grid grid-cols-2 gap-2">
