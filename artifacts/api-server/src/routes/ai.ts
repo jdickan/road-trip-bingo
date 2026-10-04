@@ -180,8 +180,8 @@ Return only the JSON array, no explanation.`;
 
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_completion_tokens: 4096,
+        model: "gpt-5.4-mini",
+        max_completion_tokens: 8192,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -425,8 +425,8 @@ Return only the JSON array, no other text.`;
 
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_completion_tokens: 2048,
+        model: "gpt-5.4-mini",
+        max_completion_tokens: 8192,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
