@@ -16,8 +16,10 @@ interface TokenPayload {
 }
 
 /**
- * Issue a short-lived HMAC-signed AI session token.
- * The raw AI_ROUTE_SECRET never leaves the server — only this token is sent to clients.
+ * Issue a short-lived HMAC-signed bearer token using a server-only random key.
+ * Callers must use SESSION_SECRET for editor sessions and AI_ROUTE_SECRET for
+ * AI-scoped tokens. Never pass a user password: a captured MAC would allow
+ * offline password guessing. The signing key never leaves the server.
  */
 export function issueAiToken(secret: string): { token: string; expiresIn: number } {
   const payload: TokenPayload = {

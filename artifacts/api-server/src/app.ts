@@ -55,8 +55,8 @@ app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 // Secrets and startup validation
 // ---------------------------------------------------------------------------
 
-// ADMIN_PASSWORD gates all privileged API routes and is used as the HMAC
-// signing key for session tokens.  Must be set in production.
+// ADMIN_PASSWORD is only a login credential, never a token signing key.
+// Must be set in production.
 const adminPassword = process.env["ADMIN_PASSWORD"] ?? null;
 
 if (!adminPassword) {
@@ -71,6 +71,24 @@ if (!adminPassword) {
       "Set ADMIN_PASSWORD to enable the login screen locally.",
     );
   }
+}
+
+// Use a separate, randomly generated server secret for editor sessions.
+// Never fall back to the password (or the AI-scoped signing key). Reject
+// obviously unsafe configuration without logging any secret values.
+const configuredSessionSecret = process.env["SESSION_SECRET"] ?? null;
+const sessionSecret =
+  configuredSessionSecret &&
+  Buffer.byteLength(configuredSessionSecret, "utf8") >= 32 &&
+  configuredSessionSecret !== adminPassword
+    ? configuredSessionSecret
+    : null;
+
+if (adminPassword && !sessionSecret) {
+  logger.error(
+    "SESSION_SECRET must be a separate randomly generated secret of at least " +
+    "32 bytes — authenticated API access is disabled until configured.",
+  );
 }
 
 // AI_ROUTE_SECRET is used only for signing/verifying AI-specific tokens.
@@ -142,6 +160,11 @@ app.post(
       return;
     }
 
+    if (!sessionSecret) {
+      res.status(503).json({ error: "API is not configured." });
+      return;
+    }
+
     const { password } = req.body as { password?: string };
 
     if (typeof password !== "string" || password.length === 0) {
@@ -162,7 +185,7 @@ app.post(
       return;
     }
 
-    const { token, expiresIn } = issueAiToken(adminPassword);
+    const { token, expiresIn } = issueAiToken(sessionSecret);
     res.json({ token, expiresIn });
   },
 );
@@ -206,6 +229,11 @@ function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
     return;
   }
 
+  if (!sessionSecret) {
+    res.status(503).json({ error: "API is not configured." });
+    return;
+  }
+
   const authHeader = req.headers["authorization"];
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "Authentication required." });
@@ -214,7 +242,7 @@ function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
 
   const token = authHeader.slice("Bearer ".length);
 
-  if (!verifyAiToken(token, adminPassword)) {
+  if (!verifyAiToken(token, sessionSecret)) {
     res.status(401).json({ error: "Session token is invalid or expired. Please log in again." });
     return;
   }

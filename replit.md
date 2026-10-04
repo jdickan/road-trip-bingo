@@ -76,6 +76,8 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - Tab bar with icons: Words, Boards, Analysis, Definitions, Theme, Snapshots
 
 ### API Security & Validation
+- `ADMIN_PASSWORD` is only the editor login credential. Editor bearer tokens are signed with the separate server-only `SESSION_SECRET`; use a cryptographically random value (at least 32 bytes), never the password. Missing, short, or password-reused session keys disable authenticated API access with HTTP 503; there is no password-key fallback.
+- `AI_ROUTE_SECRET` remains the separate AI-token signing key. Changing `SESSION_SECRET` invalidates editor sessions, so editors must log in again. Password-signed tokens from older versions are not accepted.
 - All AI autofill responses are validated before writing: array type checks, per-element guards, ID allowlist, enum validation, per-element logging of dropped values
 - AI suggest responses also guarded with array type check
 - All routes use Zod schemas for request/response validation
@@ -91,6 +93,7 @@ Array columns (dayNight, regions, surroundings, seasons, boards) are NOT NULL wi
 Use `cardinality(col) = 0` (not `IS NULL`) to detect empty/unset values in queries.
 
 ### Testing & CI
+- Database-free auth regression tests: `pnpm --filter @workspace/api-server run test:auth`. These also run before the database suite in `test`.
 - API tests: Vitest + supertest in `artifacts/api-server/src/__tests__/` (41 tests: words CRUD/filters/junction, boards publish/coverage/preview, v1 public API/contentVersion bumps/API key guard, AI autofill bumps with mocked OpenAI)
 - Tests run against a separate `bingo_test` database: set `TEST_DATABASE_URL` (same host as `DATABASE_URL`, pathname `/bingo_test`), then `pnpm --filter @workspace/api-server run test`
 - CI: `.github/workflows/ci.yml` — postgres:16 service, pnpm 10 + Node 24, runs typecheck → drizzle push-force → tests on push/PR to main
