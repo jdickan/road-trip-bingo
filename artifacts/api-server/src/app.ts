@@ -6,6 +6,7 @@ import { rateLimit } from "express-rate-limit";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { issueAiToken, verifyAiToken } from "./lib/ai-token";
+import { snapshotRequestLimit, snapshotGlobalRequestLimit } from "./lib/snapshot-limits";
 
 const app: Express = express();
 
@@ -253,6 +254,7 @@ function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
 // Mount BEFORE /api/ai/token and the main router — all requests to /api/*
 // that are not /auth/token or /healthz must pass the auth guard first.
 app.use("/api", apiAuthGuard);
+app.use("/api/snapshots", snapshotRequestLimit, snapshotGlobalRequestLimit);
 
 // ---------------------------------------------------------------------------
 // Public /v1 namespace — API key guard + rate limit

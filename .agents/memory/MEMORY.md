@@ -1,3 +1,4 @@
 - [Snapshot dumps must include junction tables](snapshot-junction-integrity.md) — never rebuild junction rows from denormalized name columns on restore; names go stale after renames.
 - [Delta-sync cursor query ordering](delta-sync-cursor-ordering.md) — query the latestVersion cursor BEFORE the delta list, and bump versions for old ∪ new parents on membership moves.
 - [Git sync safety](git-remote-credential-hygiene.md) — never print authenticated remotes; API fallback must preserve original hashes and use a non-forced branch update.
+- [Snapshot resource budgets](snapshot-resource-budgets.md) — refuse new backups instead of evicting old ones; coordinate snapshot mutations across app instances.

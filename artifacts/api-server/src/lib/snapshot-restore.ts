@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { SnapshotStoreError } from "./snapshot-store";
+import { MAX_SNAPSHOT_BYTES, SNAPSHOT_TIMEOUT_MS } from "./snapshot-policy";
 
 const execFileAsync = promisify(execFile);
 
@@ -42,6 +43,9 @@ export function buildRestoreScript(dump: string): string {
 }
 
 export async function restoreSnapshotSql(dump: string, databaseUrl: string): Promise<number> {
+  if (Buffer.byteLength(dump, "utf8") > MAX_SNAPSHOT_BYTES) {
+    throw new SnapshotStoreError("Snapshot exceeds the 25 MiB restore limit. No data was changed.", 413);
+  }
   const script = buildRestoreScript(dump);
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bingo-restore-"));
   try {
@@ -51,7 +55,7 @@ export async function restoreSnapshotSql(dump: string, databaseUrl: string): Pro
     // Any SQL error stops psql and rolls the entire operation back.
     const { stdout } = await execFileAsync("psql", [
       "--no-psqlrc", "--single-transaction", "--set=ON_ERROR_STOP=1", `--file=${file}`,
-    ], { env: pgEnv(databaseUrl), timeout: 120_000 });
+    ], { env: pgEnv(databaseUrl), timeout: SNAPSHOT_TIMEOUT_MS });
     const count = stdout.match(/BINGO_RESTORE_WORD_COUNT=(\d+)/);
     if (!count) throw new Error("Restore completed but its word count could not be confirmed.");
     return Number(count[1]);

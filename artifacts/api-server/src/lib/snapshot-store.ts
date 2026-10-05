@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createReadStream } from "node:fs";
+import { compose, Writable, type Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { objectStorageClient } from "./objectStorage";
+import {
+  SnapshotStoreError, SnapshotByteLimit, MAX_SNAPSHOT_BYTES,
+  MAX_METADATA_BYTES, SNAPSHOT_TIMEOUT_MS,
+  snapshotCapacity, MAX_SNAPSHOT_STORAGE_BYTES,
+} from "./snapshot-policy";
+export { SnapshotStoreError } from "./snapshot-policy";
 
 export interface SnapshotMeta {
   id: string;
@@ -13,14 +22,8 @@ export interface SnapshotMeta {
   sha256?: string;
 }
 
-export class SnapshotStoreError extends Error {
-  constructor(message: string, public status = 409) {
-    super(message);
-  }
-}
-
-export function isSnapshotId(id: string): boolean {
-  return /^snap_\d+(?:_[a-f0-9]{32})?$/.test(id);
+export function isSnapshotId(id: unknown): id is string {
+  return typeof id === "string" && /^snap_\d+(?:_[a-f0-9]{32})?$/.test(id);
 }
 
 function location() {
@@ -51,20 +54,36 @@ function validateMeta(value: unknown, id?: string): SnapshotMeta {
 /** SQL first, metadata last: an incomplete upload is never a visible backup. */
 export async function saveSnapshot(dumpFile: string, meta: SnapshotMeta): Promise<SnapshotMeta> {
   validateMeta(meta);
-  const bytes = await fs.readFile(dumpFile);
-  const saved = { ...meta, sizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+  const stat = await fs.stat(dumpFile);
+  if (stat.size > MAX_SNAPSHOT_BYTES) throw new SnapshotStoreError("Snapshot exceeds the 25 MiB size limit.", 413);
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(dumpFile)) hash.update(chunk);
+  const saved = { ...meta, sizeBytes: stat.size, sha256: hash.digest("hex") };
   const { bucket, prefix } = location();
   const sqlFile = bucket.file(`${prefix}${meta.id}.sql`);
-  await sqlFile.save(bytes, { resumable: false, contentType: "application/sql", preconditionOpts: { ifGenerationMatch: 0 } });
   try {
+    await pipeline(createReadStream(dumpFile), new SnapshotByteLimit(MAX_SNAPSHOT_BYTES),
+      sqlFile.createWriteStream({
+        resumable: false, metadata: { contentType: "application/sql" }, preconditionOpts: { ifGenerationMatch: 0 },
+      }), { signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS) });
     await bucket.file(`${prefix}${meta.id}.meta.json`).save(JSON.stringify(saved), {
       resumable: false, contentType: "application/json", preconditionOpts: { ifGenerationMatch: 0 },
     });
   } catch (error) {
-    await sqlFile.delete({ ignoreNotFound: true }).catch(() => {});
+    if ((error as { code?: number }).code !== 412) {
+      await sqlFile.delete({ ignoreNotFound: true }).catch(() => {});
+    }
     throw error;
   }
   return saved;
+}
+
+async function boundedRead(stream: Readable, maximum: number, expected?: SnapshotMeta): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  await pipeline(stream, new SnapshotByteLimit(maximum, expected), new Writable({
+    write(chunk: Buffer, _encoding, callback) { chunks.push(chunk); callback(); },
+  }), { signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS) });
+  return Buffer.concat(chunks);
 }
 
 // Keep original local backups. Copy them to private storage on first discovery.
@@ -94,44 +113,84 @@ async function migrateLocalSnapshots(): Promise<void> {
   }
 }
 
+async function snapshotInventory() {
+  const { bucket, prefix } = location();
+  // Bound listings even if failed historical uploads left orphaned objects.
+  const [files, nextPage] = await bucket.getFiles({ prefix, autoPaginate: false, maxResults: 256 });
+  if (nextPage) throw new SnapshotStoreError("Snapshot storage inventory is too large. No new backup was created.");
+  return { files, prefix };
+}
+
 export async function listSnapshots(): Promise<SnapshotMeta[]> {
   await migrateLocalSnapshots();
-  const { bucket, prefix } = location();
-  const [files] = await bucket.getFiles({ prefix });
+  const { files, prefix } = await snapshotInventory();
   const deleted = new Set(files.filter(f => f.name.endsWith(".deleted")).map(f => f.name.slice(0, -8)));
-  const metas = await Promise.all(files.filter(f => f.name.endsWith(".meta.json") &&
-    !deleted.has(f.name.slice(0, -10))).map(async file => {
-    const [bytes] = await file.download();
-    return validateMeta(JSON.parse(bytes.toString("utf8")), file.name.slice(prefix.length, -10));
-  }));
+  const metas: SnapshotMeta[] = [];
+  // Sequential bounded metadata reads avoid memory spikes from large listings.
+  for (const file of files.filter(f => f.name.endsWith(".meta.json") &&
+    !deleted.has(f.name.slice(0, -10)))) {
+    const bytes = await boundedRead(file.createReadStream(), MAX_METADATA_BYTES);
+    metas.push(validateMeta(JSON.parse(bytes.toString("utf8")), file.name.slice(prefix.length, -10)));
+  }
   return metas.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export async function readSnapshot(id: string): Promise<{ meta: SnapshotMeta; sql: string }> {
+export async function snapshotCreationCapacity(): Promise<number> {
+  const capacity = snapshotCapacity(await listSnapshots());
+  const { files } = await snapshotInventory();
+  let allocated = 0;
+  for (const file of files) {
+    const size = Number(file.metadata.size);
+    if (!Number.isSafeInteger(size) || size < 0) throw new SnapshotStoreError("Could not verify snapshot storage usage.");
+    allocated += size;
+  }
+  // Account for orphaned SQL and metadata as well as visible backups. Reserve
+  // metadata overhead before launching a dump, so actual stored bytes stay capped.
+  const remaining = MAX_SNAPSHOT_STORAGE_BYTES - allocated - MAX_METADATA_BYTES;
+  if (remaining <= 0) throw new SnapshotStoreError("Snapshot storage limit reached. No new backup was created.");
+  return Math.min(capacity, remaining);
+}
+
+async function readSnapshotMeta(id: string): Promise<SnapshotMeta> {
   if (!isSnapshotId(id)) throw new SnapshotStoreError("Invalid snapshot id.", 400);
   const { bucket, prefix } = location();
   const [deleted] = await bucket.file(`${prefix}${id}.deleted`).exists();
   const [exists] = await bucket.file(`${prefix}${id}.meta.json`).exists();
   if (deleted || !exists) throw new SnapshotStoreError("Snapshot not found.", 404);
-  const [[metaBytes], [sqlBytes]] = await Promise.all([
-    bucket.file(`${prefix}${id}.meta.json`).download(),
-    bucket.file(`${prefix}${id}.sql`).download(),
-  ]);
-  const meta = validateMeta(JSON.parse(metaBytes.toString("utf8")), id);
-  if (sqlBytes.length !== meta.sizeBytes ||
-      (meta.sha256 && createHash("sha256").update(sqlBytes).digest("hex") !== meta.sha256)) {
-    throw new SnapshotStoreError("Snapshot integrity check failed. No data was changed.");
+  const metaBytes = await boundedRead(bucket.file(`${prefix}${id}.meta.json`).createReadStream(), MAX_METADATA_BYTES);
+  return validateMeta(JSON.parse(metaBytes.toString("utf8")), id);
+}
+
+export async function readSnapshot(id: string): Promise<{ meta: SnapshotMeta; sql: string }> {
+  const meta = await readSnapshotMeta(id);
+  if (meta.sizeBytes > MAX_SNAPSHOT_BYTES) {
+    throw new SnapshotStoreError("This backup exceeds the 25 MiB restore limit. It remains available for download.", 413);
   }
+  const { bucket, prefix } = location();
+  const sqlBytes = await boundedRead(bucket.file(`${prefix}${id}.sql`).createReadStream(), MAX_SNAPSHOT_BYTES, meta);
   return { meta, sql: sqlBytes.toString("utf8") };
+}
+
+export async function openSnapshotDownload(id: string): Promise<{ meta: SnapshotMeta; stream: Readable }> {
+  const meta = await readSnapshotMeta(id);
+  const { bucket, prefix } = location();
+  const stream = compose(bucket.file(`${prefix}${id}.sql`).createReadStream(),
+    new SnapshotByteLimit(meta.sizeBytes, meta));
+  return { meta, stream };
 }
 
 export async function deleteSnapshot(id: string): Promise<void> {
   if (!isSnapshotId(id)) throw new SnapshotStoreError("Invalid snapshot id.", 400);
   const { bucket, prefix } = location();
   const [exists] = await bucket.file(`${prefix}${id}.meta.json`).exists();
-  const [deleted] = await bucket.file(`${prefix}${id}.deleted`).exists();
-  if (!exists || deleted) throw new SnapshotStoreError("Snapshot not found.", 404);
-  await bucket.file(`${prefix}${id}.deleted`).save("deleted", { resumable: false });
-  await Promise.all([".meta.json", ".sql"].map(suffix =>
-    bucket.file(`${prefix}${id}${suffix}`).delete({ ignoreNotFound: true })));
+  if (!exists) throw new SnapshotStoreError("Snapshot not found.", 404);
+  // Only locally retained, legacy IDs need durable anti-resurrection markers.
+  // Modern immutable UUID backups have no local originals; keeping deletion
+  // markers for every one would let the historical inventory grow unbounded.
+  if (/^snap_\d+$/.test(id)) {
+    await bucket.file(`${prefix}${id}.deleted`).save("deleted", { resumable: false });
+  }
+  // Keep metadata until SQL deletion succeeds, so failures remain retryable.
+  await bucket.file(`${prefix}${id}.sql`).delete({ ignoreNotFound: true });
+  await bucket.file(`${prefix}${id}.meta.json`).delete({ ignoreNotFound: true });
 }

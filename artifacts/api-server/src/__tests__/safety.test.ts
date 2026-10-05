@@ -1,6 +1,9 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import fs from "node:fs/promises";
+import { Readable } from "node:stream";
+import os from "node:os";
+import path from "node:path";
 import { eq, sql } from "drizzle-orm";
 import { db, pool, wordsTable, wordBoardsTable, boardsTable } from "@workspace/db";
 import type { SnapshotMeta } from "../lib/snapshot-store";
@@ -27,12 +30,20 @@ vi.mock("../lib/snapshot-store", async () => {
       return snapshot;
     },
     listSnapshots: async () => [...mocks.snapshots.values()].map(s => s.meta),
+    snapshotCreationCapacity: async () => 25 * 1024 * 1024,
+    openSnapshotDownload: async (id: string) => {
+      const snapshot = mocks.snapshots.get(id);
+      if (!snapshot) throw new actual.SnapshotStoreError("Snapshot not found.", 404);
+      return { meta: snapshot.meta, stream: Readable.from([Buffer.from(snapshot.sql)]) };
+    },
     deleteSnapshot: async (id: string) => { mocks.snapshots.delete(id); },
   };
 });
 
 import app from "../app";
 import { truncateAll, seedBoards } from "./helpers";
+import { resetSnapshotLimitsForTests } from "../lib/snapshot-limits";
+import { dumpSnapshot } from "../lib/snapshot-dump";
 
 function answer(rows: unknown[]) {
   return { choices: [{ message: { content: JSON.stringify(rows) } }] };
@@ -59,6 +70,7 @@ async function removeFaultTrigger() {
 }
 
 beforeEach(async () => {
+  resetSnapshotLimitsForTests();
   await removeFaultTrigger();
   await truncateAll();
   mocks.snapshots.clear();
@@ -68,6 +80,15 @@ afterEach(removeFaultTrigger);
 afterAll(async () => { await pool.end(); });
 
 describe("atomic snapshot restore", () => {
+  it("kills an oversized dump before its temporary file can exceed the allowed bytes", async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bingo-dump-limit-test-"));
+    const file = path.join(directory, "dump.sql");
+    try {
+      await expect(dumpSnapshot(file, process.env.DATABASE_URL!, 1)).rejects.toMatchObject({ status: 413 });
+      expect((await fs.stat(file)).size).toBeLessThanOrEqual(1);
+    } finally { await fs.rm(directory, { recursive: true, force: true }); }
+  });
+
   it("restores exact board IDs after a rename and bumps published versions", async () => {
     const ids = await seedBoards(["Original"]);
     const boardId = ids.get("Original")!;
@@ -131,6 +152,7 @@ describe("atomic snapshot restore", () => {
     await word("Keep this");
     const saved = await snapshot();
     mocks.snapshots.get(saved)!.sql = "COPY public.bingo_words (id, word) FROM stdin;\n1\tLegacy\n\\.\n";
+    mocks.snapshots.get(saved)!.meta.sizeBytes = Buffer.byteLength(mocks.snapshots.get(saved)!.sql);
     const before = await db.select().from(wordsTable);
     const response = await request(app).post(`/api/snapshots/${saved}/restore`).expect(409);
     expect(response.body.error).toContain("no saved board links");

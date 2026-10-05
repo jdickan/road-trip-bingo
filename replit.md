@@ -69,6 +69,7 @@ A full-stack spreadsheet-style web editor for managing bingo word entries.
 - Dumps include both `bingo_words` and the `bingo_word_boards` junction, so restores preserve exact word↔board links even after board renames
 - Restore words and exact board links with confirmation, without reverting board definitions. Truncation, import and published-version bumps run in one transaction with stop-on-error. Missing saved boards or SQL errors roll back the restore; legacy dumps without verifiable junction data are refused but remain downloadable.
 - Delete snapshots; list shows label, date, word count, file size
+- Abuse controls: authenticated snapshot requests are rate-limited; creates allow 2 per 10 minutes, restores 1 per 10 minutes, downloads 10 per minute, with an additional shared mutation budget. Create/restore operations share a database advisory lock across app instances. New backups are limited to 20 snapshots, 250 MiB total and 25 MiB each; quota exhaustion refuses creation, never evicts existing backups. Dump output is bounded while streaming to temporary disk, downloads stream with at most 2 concurrent transfers per process, and subprocesses/transfers have 2-minute deadlines.
 
 ### Header
 - App icon + "Road Trip Bingo / Data Cockpit" branding (click to reset to Words tab with no filters)
