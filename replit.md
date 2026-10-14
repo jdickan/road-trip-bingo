@@ -1,5 +1,13 @@
 # Workspace
 
+## Shared collaboration instructions
+
+Read and follow `AGENTS.md`, `planning/README.md`, the roadmap/decisions/Git workflow,
+and relevant recent `changes/` handoffs before editing. Use shared work claims,
+isolated agent checkouts and reviewed PRs; preserve unrelated work. The owner retains
+merge approval. Record meaningful changes and proportionate verification alongside
+the code so Claude and Replit share status through Git rather than pasted chat.
+
 ## Overview
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.

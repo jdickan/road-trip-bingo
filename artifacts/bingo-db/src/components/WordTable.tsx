@@ -149,7 +149,7 @@ export default function WordTable({ filters, setFilters, stickyTop = 0, aiChange
         ? new Set(parts.map((id) => boardIdToName.get(Number(id))).filter((n): n is string => n !== undefined))
         : new Set(parts)
     );
-  }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilter]); // Initialize selections when the active filter changes.
 
   function toggleDraft(opt: string) {
     setDraftSelections((prev) => {

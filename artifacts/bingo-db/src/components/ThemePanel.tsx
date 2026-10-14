@@ -371,7 +371,7 @@ export default function ThemePanel() {
 
   useEffect(() => {
     applyTheme(theme, "custom");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // Initial theme application; later changes are handled above.
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
