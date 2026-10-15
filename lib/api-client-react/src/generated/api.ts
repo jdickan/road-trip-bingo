@@ -17,11 +17,16 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ApproveBoardReleaseBody,
   AutofillRequest,
   AutofillResponse,
   Board,
   BoardBundle,
   BoardList,
+  BoardRelease,
+  BoardReleaseCatalog,
+  BoardReleaseHistory,
+  BoardReleasePreview,
   BulkActionResponse,
   BulkWordIdsBody,
   CreateBoardBody,
@@ -32,6 +37,7 @@ import type {
   ErrorResponse,
   ExportWordsParams,
   HealthStatus,
+  ListBoardReleasesParams,
   ListPublishedBoardsParams,
   ListWordsParams,
   PatchTodoBody,
@@ -45,6 +51,7 @@ import type {
   TodoList,
   UpdateBoardBody,
   UpdateWordBody,
+  VersionedBoardBundle,
   Word,
   WordList,
   WordStats,
@@ -2381,6 +2388,643 @@ export const useSuggestWords = <
 > => {
   return useMutation(getSuggestWordsMutationOptions(options));
 };
+
+/**
+ * @summary Preview the current board draft before approving a content release
+ */
+export const getPreviewBoardReleaseUrl = (id: number) => {
+  return `/api/release/boards/${id}/preview`;
+};
+
+export const previewBoardRelease = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BoardReleasePreview> => {
+  return customFetch<BoardReleasePreview>(getPreviewBoardReleaseUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getPreviewBoardReleaseQueryKey = (id: number) => {
+  return [`/api/release/boards/${id}/preview`] as const;
+};
+
+export const getPreviewBoardReleaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof previewBoardRelease>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof previewBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getPreviewBoardReleaseQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof previewBoardRelease>>
+  > = ({ signal }) => previewBoardRelease(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof previewBoardRelease>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type PreviewBoardReleaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof previewBoardRelease>>
+>;
+export type PreviewBoardReleaseQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Preview the current board draft before approving a content release
+ */
+
+export function usePreviewBoardRelease<
+  TData = Awaited<ReturnType<typeof previewBoardRelease>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof previewBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getPreviewBoardReleaseQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List immutable content releases for editorial review and rollback
+ */
+export const getListBoardReleaseHistoryUrl = (id: number) => {
+  return `/api/release/boards/${id}/history`;
+};
+
+export const listBoardReleaseHistory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<BoardReleaseHistory> => {
+  return customFetch<BoardReleaseHistory>(getListBoardReleaseHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBoardReleaseHistoryQueryKey = (id: number) => {
+  return [`/api/release/boards/${id}/history`] as const;
+};
+
+export const getListBoardReleaseHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBoardReleaseHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBoardReleaseHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListBoardReleaseHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBoardReleaseHistory>>
+  > = ({ signal }) =>
+    listBoardReleaseHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBoardReleaseHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBoardReleaseHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBoardReleaseHistory>>
+>;
+export type ListBoardReleaseHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List immutable content releases for editorial review and rollback
+ */
+
+export function useListBoardReleaseHistory<
+  TData = Awaited<ReturnType<typeof listBoardReleaseHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBoardReleaseHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBoardReleaseHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Explicitly approve a draft or republish a historical release as a new version
+ */
+export const getApproveBoardReleaseUrl = (id: number) => {
+  return `/api/release/boards/${id}/publish`;
+};
+
+export const approveBoardRelease = async (
+  id: number,
+  approveBoardReleaseBody: ApproveBoardReleaseBody,
+  options?: RequestInit,
+): Promise<BoardRelease> => {
+  return customFetch<BoardRelease>(getApproveBoardReleaseUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveBoardReleaseBody),
+  });
+};
+
+export const getApproveBoardReleaseMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveBoardRelease>>,
+    TError,
+    { id: number; data: BodyType<ApproveBoardReleaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveBoardRelease>>,
+  TError,
+  { id: number; data: BodyType<ApproveBoardReleaseBody> },
+  TContext
+> => {
+  const mutationKey = ["approveBoardRelease"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveBoardRelease>>,
+    { id: number; data: BodyType<ApproveBoardReleaseBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approveBoardRelease(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveBoardReleaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveBoardRelease>>
+>;
+export type ApproveBoardReleaseMutationBody = BodyType<ApproveBoardReleaseBody>;
+export type ApproveBoardReleaseMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Explicitly approve a draft or republish a historical release as a new version
+ */
+export const useApproveBoardRelease = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveBoardRelease>>,
+    TError,
+    { id: number; data: BodyType<ApproveBoardReleaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveBoardRelease>>,
+  TError,
+  { id: number; data: BodyType<ApproveBoardReleaseBody> },
+  TContext
+> => {
+  return useMutation(getApproveBoardReleaseMutationOptions(options));
+};
+
+/**
+ * @summary Stop discovery of the currently approved board without deleting any release
+ */
+export const getWithdrawBoardReleaseUrl = (id: number) => {
+  return `/api/release/boards/${id}/withdraw`;
+};
+
+export const withdrawBoardRelease = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getWithdrawBoardReleaseUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getWithdrawBoardReleaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawBoardRelease>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof withdrawBoardRelease>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["withdrawBoardRelease"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof withdrawBoardRelease>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return withdrawBoardRelease(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type WithdrawBoardReleaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof withdrawBoardRelease>>
+>;
+
+export type WithdrawBoardReleaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Stop discovery of the currently approved board without deleting any release
+ */
+export const useWithdrawBoardRelease = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawBoardRelease>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof withdrawBoardRelease>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getWithdrawBoardReleaseMutationOptions(options));
+};
+
+/**
+ * @summary List only explicitly approved board snapshots with a transaction-ordered catalog cursor
+ */
+export const getListBoardReleasesUrl = (params?: ListBoardReleasesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v2/boards?${stringifiedParams}`
+    : `/api/v2/boards`;
+};
+
+export const listBoardReleases = async (
+  params?: ListBoardReleasesParams,
+  options?: RequestInit,
+): Promise<BoardReleaseCatalog> => {
+  return customFetch<BoardReleaseCatalog>(getListBoardReleasesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBoardReleasesQueryKey = (
+  params?: ListBoardReleasesParams,
+) => {
+  return [`/api/v2/boards`, ...(params ? [params] : [])] as const;
+};
+
+export const getListBoardReleasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBoardReleases>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListBoardReleasesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBoardReleases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListBoardReleasesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBoardReleases>>
+  > = ({ signal }) => listBoardReleases(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBoardReleases>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBoardReleasesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBoardReleases>>
+>;
+export type ListBoardReleasesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List only explicitly approved board snapshots with a transaction-ordered catalog cursor
+ */
+
+export function useListBoardReleases<
+  TData = Awaited<ReturnType<typeof listBoardReleases>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListBoardReleasesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBoardReleases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBoardReleasesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the immutable currently approved content bundle for a board
+ */
+export const getGetCurrentBoardReleaseUrl = (id: number) => {
+  return `/api/v2/boards/${id}/bundle`;
+};
+
+export const getCurrentBoardRelease = async (
+  id: number,
+  options?: RequestInit,
+): Promise<VersionedBoardBundle> => {
+  return customFetch<VersionedBoardBundle>(getGetCurrentBoardReleaseUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCurrentBoardReleaseQueryKey = (id: number) => {
+  return [`/api/v2/boards/${id}/bundle`] as const;
+};
+
+export const getGetCurrentBoardReleaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrentBoardRelease>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCurrentBoardReleaseQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCurrentBoardRelease>>
+  > = ({ signal }) => getCurrentBoardRelease(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentBoardRelease>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrentBoardReleaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrentBoardRelease>>
+>;
+export type GetCurrentBoardReleaseQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the immutable currently approved content bundle for a board
+ */
+
+export function useGetCurrentBoardRelease<
+  TData = Awaited<ReturnType<typeof getCurrentBoardRelease>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrentBoardReleaseQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a previously approved immutable release
+ */
+export const getGetHistoricalBoardReleaseUrl = (
+  id: number,
+  version: number,
+) => {
+  return `/api/v2/boards/${id}/releases/${version}`;
+};
+
+export const getHistoricalBoardRelease = async (
+  id: number,
+  version: number,
+  options?: RequestInit,
+): Promise<VersionedBoardBundle> => {
+  return customFetch<VersionedBoardBundle>(
+    getGetHistoricalBoardReleaseUrl(id, version),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetHistoricalBoardReleaseQueryKey = (
+  id: number,
+  version: number,
+) => {
+  return [`/api/v2/boards/${id}/releases/${version}`] as const;
+};
+
+export const getGetHistoricalBoardReleaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHistoricalBoardRelease>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  version: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHistoricalBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHistoricalBoardReleaseQueryKey(id, version);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHistoricalBoardRelease>>
+  > = ({ signal }) =>
+    getHistoricalBoardRelease(id, version, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && version),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHistoricalBoardRelease>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHistoricalBoardReleaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHistoricalBoardRelease>>
+>;
+export type GetHistoricalBoardReleaseQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a previously approved immutable release
+ */
+
+export function useGetHistoricalBoardRelease<
+  TData = Awaited<ReturnType<typeof getHistoricalBoardRelease>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  version: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getHistoricalBoardRelease>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHistoricalBoardReleaseQueryOptions(
+    id,
+    version,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Public, API-key-gated endpoint for external consumers (the iOS app). Returns only boards with published = true — draft/concept boards and unpublished edits are never visible here. Pass `since` (the highest contentVersion seen on a previous sync) to receive only boards whose content changed after that version.

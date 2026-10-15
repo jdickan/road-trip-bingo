@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BoardContentPreview } from "./BoardContentPreview";
+import { BoardReleaseDialog } from "./BoardReleaseDialog";
 
 interface BoardCoverage {
   status: "well-covered" | "needs-words" | "unbalanced";
@@ -608,6 +609,9 @@ export default function BoardsPanel({ onSelectBoard, selectedBoard }: BoardsPane
                 {board.coverage && <CoverageBadge coverage={board.coverage} />}
                 {isSelected && <span className="ml-1 text-foreground/70">· selected</span>}
               </p>
+              <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                <BoardReleaseDialog boardId={board.id} boardName={board.name} />
+              </div>
 
               {/* Title — editing vs. display */}
               {isEditing ? (

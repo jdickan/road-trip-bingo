@@ -214,7 +214,8 @@ function apiAuthGuard(req: Request, res: Response, next: NextFunction): void {
   if (
     req.path === "/auth/token" ||
     req.path === "/healthz" ||
-    req.path.startsWith("/v1/")
+    req.path.startsWith("/v1/") ||
+    req.path.startsWith("/v2/")
   ) {
     next();
     return;
@@ -313,6 +314,7 @@ const publicApiRateLimit = rateLimit({
 });
 
 app.use("/api/v1", publicApiRateLimit, publicApiKeyGuard);
+app.use("/api/v2", publicApiRateLimit, publicApiKeyGuard);
 
 // ---------------------------------------------------------------------------
 // AI rate limit on /api/ai/* — applied after auth guard, before router

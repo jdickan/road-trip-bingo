@@ -2,12 +2,12 @@ import { and, desc, eq, gt, inArray, isNull, lte } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod/v4";
 import {
-  db, boardsTable, boardReleasesTable, releaseCatalogTable, releaseEventsTable,
+  db, boardReleasesTable, releaseCatalogTable, releaseEventsTable,
   wordsTable, wordBoardsTable,
 } from "@workspace/db";
 import {
   approveRelease, isSerializationConflict, previewDraftRelease,
-  readDraftRelease, ReleaseError, releaseChecksum, releaseContentSchema,
+  ReleaseError, releaseChecksum, releaseContentSchema,
   withdrawRelease,
 } from "../lib/board-releases";
 
@@ -93,7 +93,7 @@ router.get("/v2/boards", async (req: Request, res: Response): Promise<void> => {
         events = events.filter(e => e.action === "publish");
       }
       return { boards: events.map(e => ({
-        id: e.boardId, releaseId: e.releaseId, contentVersion: e.version,
+        id: e.boardId, releaseId: e.releaseId, contentVersion: e.version, action: e.action,
       })), latestVersion };
     }, { isolationLevel: "repeatable read", accessMode: "read only" });
     res.json({ schemaVersion: 1, ...result, total: result.boards.length });
