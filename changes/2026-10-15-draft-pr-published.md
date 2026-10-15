@@ -21,13 +21,17 @@
   tests do not inherit real credentials or make outbound AI calls. AI behavior
   tests must mock the integration client. Local API tests passed before this
   test-setup adjustment; rerun the full API tests and wait for PR CI before merge.
+- GitHub Actions' `test` check passed on PR head
+  `290b55a1de5a89d848f395e71e9b2046cbb601ce` on 2026-10-15. This is the latest
+  code-bearing head; subsequent handoff updates, if any, are documentation-only.
 
 ## Verified local checks from the implementation batch
 
 - `pnpm run typecheck` — passed; includes lint and workspace TypeScript checks.
 - `pnpm --filter @workspace/api-spec run codegen` — passed.
 - `pnpm --filter @workspace/api-server run test` — passed before the CI follow-up:
-  5 files, 55 tests against isolated `bingo_test`.
+  5 files, 55 tests against isolated `bingo_test`; CI passed again after the
+  test-only provider configuration was added.
 - `pnpm --filter @workspace/api-server run build` — passed.
 - `PORT=5000 BASE_PATH=/bingo-db pnpm --filter @workspace/bingo-db run build` —
   passed with non-fatal source-map, browserslist and bundle-size notices.
@@ -35,9 +39,8 @@
   `pnpm run typecheck` passed. The local full-suite command stopped at its required
   `TEST_DATABASE_URL` guard because this shell has no isolated test database; GitHub
   Actions provides a disposable PostgreSQL service.
-- The loopback-only test setup change is awaiting full API test and new PR CI
-  results. CI must be reported from the current PR head, not inferred from local
-  success.
+- The full API suite was exercised by the successful CI test check above. The
+  local full-suite command remains unavailable without an isolated test database.
 
 ## Remaining work and safe parallel suggestions
 

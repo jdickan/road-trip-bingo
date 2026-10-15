@@ -51,11 +51,13 @@
 - The first GitHub CI run failed before the API tests loaded because the test
   process did not have OpenAI client environment values. The main-branch check
   from 2026-10-05 shows the same pre-existing failure. The test setup now uses a
-  loopback-only endpoint and a non-credential placeholder; a PR rerun is pending.
+  loopback-only endpoint and a non-credential placeholder. GitHub Actions'
+  `test` check passed on PR head `290b55a1de5a89d848f395e71e9b2046cbb601ce`
+  on 2026-10-15.
 - After that change, the database-free auth suite passed (33 tests) and
   `pnpm run typecheck` passed. A local full-suite rerun stopped at the required
   `TEST_DATABASE_URL` guard because no isolated test database is configured in
-  this shell; the CI job supplies its disposable database.
+  this shell; the successful CI job supplies its disposable database.
 - The web preview's auth screen is expected; no credentials were entered or exposed.
 
 ## Remaining work and risks
