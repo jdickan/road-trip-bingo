@@ -19,8 +19,9 @@
   failure, so this was not introduced by the release implementation.
 - API test setup now provides a loopback-only URL and a placeholder key, ensuring
   tests do not inherit real credentials or make outbound AI calls. AI behavior
-  tests must mock the integration client. Local API tests passed before this
-  test-setup adjustment; rerun the full API tests and wait for PR CI before merge.
+  tests must mock the integration client. After this change, local auth tests
+  passed; the full local suite requires `TEST_DATABASE_URL`, while CI supplies
+  the isolated PostgreSQL service.
 - GitHub Actions' `test` check passed on PR head
   `290b55a1de5a89d848f395e71e9b2046cbb601ce` on 2026-10-15. This is the latest
   code-bearing head; subsequent handoff updates, if any, are documentation-only.
