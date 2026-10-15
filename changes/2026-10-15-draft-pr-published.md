@@ -31,8 +31,12 @@
 - `pnpm --filter @workspace/api-server run build` — passed.
 - `PORT=5000 BASE_PATH=/bingo-db pnpm --filter @workspace/bingo-db run build` —
   passed with non-fatal source-map, browserslist and bundle-size notices.
-- The loopback-only test setup change is awaiting the full test run and new PR CI
-  result. CI must be reported from the current PR head, not inferred from local
+- After that change, the database-free auth suite passed (33 tests) and
+  `pnpm run typecheck` passed. The local full-suite command stopped at its required
+  `TEST_DATABASE_URL` guard because this shell has no isolated test database; GitHub
+  Actions provides a disposable PostgreSQL service.
+- The loopback-only test setup change is awaiting full API test and new PR CI
+  results. CI must be reported from the current PR head, not inferred from local
   success.
 
 ## Remaining work and safe parallel suggestions
