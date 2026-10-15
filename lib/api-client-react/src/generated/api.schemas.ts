@@ -519,6 +519,97 @@ export interface PatchTodoBody {
   notes?: string | null;
 }
 
+export type ReleasedContentBoard = {
+  id: number;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  ageLevels: string[];
+  /** @nullable */
+  difficulty: string | null;
+  /** @nullable */
+  timeOfYear: string | null;
+  wordCount: number;
+};
+
+/**
+ * A word entry inside a board bundle — gameplay content only, no editorial fields
+ */
+export interface BundleWord {
+  id: number;
+  word: string;
+  /** @nullable */
+  spanish: string | null;
+  /** @nullable */
+  emoji: string | null;
+  /** @nullable */
+  age: string | null;
+  /** @nullable */
+  findability: string | null;
+  seasons: string[];
+  dayNight: string[];
+  regions: string[];
+  surroundings: string[];
+}
+
+export interface ReleasedContent {
+  schemaVersion: 1;
+  board: ReleasedContentBoard;
+  words: BundleWord[];
+}
+
+export type BoardReleasePreview = ReleasedContent & {
+  checksum: string;
+  /** @nullable */
+  validationError: string | null;
+};
+
+export interface BoardRelease {
+  id: number;
+  boardId: number;
+  version: number;
+  /** @nullable */
+  sourceReleaseId: number | null;
+  payload: ReleasedContent;
+  checksum: string;
+  createdAt: string;
+}
+
+export interface BoardReleaseHistory {
+  /** @maxItems 50 */
+  releases: BoardRelease[];
+  /** @nullable */
+  currentVersion: number | null;
+}
+
+export type BoardReleaseCatalogBoardsItemAction =
+  (typeof BoardReleaseCatalogBoardsItemAction)[keyof typeof BoardReleaseCatalogBoardsItemAction];
+
+export const BoardReleaseCatalogBoardsItemAction = {
+  publish: "publish",
+  withdraw: "withdraw",
+} as const;
+
+export type BoardReleaseCatalogBoardsItem = {
+  id: number;
+  releaseId: number;
+  contentVersion: number;
+  action: BoardReleaseCatalogBoardsItemAction;
+};
+
+export interface BoardReleaseCatalog {
+  schemaVersion: 1;
+  boards: BoardReleaseCatalogBoardsItem[];
+  latestVersion: number;
+  total: number;
+}
+
+export type VersionedBoardBundle = ReleasedContent & {
+  contentVersion: number;
+  /** @pattern ^sha256:[a-f0-9]{64}$ */
+  checksum: string;
+};
+
 /**
  * Published-board metadata exposed on the public /v1 API
  */
@@ -551,26 +642,6 @@ export interface PublishedBoardList {
   total: number;
   /** Highest contentVersion across ALL published boards (0 when none), regardless of the `since` filter. Persist this and pass it as `since` on the next sync. */
   latestVersion: number;
-}
-
-/**
- * A word entry inside a board bundle — gameplay content only, no editorial fields
- */
-export interface BundleWord {
-  id: number;
-  word: string;
-  /** @nullable */
-  spanish: string | null;
-  /** @nullable */
-  emoji: string | null;
-  /** @nullable */
-  age: string | null;
-  /** @nullable */
-  findability: string | null;
-  seasons: string[];
-  dayNight: string[];
-  regions: string[];
-  surroundings: string[];
 }
 
 /**
@@ -616,6 +687,20 @@ export type ExportWordsParams = {
 
 export type DeleteSnapshot200 = {
   deleted: boolean;
+};
+
+export type ApproveBoardReleaseBody = {
+  /** @pattern ^sha256:[a-f0-9]{64}$ */
+  checksum: string;
+  /** @minimum 1 */
+  sourceReleaseId?: number;
+};
+
+export type ListBoardReleasesParams = {
+  /**
+   * @minimum 0
+   */
+  since?: number;
 };
 
 export type ListPublishedBoardsParams = {

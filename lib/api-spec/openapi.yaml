@@ -687,6 +687,131 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /release/boards/{id}/preview:
+    get:
+      operationId: previewBoardRelease
+      tags: [boards]
+      summary: Preview the current board draft before approving a content release
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Draft and checksum that must match when approving
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardReleasePreview" }
+        "404":
+          description: Board not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /release/boards/{id}/history:
+    get:
+      operationId: listBoardReleaseHistory
+      tags: [boards]
+      summary: List immutable content releases for editorial review and rollback
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Up to 50 latest immutable releases and the active release version
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardReleaseHistory" }
+
+  /release/boards/{id}/publish:
+    post:
+      operationId: approveBoardRelease
+      tags: [boards]
+      summary: Explicitly approve a draft or republish a historical release as a new version
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [checksum]
+              properties:
+                checksum: { type: string, pattern: "^sha256:[a-f0-9]{64}$" }
+                sourceReleaseId: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: New immutable release, assigned a globally increasing cursor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardRelease" }
+        "409":
+          description: Draft changed since preview or a concurrent release occurred
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /release/boards/{id}/withdraw:
+    post:
+      operationId: withdrawBoardRelease
+      tags: [boards]
+      summary: Stop discovery of the currently approved board without deleting any release
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "204": { description: Board withdrawn; downloaded copies remain playable }
+
+  /v2/boards:
+    get:
+      operationId: listBoardReleases
+      tags: [public]
+      summary: List only explicitly approved board snapshots with a transaction-ordered catalog cursor
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: since
+          in: query
+          schema: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Current released boards (or changes/tombstones after since)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardReleaseCatalog" }
+
+  /v2/boards/{id}/bundle:
+    get:
+      operationId: getCurrentBoardRelease
+      tags: [public]
+      summary: Get the immutable currently approved content bundle for a board
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Approved bundle with canonical SHA-256 checksum
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionedBoardBundle" }
+        "404": { description: Board not currently approved }
+
+  /v2/boards/{id}/releases/{version}:
+    get:
+      operationId: getHistoricalBoardRelease
+      tags: [public]
+      summary: Get a previously approved immutable release
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Immutable release payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionedBoardBundle" }
+        "404": { description: Approved release not found }
+
   /v1/boards:
     get:
       operationId: listPublishedBoards
@@ -1400,6 +1525,82 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+
+    ReleasedContent:
+      type: object
+      required: [schemaVersion, board, words]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        board:
+          type: object
+          required: [id, name, description, ageLevels, difficulty, timeOfYear, wordCount]
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            description: { type: ["string", "null"] }
+            ageLevels: { type: array, items: { type: string } }
+            difficulty: { type: ["string", "null"] }
+            timeOfYear: { type: ["string", "null"] }
+            wordCount: { type: integer }
+        words: { type: array, items: { $ref: "#/components/schemas/BundleWord" } }
+
+    BoardReleasePreview:
+      allOf:
+        - $ref: "#/components/schemas/ReleasedContent"
+        - type: object
+          required: [checksum, validationError]
+          properties:
+            checksum: { type: string }
+            validationError: { type: ["string", "null"] }
+
+    BoardRelease:
+      type: object
+      required: [id, boardId, version, sourceReleaseId, payload, checksum, createdAt]
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        version: { type: integer }
+        sourceReleaseId: { type: ["integer", "null"] }
+        payload: { $ref: "#/components/schemas/ReleasedContent" }
+        checksum: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    BoardReleaseHistory:
+      type: object
+      required: [releases, currentVersion]
+      properties:
+        releases:
+          type: array
+          maxItems: 50
+          items: { $ref: "#/components/schemas/BoardRelease" }
+        currentVersion: { type: ["integer", "null"] }
+
+    BoardReleaseCatalog:
+      type: object
+      required: [schemaVersion, boards, latestVersion, total]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        boards:
+          type: array
+          items:
+            type: object
+            required: [id, releaseId, contentVersion, action]
+            properties:
+              id: { type: integer }
+              releaseId: { type: integer }
+              contentVersion: { type: integer }
+              action: { type: string, enum: [publish, withdraw] }
+        latestVersion: { type: integer }
+        total: { type: integer }
+
+    VersionedBoardBundle:
+      allOf:
+        - $ref: "#/components/schemas/ReleasedContent"
+        - type: object
+          required: [contentVersion, checksum]
+          properties:
+            contentVersion: { type: integer }
+            checksum: { type: string, pattern: "^sha256:[a-f0-9]{64}$" }
 
     PublishedBoardSummary:
       type: object

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./approveBoardReleaseBody";
 export * from "./autofillRequest";
 export * from "./autofillResponse";
 export * from "./board";
@@ -14,6 +15,12 @@ export * from "./boardCoverage";
 export * from "./boardCoverageStatus";
 export * from "./boardList";
 export * from "./boardPreviewWord";
+export * from "./boardRelease";
+export * from "./boardReleaseCatalog";
+export * from "./boardReleaseCatalogBoardsItem";
+export * from "./boardReleaseCatalogBoardsItemAction";
+export * from "./boardReleaseHistory";
+export * from "./boardReleasePreview";
 export * from "./boardStatus";
 export * from "./bulkActionResponse";
 export * from "./bulkWordIdsBody";
@@ -31,6 +38,7 @@ export * from "./deleteSnapshot200";
 export * from "./errorResponse";
 export * from "./exportWordsParams";
 export * from "./healthStatus";
+export * from "./listBoardReleasesParams";
 export * from "./listPublishedBoardsParams";
 export * from "./listWordsParams";
 export * from "./patchTodoBody";
@@ -40,6 +48,8 @@ export * from "./patchTodoBodyStatus";
 export * from "./patchTodoBodyType";
 export * from "./publishedBoardList";
 export * from "./publishedBoardSummary";
+export * from "./releasedContent";
+export * from "./releasedContentBoard";
 export * from "./restoreSnapshotResponse";
 export * from "./snapshot";
 export * from "./snapshotList";
@@ -56,6 +66,7 @@ export * from "./todoType";
 export * from "./updateBoardBody";
 export * from "./updateBoardBodyStatus";
 export * from "./updateWordBody";
+export * from "./versionedBoardBundle";
 export * from "./word";
 export * from "./wordList";
 export * from "./wordStats";

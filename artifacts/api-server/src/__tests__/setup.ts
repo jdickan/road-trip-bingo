@@ -29,3 +29,9 @@ process.env.DATABASE_URL = testUrl;
 delete process.env.ADMIN_PASSWORD;
 delete process.env.AI_ROUTE_SECRET;
 process.env.NODE_ENV = "test";
+
+// The API router imports the OpenAI client during module loading. Tests must
+// never use real AI credentials or make provider requests; AI behavior tests
+// should mock the integration client explicitly.
+process.env.AI_INTEGRATIONS_OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
+process.env.AI_INTEGRATIONS_OPENAI_API_KEY = "vitest-only-not-a-credential";

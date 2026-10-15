@@ -857,6 +857,261 @@ export const SuggestWordsResponse = zod.object({
 });
 
 /**
+ * @summary Preview the current board draft before approving a content release
+ */
+
+export const PreviewBoardReleaseParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const PreviewBoardReleaseResponse = zod
+  .object({
+    schemaVersion: zod.number(),
+    board: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullable(),
+      ageLevels: zod.array(zod.string()),
+      difficulty: zod.string().nullable(),
+      timeOfYear: zod.string().nullable(),
+      wordCount: zod.number(),
+    }),
+    words: zod.array(
+      zod
+        .object({
+          id: zod.number(),
+          word: zod.string(),
+          spanish: zod.string().nullable(),
+          emoji: zod.string().nullable(),
+          age: zod.string().nullable(),
+          findability: zod.string().nullable(),
+          seasons: zod.array(zod.string()),
+          dayNight: zod.array(zod.string()),
+          regions: zod.array(zod.string()),
+          surroundings: zod.array(zod.string()),
+        })
+        .describe(
+          "A word entry inside a board bundle — gameplay content only, no editorial fields",
+        ),
+    ),
+  })
+  .and(
+    zod.object({
+      checksum: zod.string(),
+      validationError: zod.string().nullable(),
+    }),
+  );
+
+/**
+ * @summary List immutable content releases for editorial review and rollback
+ */
+
+export const ListBoardReleaseHistoryParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const listBoardReleaseHistoryResponseReleasesMax = 50;
+
+export const ListBoardReleaseHistoryResponse = zod.object({
+  releases: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        boardId: zod.number(),
+        version: zod.number(),
+        sourceReleaseId: zod.number().nullable(),
+        payload: zod.object({
+          schemaVersion: zod.number(),
+          board: zod.object({
+            id: zod.number(),
+            name: zod.string(),
+            description: zod.string().nullable(),
+            ageLevels: zod.array(zod.string()),
+            difficulty: zod.string().nullable(),
+            timeOfYear: zod.string().nullable(),
+            wordCount: zod.number(),
+          }),
+          words: zod.array(
+            zod
+              .object({
+                id: zod.number(),
+                word: zod.string(),
+                spanish: zod.string().nullable(),
+                emoji: zod.string().nullable(),
+                age: zod.string().nullable(),
+                findability: zod.string().nullable(),
+                seasons: zod.array(zod.string()),
+                dayNight: zod.array(zod.string()),
+                regions: zod.array(zod.string()),
+                surroundings: zod.array(zod.string()),
+              })
+              .describe(
+                "A word entry inside a board bundle — gameplay content only, no editorial fields",
+              ),
+          ),
+        }),
+        checksum: zod.string(),
+        createdAt: zod.coerce.date(),
+      }),
+    )
+    .max(listBoardReleaseHistoryResponseReleasesMax),
+  currentVersion: zod.number().nullable(),
+});
+
+/**
+ * @summary Explicitly approve a draft or republish a historical release as a new version
+ */
+
+export const ApproveBoardReleaseParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const approveBoardReleaseBodyChecksumRegExp = new RegExp(
+  "^sha256:[a-f0-9]{64}$",
+);
+
+export const ApproveBoardReleaseBody = zod.object({
+  checksum: zod.string().regex(approveBoardReleaseBodyChecksumRegExp),
+  sourceReleaseId: zod.number().min(1).optional(),
+});
+
+/**
+ * @summary Stop discovery of the currently approved board without deleting any release
+ */
+
+export const WithdrawBoardReleaseParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+/**
+ * @summary List only explicitly approved board snapshots with a transaction-ordered catalog cursor
+ */
+export const listBoardReleasesQuerySinceMin = 0;
+
+export const ListBoardReleasesQueryParams = zod.object({
+  since: zod.coerce.number().min(listBoardReleasesQuerySinceMin).optional(),
+});
+
+export const ListBoardReleasesResponse = zod.object({
+  schemaVersion: zod.number(),
+  boards: zod.array(
+    zod.object({
+      id: zod.number(),
+      releaseId: zod.number(),
+      contentVersion: zod.number(),
+      action: zod.enum(["publish", "withdraw"]),
+    }),
+  ),
+  latestVersion: zod.number(),
+  total: zod.number(),
+});
+
+/**
+ * @summary Get the immutable currently approved content bundle for a board
+ */
+
+export const GetCurrentBoardReleaseParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const getCurrentBoardReleaseResponseTwoChecksumRegExp = new RegExp(
+  "^sha256:[a-f0-9]{64}$",
+);
+
+export const GetCurrentBoardReleaseResponse = zod
+  .object({
+    schemaVersion: zod.number(),
+    board: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullable(),
+      ageLevels: zod.array(zod.string()),
+      difficulty: zod.string().nullable(),
+      timeOfYear: zod.string().nullable(),
+      wordCount: zod.number(),
+    }),
+    words: zod.array(
+      zod
+        .object({
+          id: zod.number(),
+          word: zod.string(),
+          spanish: zod.string().nullable(),
+          emoji: zod.string().nullable(),
+          age: zod.string().nullable(),
+          findability: zod.string().nullable(),
+          seasons: zod.array(zod.string()),
+          dayNight: zod.array(zod.string()),
+          regions: zod.array(zod.string()),
+          surroundings: zod.array(zod.string()),
+        })
+        .describe(
+          "A word entry inside a board bundle — gameplay content only, no editorial fields",
+        ),
+    ),
+  })
+  .and(
+    zod.object({
+      contentVersion: zod.number(),
+      checksum: zod
+        .string()
+        .regex(getCurrentBoardReleaseResponseTwoChecksumRegExp),
+    }),
+  );
+
+/**
+ * @summary Get a previously approved immutable release
+ */
+
+export const GetHistoricalBoardReleaseParams = zod.object({
+  id: zod.coerce.number().min(1),
+  version: zod.coerce.number().min(1),
+});
+
+export const getHistoricalBoardReleaseResponseTwoChecksumRegExp = new RegExp(
+  "^sha256:[a-f0-9]{64}$",
+);
+
+export const GetHistoricalBoardReleaseResponse = zod
+  .object({
+    schemaVersion: zod.number(),
+    board: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullable(),
+      ageLevels: zod.array(zod.string()),
+      difficulty: zod.string().nullable(),
+      timeOfYear: zod.string().nullable(),
+      wordCount: zod.number(),
+    }),
+    words: zod.array(
+      zod
+        .object({
+          id: zod.number(),
+          word: zod.string(),
+          spanish: zod.string().nullable(),
+          emoji: zod.string().nullable(),
+          age: zod.string().nullable(),
+          findability: zod.string().nullable(),
+          seasons: zod.array(zod.string()),
+          dayNight: zod.array(zod.string()),
+          regions: zod.array(zod.string()),
+          surroundings: zod.array(zod.string()),
+        })
+        .describe(
+          "A word entry inside a board bundle — gameplay content only, no editorial fields",
+        ),
+    ),
+  })
+  .and(
+    zod.object({
+      contentVersion: zod.number(),
+      checksum: zod
+        .string()
+        .regex(getHistoricalBoardReleaseResponseTwoChecksumRegExp),
+    }),
+  );
+
+/**
  * Public, API-key-gated endpoint for external consumers (the iOS app). Returns only boards with published = true — draft/concept boards and unpublished edits are never visible here. Pass `since` (the highest contentVersion seen on a previous sync) to receive only boards whose content changed after that version.
  * @summary List published boards (read-only, versioned public API)
  */
