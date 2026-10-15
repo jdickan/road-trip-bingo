@@ -21,6 +21,7 @@ export * from "./boardReleaseCatalogBoardsItem";
 export * from "./boardReleaseCatalogBoardsItemAction";
 export * from "./boardReleaseHistory";
 export * from "./boardReleasePreview";
+export * from "./boardReleaseSummary";
 export * from "./boardStatus";
 export * from "./bulkActionResponse";
 export * from "./bulkWordIdsBody";

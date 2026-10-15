@@ -33,3 +33,28 @@ by subsequent changes. Document pre-existing failures separately.
 
 The game/website have separate toolchains: audit and record their actual commands
 there rather than claiming this repository's checks validate those products.
+
+## Running tests on macOS
+
+The workspace overrides strip non-Linux native binaries (rollup, esbuild, tailwind oxide),
+so `vitest`/`vite` fail on macOS with `Cannot find module '@rollup/rollup-darwin-arm64'`.
+Without editing tracked files, side-load them into `node_modules` (match the locked
+versions): install `@rollup/rollup-darwin-arm64` and `@esbuild/darwin-arm64` in a scratch
+directory and copy them next to `node_modules/.pnpm/rollup@*` and `esbuild@*`.
+Use a freshly created throwaway database for `TEST_DATABASE_URL`.
+
+## Running the editor locally (outside Replit)
+
+Replit's path router sends `/api` to the API service. Locally, set
+`API_PROXY_TARGET` so the Vite dev server forwards `/api` itself. Use a throwaway
+`DATABASE_URL`; the OpenAI integration vars may be placeholders unless you use AI features.
+
+```
+export DATABASE_URL=postgres://localhost:5432/<throwaway_db>
+export AI_INTEGRATIONS_OPENAI_BASE_URL=http://127.0.0.1:9 AI_INTEGRATIONS_OPENAI_API_KEY=placeholder
+DATABASE_URL=$DATABASE_URL pnpm --filter @workspace/db run push-force
+PORT=8081 pnpm --filter @workspace/api-server run dev
+API_PROXY_TARGET=http://127.0.0.1:8081 PORT=5173 BASE_PATH=/ pnpm --filter @workspace/bingo-db run dev
+```
+
+Avoid ports 5000 (macOS AirPlay) and 8080 (commonly used by other projects).

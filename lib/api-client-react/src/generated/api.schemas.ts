@@ -62,6 +62,11 @@ export interface WordList {
 }
 
 export interface CreateWordBody {
+  /**
+   * Must contain at least one non-whitespace character
+   * @minLength 1
+   * @pattern \S
+   */
   word: string;
   regions?: string[];
   surroundings?: string[];
@@ -81,6 +86,11 @@ export interface CreateWordBody {
 }
 
 export interface UpdateWordBody {
+  /**
+   * Must contain at least one non-whitespace character
+   * @minLength 1
+   * @pattern \S
+   */
   word?: string;
   regions?: string[];
   surroundings?: string[];
@@ -575,9 +585,23 @@ export interface BoardRelease {
   createdAt: string;
 }
 
+/**
+ * Release metadata without the (up to 2 MiB) payload; fetch the payload via the v2 release route
+ */
+export interface BoardReleaseSummary {
+  id: number;
+  boardId: number;
+  version: number;
+  /** @nullable */
+  sourceReleaseId: number | null;
+  checksum: string;
+  wordCount: number;
+  createdAt: string;
+}
+
 export interface BoardReleaseHistory {
   /** @maxItems 50 */
-  releases: BoardRelease[];
+  releases: BoardReleaseSummary[];
   /** @nullable */
   currentVersion: number | null;
 }

@@ -5,11 +5,11 @@
  * Road Trip Bingo Word Database API
  * OpenAPI spec version: 0.1.0
  */
-import type { BoardRelease } from "./boardRelease";
+import type { BoardReleaseSummary } from "./boardReleaseSummary";
 
 export interface BoardReleaseHistory {
   /** @maxItems 50 */
-  releases: BoardRelease[];
+  releases: BoardReleaseSummary[];
   /** @nullable */
   currentVersion: number | null;
 }

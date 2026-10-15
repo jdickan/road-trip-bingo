@@ -23,7 +23,8 @@ interface BoardRelease {
   id: number; version: number; sourceReleaseId: number | null; checksum: string;
   createdAt: string; payload: ReleaseContent;
 }
-interface ReleaseHistory { releases: BoardRelease[]; currentVersion: number | null }
+type ReleaseSummary = Omit<BoardRelease, "payload"> & { wordCount: number };
+interface ReleaseHistory { releases: ReleaseSummary[]; currentVersion: number | null }
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -145,7 +146,7 @@ export function BoardReleaseDialog({ boardId, boardName }: { boardId: number; bo
                   {release.sourceReleaseId ? ` · restored from release ${release.sourceReleaseId}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {dateFormatter.format(new Date(release.createdAt))} · {release.payload.board.wordCount} words
+                  {dateFormatter.format(new Date(release.createdAt))} · {release.wordCount} words
                 </p>
               </div>
               {history.data?.currentVersion !== release.version ? (

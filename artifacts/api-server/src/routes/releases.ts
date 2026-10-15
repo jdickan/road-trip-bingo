@@ -1,9 +1,8 @@
-import { and, desc, eq, gt, inArray, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gt, lte, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod/v4";
 import {
   db, boardReleasesTable, releaseCatalogTable, releaseEventsTable,
-  wordsTable, wordBoardsTable,
 } from "@workspace/db";
 import {
   approveRelease, isSerializationConflict, previewDraftRelease,
@@ -39,7 +38,13 @@ router.get("/release/boards/:id/history", async (req, res): Promise<void> => {
   const parsed = positiveInt.safeParse(req.params.id);
   if (!parsed.success) { res.status(400).json({ error: "Invalid board id." }); return; }
   try {
-    const releases = await db.select().from(boardReleasesTable)
+    // Summary only: payloads can be up to 2 MiB each and are fetched per release.
+    const releases = await db.select({
+      id: boardReleasesTable.id, boardId: boardReleasesTable.boardId,
+      version: boardReleasesTable.version, sourceReleaseId: boardReleasesTable.sourceReleaseId,
+      checksum: boardReleasesTable.checksum, createdAt: boardReleasesTable.createdAt,
+      wordCount: sql<number>`(${boardReleasesTable.payload}->'board'->>'wordCount')::int`,
+    }).from(boardReleasesTable)
       .where(eq(boardReleasesTable.boardId, parsed.data))
       .orderBy(desc(boardReleasesTable.version)).limit(50);
     const [current] = await db.select().from(releaseEventsTable)
@@ -81,7 +86,8 @@ router.get("/v2/boards", async (req: Request, res: Response): Promise<void> => {
     const result = await db.transaction(async tx => {
       const [state] = await tx.select().from(releaseCatalogTable).where(eq(releaseCatalogTable.id, 1));
       const latestVersion = state?.version ?? 0;
-      const since = parsedSince?.success ? parsedSince.data : undefined;
+      // since=0 (or absent) is a first sync: publish-only, no tombstones for unseen boards.
+      const since = parsedSince?.success && parsedSince.data > 0 ? parsedSince.data : undefined;
       let events = await tx.selectDistinctOn([releaseEventsTable.boardId]).from(releaseEventsTable)
         .where(since !== undefined && since <= latestVersion
           ? and(lte(releaseEventsTable.version, latestVersion), gt(releaseEventsTable.version, since))

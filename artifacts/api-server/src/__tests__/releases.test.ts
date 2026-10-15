@@ -50,6 +50,10 @@ describe("approved board release lifecycle", () => {
     await request(app).get(`/api/v2/boards/${id}/releases/${currentVersion - 1}`).expect(404);
 
     const history = await request(app).get(`/api/release/boards/${id}/history`).expect(200);
+    expect(history.body.releases[0]).not.toHaveProperty("payload");
+    expect(history.body.releases[0].wordCount).toBe(25);
+    // First sync sees only currently published boards, not withdrawal tombstones.
+    expect((await request(app).get("/api/v2/boards?since=0").expect(200)).body.boards).toEqual([]);
     const priorRelease = history.body.releases[0];
     const rollback = await request(app).post(`/api/release/boards/${id}/publish`)
       .send({ checksum: priorRelease.checksum, sourceReleaseId: priorRelease.id }).expect(201);

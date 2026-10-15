@@ -185,6 +185,8 @@ export const ListWordsResponse = zod.object({
 /**
  * @summary Create a new bingo word
  */
+
+export const createWordBodyWordRegExp = new RegExp("\\S");
 export const createWordBodyRegionsDefault = [`All`];
 export const createWordBodySurroundingsDefault = [];
 export const createWordBodyDayNightDefault = [`Day`];
@@ -197,7 +199,11 @@ export const createWordBodySpanishDefault = null;
 export const createWordBodyEmojiDefault = null;
 
 export const CreateWordBody = zod.object({
-  word: zod.string(),
+  word: zod
+    .string()
+    .min(1)
+    .regex(createWordBodyWordRegExp)
+    .describe("Must contain at least one non-whitespace character"),
   regions: zod.array(zod.string()).default(createWordBodyRegionsDefault),
   surroundings: zod
     .array(zod.string())
@@ -313,8 +319,15 @@ export const UpdateWordParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const updateWordBodyWordRegExp = new RegExp("\\S");
+
 export const UpdateWordBody = zod.object({
-  word: zod.string().optional(),
+  word: zod
+    .string()
+    .min(1)
+    .regex(updateWordBodyWordRegExp)
+    .optional()
+    .describe("Must contain at least one non-whitespace character"),
   regions: zod.array(zod.string()).optional(),
   surroundings: zod.array(zod.string()).optional(),
   dayNight: zod.array(zod.string()).optional(),
@@ -915,44 +928,19 @@ export const listBoardReleaseHistoryResponseReleasesMax = 50;
 export const ListBoardReleaseHistoryResponse = zod.object({
   releases: zod
     .array(
-      zod.object({
-        id: zod.number(),
-        boardId: zod.number(),
-        version: zod.number(),
-        sourceReleaseId: zod.number().nullable(),
-        payload: zod.object({
-          schemaVersion: zod.number(),
-          board: zod.object({
-            id: zod.number(),
-            name: zod.string(),
-            description: zod.string().nullable(),
-            ageLevels: zod.array(zod.string()),
-            difficulty: zod.string().nullable(),
-            timeOfYear: zod.string().nullable(),
-            wordCount: zod.number(),
-          }),
-          words: zod.array(
-            zod
-              .object({
-                id: zod.number(),
-                word: zod.string(),
-                spanish: zod.string().nullable(),
-                emoji: zod.string().nullable(),
-                age: zod.string().nullable(),
-                findability: zod.string().nullable(),
-                seasons: zod.array(zod.string()),
-                dayNight: zod.array(zod.string()),
-                regions: zod.array(zod.string()),
-                surroundings: zod.array(zod.string()),
-              })
-              .describe(
-                "A word entry inside a board bundle — gameplay content only, no editorial fields",
-              ),
-          ),
-        }),
-        checksum: zod.string(),
-        createdAt: zod.coerce.date(),
-      }),
+      zod
+        .object({
+          id: zod.number(),
+          boardId: zod.number(),
+          version: zod.number(),
+          sourceReleaseId: zod.number().nullable(),
+          checksum: zod.string(),
+          wordCount: zod.number(),
+          createdAt: zod.coerce.date(),
+        })
+        .describe(
+          "Release metadata without the (up to 2 MiB) payload; fetch the payload via the v2 release route",
+        ),
     )
     .max(listBoardReleaseHistoryResponseReleasesMax),
   currentVersion: zod.number().nullable(),
