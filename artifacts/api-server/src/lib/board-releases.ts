@@ -50,9 +50,20 @@ async function lockCatalog(tx: Tx) {
   return state.version + 1;
 }
 
+async function withSerializationRetry<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await operation();
+    } catch (err) {
+      if (!isSerializationConflict(err) || attempt >= 4) throw err;
+      await new Promise(resolve => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
+}
+
 /** No exposed update/delete path: rollback appends a new immutable release. */
 export async function approveRelease(boardId: number, expectedChecksum: string, sourceReleaseId?: number) {
-  return db.transaction(async tx => {
+  return withSerializationRetry(() => db.transaction(async tx => {
     const version = await lockCatalog(tx);
     let content;
     if (sourceReleaseId !== undefined) {
@@ -76,11 +87,11 @@ export async function approveRelease(boardId: number, expectedChecksum: string, 
     await tx.insert(releaseEventsTable).values({ version, boardId, releaseId: release.id, action: "publish" });
     await tx.update(releaseCatalogTable).set({ version }).where(eq(releaseCatalogTable.id, 1));
     return release;
-  }, { isolationLevel: "repeatable read" });
+  }, { isolationLevel: "repeatable read" }));
 }
 
 export async function withdrawRelease(boardId: number) {
-  return db.transaction(async tx => {
+  return withSerializationRetry(() => db.transaction(async tx => {
     const version = await lockCatalog(tx);
     const [latest] = await tx.select().from(releaseEventsTable)
       .where(eq(releaseEventsTable.boardId, boardId)).orderBy(desc(releaseEventsTable.version)).limit(1);
@@ -89,7 +100,7 @@ export async function withdrawRelease(boardId: number) {
       version, boardId, releaseId: latest.releaseId, action: "withdraw",
     });
     await tx.update(releaseCatalogTable).set({ version }).where(eq(releaseCatalogTable.id, 1));
-  }, { isolationLevel: "repeatable read" });
+  }, { isolationLevel: "repeatable read" }));
 }
 
 export function isSerializationConflict(err: unknown): boolean {

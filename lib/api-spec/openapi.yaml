@@ -1584,7 +1584,7 @@ components:
           type: array
           items:
             type: object
-            required: [id, releaseId, contentVersion]
+            required: [id, releaseId, contentVersion, action]
             properties:
               id: { type: integer }
               releaseId: { type: integer }

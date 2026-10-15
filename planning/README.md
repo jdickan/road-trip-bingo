@@ -38,3 +38,6 @@ GitHub main was unprotected when inspected on 2026-10-14. Owner-authorized merge
 and review remain mandatory; repository protection still needs owner confirmation.
 Uncommitted changes are **not shared**. Each agent must fetch or inspect the
 relevant published branch/PR; main alone does not contain unmerged work.
+Before a branch is pushed, its `changes/` handoff is local to this checkout; do
+not tell another LLM it can read that handoff yet. The owner must approve sharing
+the branch/PR, and must separately approve any merge.

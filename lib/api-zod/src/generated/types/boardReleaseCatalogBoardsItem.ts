@@ -11,5 +11,5 @@ export type BoardReleaseCatalogBoardsItem = {
   id: number;
   releaseId: number;
   contentVersion: number;
-  action?: BoardReleaseCatalogBoardsItemAction;
+  action: BoardReleaseCatalogBoardsItemAction;
 };

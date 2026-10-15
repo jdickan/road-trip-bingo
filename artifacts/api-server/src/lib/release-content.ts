@@ -37,11 +37,16 @@ export function releaseChecksum(content: ReleaseContent): string {
   return `sha256:${createHash("sha256").update(canonicalReleaseJson(content), "utf8").digest("hex")}`;
 }
 
+export const MAX_RELEASE_BYTES = 2 * 1024 * 1024;
+
 /** The minimum supports a 5x5 card; normalized duplicate labels are not distinct choices. */
 export function validatePlayableRelease(content: ReleaseContent): void {
   const distinct = new Set(content.words.map(w => w.word.normalize("NFKC").trim().toLocaleLowerCase("en-US")));
-  if (content.words.some(w => !w.word.trim()) || distinct.size < 25 ||
+  if (Buffer.byteLength(canonicalReleaseJson(content), "utf8") > MAX_RELEASE_BYTES) {
+    throw new Error("A content release cannot exceed 2 MiB.");
+  }
+  if (content.words.length > 10_000 || content.words.some(w => !w.word.trim()) || distinct.size < 25 ||
       content.board.wordCount !== content.words.length) {
-    throw new Error("A release needs at least 25 distinct, non-empty playable words and an accurate word count.");
+    throw new Error("A release needs 25–10,000 distinct, non-empty playable words and an accurate word count.");
   }
 }

@@ -999,7 +999,7 @@ export const ListBoardReleasesResponse = zod.object({
       id: zod.number(),
       releaseId: zod.number(),
       contentVersion: zod.number(),
-      action: zod.enum(["publish", "withdraw"]).optional(),
+      action: zod.enum(["publish", "withdraw"]),
     }),
   ),
   latestVersion: zod.number(),

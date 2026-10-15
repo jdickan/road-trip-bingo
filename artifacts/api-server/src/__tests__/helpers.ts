@@ -3,7 +3,7 @@ import { db, boardsTable } from "@workspace/db";
 
 export async function truncateAll(): Promise<void> {
   await db.execute(
-    sql`TRUNCATE TABLE bingo_board_release_events, bingo_board_releases, bingo_release_catalog, bingo_word_boards, bingo_words, bingo_boards, bingo_todos RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE TABLE bingo_release_events, bingo_board_releases, bingo_release_catalog, bingo_word_boards, bingo_words, bingo_boards, bingo_todos RESTART IDENTITY CASCADE`,
   );
 }
 

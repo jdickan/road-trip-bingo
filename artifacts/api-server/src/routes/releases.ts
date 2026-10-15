@@ -124,6 +124,12 @@ router.get("/v2/boards/:id/releases/:version", async (req: Request, res: Respons
   const version = positiveInt.safeParse(req.params.version);
   if (!id.success || !version.success) { res.status(400).json({ error: "Invalid board or release version." }); return; }
   try {
+    const [currentEvent] = await db.select().from(releaseEventsTable)
+      .where(eq(releaseEventsTable.boardId, id.data))
+      .orderBy(desc(releaseEventsTable.version)).limit(1);
+    if (!currentEvent || currentEvent.action !== "publish") {
+      res.status(404).json({ error: "Board is not currently available for download." }); return;
+    }
     const [event] = await db.select().from(releaseEventsTable)
       .where(and(eq(releaseEventsTable.boardId, id.data), eq(releaseEventsTable.version, version.data)));
     if (!event || event.action !== "publish") { res.status(404).json({ error: "Approved release not found." }); return; }

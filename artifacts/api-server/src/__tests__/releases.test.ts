@@ -5,7 +5,7 @@ import app from "../app";
 import { truncateAll } from "./helpers";
 
 afterAll(async () => { await pool.end(); });
-beforeEach(async () => { await truncateAll(); });
+beforeEach(async () => { delete process.env.PUBLIC_API_KEY; await truncateAll(); });
 
 async function seedPlayableBoard(name: string) {
   const { body: board } = await request(app).post("/api/boards").send({ name }).expect(201);
@@ -47,6 +47,7 @@ describe("approved board release lifecycle", () => {
     const delta = await request(app).get(`/api/v2/boards?since=${currentVersion}`).expect(200);
     expect(delta.body.boards).toEqual([expect.objectContaining({ id, action: "withdraw" })]);
     await request(app).get(`/api/v2/boards/${id}/bundle`).expect(404);
+    await request(app).get(`/api/v2/boards/${id}/releases/${currentVersion - 1}`).expect(404);
 
     const history = await request(app).get(`/api/release/boards/${id}/history`).expect(200);
     const priorRelease = history.body.releases[0];
@@ -63,6 +64,21 @@ describe("approved board release lifecycle", () => {
     await request(app).patch(`/api/boards/${id}`).send({ name: "Changed after preview" }).expect(200);
     await request(app).post(`/api/release/boards/${id}/publish`)
       .send({ checksum: preview.body.checksum }).expect(409);
+  });
+
+  it("gates the public v2 catalog with the API key but leaves editorial routes behind editor auth", async () => {
+    process.env.PUBLIC_API_KEY = "release-test-key";
+    try {
+      await request(app).get("/api/v2/boards").expect(401);
+      await request(app).get("/api/v2/boards").set("X-API-Key", "wrong-key").expect(401);
+      await request(app).get("/api/v2/boards").set("X-API-Key", "release-test-key").expect(200);
+      // The key does not authorize or gate an administrative release preview.
+      const id = await seedPlayableBoard("Private release");
+      await request(app).get(`/api/release/boards/${id}/preview`)
+        .set("X-API-Key", "release-test-key").expect(200);
+    } finally {
+      delete process.env.PUBLIC_API_KEY;
+    }
   });
 
   it("serializes concurrent release publication into a usable advancing global cursor", async () => {

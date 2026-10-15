@@ -8,7 +8,9 @@ Use pnpm and Node 24. Run `pnpm install --frozen-lockfile` after fetching change
 | Typecheck | `pnpm run typecheck` | Composite libraries followed by workspace leaves |
 | Security/unit | `pnpm --filter @workspace/api-server run test:auth` | Database-free API security and focused pure-logic checks |
 | API integration | `pnpm --filter @workspace/api-server run test` | Security suite then real PostgreSQL API regression tests |
-| Build | `pnpm run build` | Typecheck plus package builds |
+| API build | `pnpm --filter @workspace/api-server run build` | Bundle the API service |
+| Editor build | `PORT=5000 BASE_PATH=/bingo-db pnpm --filter @workspace/bingo-db run build` | Build the Vite editor with the artifact's required preview settings |
+| Workspace build | `PORT=5000 BASE_PATH=/bingo-db pnpm run build` | Typecheck and build the workspace |
 
 Database-backed tests TRUNCATE data: use an explicitly isolated test database, never
 the master/development/production content database. Existing test setup requires
