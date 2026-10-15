@@ -1565,6 +1565,19 @@ components:
         checksum: { type: string }
         createdAt: { type: string, format: date-time }
 
+    BoardReleaseSummary:
+      type: object
+      description: Release metadata without the (up to 2 MiB) payload; fetch the payload via the v2 release route
+      required: [id, boardId, version, sourceReleaseId, checksum, wordCount, createdAt]
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        version: { type: integer }
+        sourceReleaseId: { type: ["integer", "null"] }
+        checksum: { type: string }
+        wordCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
     BoardReleaseHistory:
       type: object
       required: [releases, currentVersion]
@@ -1572,7 +1585,7 @@ components:
         releases:
           type: array
           maxItems: 50
-          items: { $ref: "#/components/schemas/BoardRelease" }
+          items: { $ref: "#/components/schemas/BoardReleaseSummary" }
         currentVersion: { type: ["integer", "null"] }
 
     BoardReleaseCatalog:

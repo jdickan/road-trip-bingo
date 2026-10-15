@@ -575,9 +575,23 @@ export interface BoardRelease {
   createdAt: string;
 }
 
+/**
+ * Release metadata without the (up to 2 MiB) payload; fetch the payload via the v2 release route
+ */
+export interface BoardReleaseSummary {
+  id: number;
+  boardId: number;
+  version: number;
+  /** @nullable */
+  sourceReleaseId: number | null;
+  checksum: string;
+  wordCount: number;
+  createdAt: string;
+}
+
 export interface BoardReleaseHistory {
   /** @maxItems 50 */
-  releases: BoardRelease[];
+  releases: BoardReleaseSummary[];
   /** @nullable */
   currentVersion: number | null;
 }

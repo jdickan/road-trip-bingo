@@ -33,3 +33,12 @@ by subsequent changes. Document pre-existing failures separately.
 
 The game/website have separate toolchains: audit and record their actual commands
 there rather than claiming this repository's checks validate those products.
+
+## Running tests on macOS
+
+The workspace overrides strip non-Linux native binaries (rollup, esbuild, tailwind oxide),
+so `vitest`/`vite` fail on macOS with `Cannot find module '@rollup/rollup-darwin-arm64'`.
+Without editing tracked files, side-load them into `node_modules` (match the locked
+versions): install `@rollup/rollup-darwin-arm64` and `@esbuild/darwin-arm64` in a scratch
+directory and copy them next to `node_modules/.pnpm/rollup@*` and `esbuild@*`.
+Use a freshly created throwaway database for `TEST_DATABASE_URL`.
