@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db, boardsTable, wordsTable, wordBoardsTable,
   boardReleasesTable, releaseCatalogTable, releaseEventsTable } from "@workspace/db";
 import { releaseContentSchema, releaseChecksum, validatePlayableRelease } from "./release-content";
@@ -97,5 +97,4 @@ export function isSerializationConflict(err: unknown): boolean {
   return e?.code === "40001" || e?.cause?.code === "40001";
 }
 
-// Imported sql intentionally avoided in callers; only parameterized Drizzle queries.
 export { releaseContentSchema, releaseChecksum };
