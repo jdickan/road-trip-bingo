@@ -12,6 +12,7 @@ Start here:
 4. Read [Git/work ownership procedures](git-workflow.md) and
    [quality checks](quality.md).
    Store-policy fit for the release model: [store-policy](store-policy.md).
+   Open owner decisions on releases: [release-decisions](release-decisions.md).
 5. Read relevant recent [changes](../changes/README.md), then claim a ready item.
 
 ## Ownership boundaries
