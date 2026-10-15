@@ -4,9 +4,9 @@
 
 - Owner: Replit Agent. Repository: `jdickan/road-trip-bingo`.
 - Working branch: `replit/controlled-content-releases`.
-- Shared claim: GitHub issue #1. No PR is open and this working copy has not been
-  pushed. This file and its implementation details are therefore **not yet visible
-  to Claude through GitHub**; do not assume a local checkout is shared.
+- Shared claim: GitHub issue #1. The implementation is now shared in draft
+  [PR #2](https://github.com/jdickan/road-trip-bingo/pull/2), so Claude can fetch
+  this handoff from GitHub. The original six commits retain their local hashes.
 - No merge or production deployment was performed. Development schema changes were
   applied to `heliumdb`; equivalent additive test schema changes were applied only
   to the separately verified `bingo_test` database. Production schema changes must
@@ -48,15 +48,17 @@
   sign-in page. The browser tool cannot sign into the protected editor, so the
   release dialog itself was not visually exercised there. Database-backed tests
   validate the API behavior.
-- GitHub CI has not run for this unpushed branch. The web preview's auth screen is
-  expected; no credentials were entered or exposed.
+- The first GitHub CI run failed before the API tests loaded because the test
+  process did not have OpenAI client environment values. The main-branch check
+  from 2026-10-05 shows the same pre-existing failure. The test setup now uses a
+  loopback-only endpoint and a non-credential placeholder; a PR rerun is pending.
+- The web preview's auth screen is expected; no credentials were entered or exposed.
 
 ## Remaining work and risks
 
-1. Owner: share/approve the branch for a draft PR; before then, Claude cannot fetch
-   the implementation or this handoff from GitHub. The PR must disclose the exact
-   branch/main divergence and include all necessary dependency/base commits. Do not
-   force-push, merge, or apply production schema changes.
+1. Owner: review draft PR #2 and its required CI rerun. The branch includes its
+   original six commits and is shared with Claude. Do not force-push, merge, or
+   apply production schema changes.
 2. Owner/game maintainer: identify the actual App Store record (link or numeric ID),
    current status, territories and Apple notices. No App Store Connect access or
    native iOS project was available in this workspace; do not infer the reason for
@@ -89,6 +91,9 @@
 
 ## Integration state
 
-Replit implementation exists in a local working branch; not shared, merged,
-deployed, migrated to clients, or released to the App Store. The overall launch task
-remains blocked on the App Store identity/status and game-client migration decisions.
+Replit implementation is shared in draft PR #2; it is not merged, deployed,
+migrated to clients, or released to the App Store. The overall launch task remains
+blocked on App Store identity/status and game-client migration decisions.
+
+See the [2026-10-15 draft-PR handoff](2026-10-15-draft-pr-published.md) for current
+publication and CI status.

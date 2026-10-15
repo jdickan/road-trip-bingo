@@ -30,9 +30,10 @@ baseline pending compatibility assessment. No automatic merge or Apple submissio
 Current content-manager claim:
 https://github.com/jdickan/road-trip-bingo/issues/1
 
-Replit owns the `replit/controlled-content-releases` branch and the coordination,
-quality and approved-release areas described there. Other agents must claim a
-separate item before editing. Suggestions in a handoff are not assignments.
+Replit owns `replit/controlled-content-releases` and draft
+[PR #2](https://github.com/jdickan/road-trip-bingo/pull/2), covering coordination,
+quality and approved-release work. Other agents must claim a separate item before
+editing. Suggestions in a handoff are not assignments.
 
 GitHub main was unprotected when inspected on 2026-10-14. Owner-authorized merges
 and review remain mandatory; repository protection still needs owner confirmation.
