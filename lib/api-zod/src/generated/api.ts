@@ -185,6 +185,8 @@ export const ListWordsResponse = zod.object({
 /**
  * @summary Create a new bingo word
  */
+
+export const createWordBodyWordRegExp = new RegExp("\\S");
 export const createWordBodyRegionsDefault = [`All`];
 export const createWordBodySurroundingsDefault = [];
 export const createWordBodyDayNightDefault = [`Day`];
@@ -197,7 +199,11 @@ export const createWordBodySpanishDefault = null;
 export const createWordBodyEmojiDefault = null;
 
 export const CreateWordBody = zod.object({
-  word: zod.string(),
+  word: zod
+    .string()
+    .min(1)
+    .regex(createWordBodyWordRegExp)
+    .describe("Must contain at least one non-whitespace character"),
   regions: zod.array(zod.string()).default(createWordBodyRegionsDefault),
   surroundings: zod
     .array(zod.string())
@@ -313,8 +319,15 @@ export const UpdateWordParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const updateWordBodyWordRegExp = new RegExp("\\S");
+
 export const UpdateWordBody = zod.object({
-  word: zod.string().optional(),
+  word: zod
+    .string()
+    .min(1)
+    .regex(updateWordBodyWordRegExp)
+    .optional()
+    .describe("Must contain at least one non-whitespace character"),
   regions: zod.array(zod.string()).optional(),
   surroundings: zod.array(zod.string()).optional(),
   dayNight: zod.array(zod.string()).optional(),

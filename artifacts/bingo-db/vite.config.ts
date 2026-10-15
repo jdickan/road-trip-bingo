@@ -62,6 +62,11 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    // Opt-in for local development outside Replit's path router: forward /api to
+    // a locally running API server, e.g. API_PROXY_TARGET=http://127.0.0.1:8081.
+    ...(process.env.API_PROXY_TARGET
+      ? { proxy: { "/api": { target: process.env.API_PROXY_TARGET, changeOrigin: true } } }
+      : {}),
     fs: {
       strict: true,
       deny: ["**/.*"],

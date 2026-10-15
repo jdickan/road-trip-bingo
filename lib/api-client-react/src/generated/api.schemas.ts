@@ -62,6 +62,11 @@ export interface WordList {
 }
 
 export interface CreateWordBody {
+  /**
+   * Must contain at least one non-whitespace character
+   * @minLength 1
+   * @pattern \S
+   */
   word: string;
   regions?: string[];
   surroundings?: string[];
@@ -81,6 +86,11 @@ export interface CreateWordBody {
 }
 
 export interface UpdateWordBody {
+  /**
+   * Must contain at least one non-whitespace character
+   * @minLength 1
+   * @pattern \S
+   */
   word?: string;
   regions?: string[];
   surroundings?: string[];

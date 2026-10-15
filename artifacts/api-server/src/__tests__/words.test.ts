@@ -15,6 +15,19 @@ afterAll(async () => {
   await pool.end();
 });
 
+describe("word text validation", () => {
+  it.each(["", "   ", "\t\n"])("rejects creating a word of %j", async (word) => {
+    await request(app).post("/api/words").send({ word }).expect(400);
+  });
+
+  it("rejects blanking an existing word", async () => {
+    const { body } = await request(app).post("/api/words").send({ word: "Cow" }).expect(201);
+    await request(app).patch(`/api/words/${body.id}`).send({ word: "  " }).expect(400);
+    const after = await request(app).get("/api/words").expect(200);
+    expect(JSON.stringify(after.body)).toContain("Cow");
+  });
+});
+
 describe("words CRUD", () => {
   it("creates a word with boardIds and returns both boards and boardIds", async () => {
     const generalId = boardIds.get("General")!;
